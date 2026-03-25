@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
+import { MatchDeleteButton } from "@/components/match-delete-button";
+import { FlashMessage } from "@/components/flash-message";
 
 export const metadata: Metadata = {
   title: "対局履歴 | 麻雀成績入力",
@@ -29,6 +32,9 @@ export default async function MatchesPage() {
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
+      <Suspense>
+        <FlashMessage />
+      </Suspense>
       <div className="mx-auto max-w-screen-2xl space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -76,6 +82,7 @@ export default async function MatchesPage() {
                       <th className="px-3 py-2.5 text-left">飛び/飛ばし</th>
                       <th className="px-3 py-2.5 text-left">焼き鳥</th>
                       <th className="px-3 py-2.5 text-left">備考</th>
+                      <th className="px-3 py-2.5 text-center">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -129,6 +136,14 @@ export default async function MatchesPage() {
                           {match.yakitoriPlayers.length > 0 ? match.yakitoriPlayers.join("、") : "-"}
                         </td>
                         <td className="px-3 py-3 text-xs text-emerald-900/80">{match.notes || "-"}</td>
+                        <td className="px-3 py-3 text-center">
+                          <div className="flex gap-2 justify-center">
+                            <Link href={`/matches/${encodeURIComponent(match.createdAt)}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                              編集
+                            </Link>
+                            <MatchDeleteButton createdAt={match.createdAt} />
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
