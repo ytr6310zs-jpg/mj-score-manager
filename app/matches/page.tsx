@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 
-import { logoutAction } from "@/app/login/actions";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { AppHeader } from "@/components/app-header";
+import { buttonVariants } from "@/components/ui/button";
 import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
 import { MatchDeleteButton } from "@/components/match-delete-button";
 import { FlashMessage } from "@/components/flash-message";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "対局履歴 | 麻雀成績入力",
@@ -36,27 +36,10 @@ export default async function MatchesPage() {
         <FlashMessage />
       </Suspense>
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Link href="/" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              スコア入力
-            </Link>
-            <Link href="/matches" className={buttonVariants({ variant: "default", size: "sm" })}>
-              対局履歴
-            </Link>
-            <Link href="/stats" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              成績集計
-            </Link>
-          </div>
-          <form action={logoutAction}>
-            <Button type="submit" variant="outline" size="sm">
-              ログアウト
-            </Button>
-          </form>
-        </div>
+        <AppHeader current="matches" />
 
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
-          <div className="border-b border-emerald-100 px-6 py-4">
+          <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
             <h1 className="text-xl font-bold text-emerald-900">対局履歴</h1>
             <p className="mt-1 text-xs text-emerald-700/70">
               日付順に、各対局の順位・スコア・特記事項を確認できます。
@@ -71,7 +54,85 @@ export default async function MatchesPage() {
                 まだ対局データがありません。スコア入力画面から登録してください。
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+                <div className="space-y-4 md:hidden">
+                  {matches.map((match, index) => (
+                    <article
+                      key={`${match.createdAt}-${index}`}
+                      className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-emerald-900">{match.date || "-"}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                            {match.gameType.toUpperCase()} / 合計 {signedScore(match.scoreTotal)}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-2">
+                          <Link
+                            href={`/matches/${encodeURIComponent(match.createdAt)}/edit`}
+                            className={buttonVariants({ variant: "outline", size: "sm" })}
+                          >
+                            編集
+                          </Link>
+                          <MatchDeleteButton createdAt={match.createdAt} />
+                        </div>
+                      </div>
+
+                      <ul className="mt-4 space-y-2">
+                        {match.players.map((player) => {
+                          const badge = resultBadge(player);
+                          return (
+                            <li
+                              key={`${match.createdAt}-${player.slot}`}
+                              className="rounded-md bg-white/80 px-3 py-2 text-sm"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span className="inline-flex min-w-10 justify-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-800">
+                                    {player.rank}位
+                                  </span>
+                                  <span className="truncate font-medium text-emerald-950">{player.name}</span>
+                                </div>
+                                <span
+                                  className={`shrink-0 tabular-nums ${
+                                    player.score >= 0 ? "text-emerald-700" : "text-destructive"
+                                  }`}
+                                >
+                                  {signedScore(player.score)}
+                                </span>
+                              </div>
+                              {badge ? (
+                                <p className="mt-2 text-xs font-semibold text-amber-900">{badge}</p>
+                              ) : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
+
+                      <dl className="mt-4 space-y-2 text-xs text-emerald-900/80">
+                        <div>
+                          <dt className="font-semibold text-emerald-900">飛び / 飛ばし</dt>
+                          <dd>
+                            {match.tobiPlayer || match.tobashiPlayer
+                              ? `飛び: ${match.tobiPlayer || "-"} / 飛ばし: ${match.tobashiPlayer || "-"}`
+                              : "-"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-emerald-900">焼き鳥</dt>
+                          <dd>{match.yakitoriPlayers.length > 0 ? match.yakitoriPlayers.join("、") : "-"}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-emerald-900">備考</dt>
+                          <dd className="whitespace-pre-wrap">{match.notes || "-"}</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
                 <table className="min-w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b-2 border-emerald-800/20 bg-emerald-50/80 text-xs font-semibold text-emerald-900">
@@ -148,7 +209,8 @@ export default async function MatchesPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </div>
         </div>

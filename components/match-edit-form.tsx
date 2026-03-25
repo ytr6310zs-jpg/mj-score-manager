@@ -161,7 +161,7 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
       <div className="space-y-4">
         <h3 className="font-semibold text-emerald-900">プレイヤーとスコア</h3>
         {activeSlots.map((slot) => (
-          <div key={slot} className="space-y-3 border-l-4 border-emerald-200 bg-emerald-50 p-4">
+          <div key={slot} className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 <Label className="mb-2 block text-sm">
@@ -244,12 +244,13 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
         <Label htmlFor="notes" className="mb-2 block">
           備考
         </Label>
-        <Input
+        <textarea
           id="notes"
-          type="text"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
+          rows={3}
           placeholder="例: 麻雀ゲーム"
+          className="flex min-h-24 w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 
@@ -267,11 +268,11 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
         </Alert>
       )}
 
-      <div className="flex gap-2 pt-4">
-        <Button type="submit" disabled={pending || clientError !== null} className="flex-1">
+      <div className="flex flex-col gap-2 pt-4 sm:flex-row">
+        <Button type="submit" disabled={pending || clientError !== null} className="w-full flex-1">
           {pending ? "編集中..." : "対局を編集"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => window.history.back()}>
+        <Button type="button" variant="outline" onClick={() => window.history.back()} className="w-full sm:w-auto">
           キャンセル
         </Button>
       </div>
