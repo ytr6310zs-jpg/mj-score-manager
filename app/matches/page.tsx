@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { logoutAction } from "@/app/login/actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
 
 export const metadata: Metadata = {
@@ -31,18 +31,15 @@ export default async function MatchesPage() {
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="text-sm font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-            >
-              ← スコア入力
+          <div className="flex items-center gap-2">
+            <Link href="/" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              スコア入力
             </Link>
-            <Link
-              href="/stats"
-              className="text-sm font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-            >
-              個人成績
+            <Link href="/matches" className={buttonVariants({ variant: "default", size: "sm" })}>
+              対局履歴
+            </Link>
+            <Link href="/stats" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              成績集計
             </Link>
           </div>
           <form action={logoutAction}>
@@ -129,13 +126,9 @@ export default async function MatchesPage() {
                             : "-"}
                         </td>
                         <td className="px-3 py-3 text-xs text-emerald-900/80">
-                          {match.yakitoriPlayers.length > 0
-                            ? match.yakitoriPlayers.join("、")
-                            : "-"}
+                          {match.yakitoriPlayers.length > 0 ? match.yakitoriPlayers.join("、") : "-"}
                         </td>
-                        <td className="px-3 py-3 text-xs text-emerald-900/80">
-                          {match.notes || "-"}
-                        </td>
+                        <td className="px-3 py-3 text-xs text-emerald-900/80">{match.notes || "-"}</td>
                       </tr>
                     ))}
                   </tbody>
