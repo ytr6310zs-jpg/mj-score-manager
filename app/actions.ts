@@ -6,6 +6,7 @@ import { PLAYERS } from "@/lib/players";
 
 const NONE_VALUE = "__none__";
 const SCORE_TOLERANCE = 1;
+const PLAYER_NAMES: readonly string[] = PLAYERS;
 
 type GameType = "3p" | "4p";
 
@@ -51,7 +52,7 @@ function validatePlayer(name: string, label: string) {
     return `${label}を選択してください`;
   }
 
-  if (!PLAYERS.includes(name)) {
+  if (!PLAYER_NAMES.includes(name)) {
     return `${label}が不正です`;
   }
 
