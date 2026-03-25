@@ -1,32 +1,17 @@
-import Link from "next/link";
-
 import { ScoreForm } from "@/components/score-form";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { logoutAction } from "@/app/login/actions";
+import { AppHeader } from "@/components/app-header";
 import { fetchPlayerNames } from "@/lib/players-sheet";
 
 export default async function HomePage() {
   const players = await fetchPlayerNames();
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-10">
+    <main className="mx-auto flex min-h-screen w-full max-w-5xl items-start justify-center px-4 py-6 sm:py-8 md:items-center md:py-10">
       <div className="w-full space-y-4">
-        <div className="flex items-center justify-between gap-4">
+        <div className="space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-900/70">
             Mahjong Score Manager
           </p>
-          <div className="flex items-center gap-2">
-            <Link href="/matches" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              対局履歴
-            </Link>
-            <Link href="/stats" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              成績集計
-            </Link>
-            <form action={logoutAction}>
-              <Button type="submit" variant="outline" size="sm">
-                ログアウト
-              </Button>
-            </form>
-          </div>
+          <AppHeader current="input" />
         </div>
         <ScoreForm players={players} />
       </div>

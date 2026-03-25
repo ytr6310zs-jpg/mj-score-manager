@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { logoutAction } from "@/app/login/actions";
+import { AppHeader } from "@/components/app-header";
 import { fetchPlayerStats } from "@/lib/stats";
-import { Button, buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "個人成績集計 | 麻雀成績入力",
@@ -38,29 +36,10 @@ export default async function StatsPage() {
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        {/* ヘッダー */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Link href="/" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              スコア入力
-            </Link>
-            <Link href="/matches" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              対局履歴
-            </Link>
-            <Link href="/stats" className={buttonVariants({ variant: "default", size: "sm" })}>
-              成績集計
-            </Link>
-          </div>
-          <form action={logoutAction}>
-            <Button type="submit" variant="outline" size="sm">
-              ログアウト
-            </Button>
-          </form>
-        </div>
+        <AppHeader current="stats" />
 
-        {/* 集計テーブル */}
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
-          <div className="border-b border-emerald-100 px-6 py-4">
+          <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
             <h1 className="text-xl font-bold text-emerald-900">個人成績明細（累計）</h1>
             <p className="mt-1 text-xs text-emerald-700/70">※ 集計対象：記録済みの全対局</p>
           </div>
@@ -73,7 +52,78 @@ export default async function StatsPage() {
                 まだ対局データがありません。スコアを入力してください。
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+                <div className="space-y-3 md:hidden">
+                  {stats.map((player) => {
+                    const rowBg = RANK_ROW_BG[player.rank] ?? "bg-white/60";
+                    const badgeCls = RANK_BADGE[player.rank] ?? "bg-transparent text-foreground";
+
+                    return (
+                      <article key={player.name} className={`rounded-lg border border-emerald-100 p-4 shadow-sm ${rowBg}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-base font-semibold text-emerald-950">{player.name}</p>
+                            <p className="text-xs text-emerald-800/80">対局数 {player.games} / 合計 {score(player.totalScore)}</p>
+                          </div>
+                          <span
+                            className={`inline-flex h-7 min-w-7 items-center justify-center rounded px-2 text-xs font-bold ${badgeCls}`}
+                          >
+                            {player.rank}
+                          </span>
+                        </div>
+
+                        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-emerald-900/85">
+                          <div>
+                            <dt className="font-semibold">トップ</dt>
+                            <dd>{player.topCount}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">ラス</dt>
+                            <dd>{player.lastCount}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">トップ率</dt>
+                            <dd>{pct(player.topRate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">ラス回避</dt>
+                            <dd>{pct(player.lastAvoidanceRate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">飛ばし</dt>
+                            <dd>{player.tobashiCount}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">飛び</dt>
+                            <dd>{player.tobiCount}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">焼き鳥</dt>
+                            <dd>{player.yakitoriCount}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">接待率</dt>
+                            <dd>{pct(player.setaiRate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">飛ばし率</dt>
+                            <dd>{pct(player.tobashiRate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">飛び回避率</dt>
+                            <dd>{pct(player.tobiAvoidanceRate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">焼き鳥回避率</dt>
+                            <dd>{pct(player.yakitoriAvoidanceRate)}</dd>
+                          </div>
+                        </dl>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
                 <table className="min-w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b-2 border-emerald-800/20 bg-emerald-50/80 text-xs font-semibold text-emerald-900">
@@ -154,12 +204,12 @@ export default async function StatsPage() {
                     })}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </div>
         </div>
 
-        {/* 凡例 */}
         <div className="rounded-xl border border-white/70 bg-white/80 px-5 py-4 text-xs text-emerald-900/70 shadow backdrop-blur">
           <p className="font-semibold">各指標の計算式</p>
           <ul className="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { logoutAction } from "@/app/login/actions";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { AppHeader } from "@/components/app-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchMatchResults } from "@/lib/matches";
 import { fetchPlayerNames } from "@/lib/players-sheet";
@@ -46,31 +44,14 @@ export default async function MatchEditPage({ params }: EditPageProps) {
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Link href="/" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              スコア入力
-            </Link>
-            <Link href="/matches" className={buttonVariants({ variant: "default", size: "sm" })}>
-              対局履歴
-            </Link>
-            <Link href="/stats" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              成績集計
-            </Link>
-          </div>
-          <form action={logoutAction}>
-            <Button type="submit" variant="outline" size="sm">
-              ログアウト
-            </Button>
-          </form>
-        </div>
+        <AppHeader current="matches" />
 
-        <Card>
-          <CardHeader>
+        <Card className="border-white/70 bg-white/90 shadow-xl backdrop-blur">
+          <CardHeader className="p-4 sm:p-6">
             <CardTitle>対局を編集</CardTitle>
             <CardDescription>対局データを編集して更新します</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
             <MatchEditForm match={match} players={players} createdAt={decodedCreatedAt} />
           </CardContent>
         </Card>

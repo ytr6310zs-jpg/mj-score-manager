@@ -140,13 +140,13 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
 
   return (
     <Card className="w-full max-w-3xl border-white/70 bg-white/90 shadow-xl backdrop-blur">
-      <CardHeader>
-        <CardTitle className="text-2xl">麻雀成績入力</CardTitle>
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="text-xl sm:text-2xl">麻雀成績入力</CardTitle>
         <CardDescription>
           3人打ち・4人打ちの最終スコア、飛び、焼き鳥を保存して後日の集計に使える形で記録します。
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
         <form
           action={formAction}
           className="space-y-6"
@@ -295,15 +295,12 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
 
             <div className="space-y-2 md:col-span-2">
               <Label>焼き鳥</Label>
-              <div className="grid gap-3 rounded-md border border-border/70 bg-white/70 p-4 md:grid-cols-2">
+              <div className="grid gap-3 rounded-md border border-border/70 bg-white/70 p-3 sm:p-4 md:grid-cols-2">
                 {activeSlots.map((slot) => {
                   const playerName = players[slot as keyof PlayerSelection];
 
                   return (
-                    <label
-                      key={`yakitori-${slot}-${playerName || "empty"}`}
-                      className="flex items-center gap-3 text-sm"
-                    >
+                    <label key={`yakitori-${slot}-${playerName || "empty"}`} className="flex items-center gap-3 text-sm">
                       <input
                         name={`yakitori${slot}`}
                         type="checkbox"
@@ -330,7 +327,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                 id="notes"
                 name="notes"
                 rows={3}
-                className="flex w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-24 w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="役満や備考があれば入力してください"
               />
             </div>
