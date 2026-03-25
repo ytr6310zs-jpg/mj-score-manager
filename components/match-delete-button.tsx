@@ -22,7 +22,8 @@ export function MatchDeleteButton({ createdAt }: MatchDeleteButtonProps) {
 
   useEffect(() => {
     if (state.success) {
-      router.push("/matches?flash=deleted");
+      window.dispatchEvent(new CustomEvent("app:flash", { detail: { type: "deleted" } }));
+      router.refresh();
     }
   }, [state.success, router]);
 
@@ -48,11 +49,7 @@ export function MatchDeleteButton({ createdAt }: MatchDeleteButtonProps) {
       >
         {isPending ? "削除中..." : "削除"}
       </Button>
-      {state.message && (
-        <p className={`mt-1 text-xs ${state.success ? "text-emerald-700" : "text-destructive"}`}>
-          {state.message}
-        </p>
-      )}
+      {!state.success && state.message ? <p className="mt-1 text-xs text-destructive">{state.message}</p> : null}
     </>
   );
 }

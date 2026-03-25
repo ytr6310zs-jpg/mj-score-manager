@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const MESSAGES: Record<string, string> = {
@@ -16,23 +16,50 @@ export function FlashMessage() {
   const flash = searchParams.get("flash");
   const [displayMessage, setDisplayMessage] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showFlash = useCallback((type: string) => {
+    const message = MESSAGES[type] ?? null;
+    if (!message) return;
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    setDisplayMessage(message);
+    setVisible(true);
+    timerRef.current = setTimeout(() => setVisible(false), AUTO_DISMISS_MS);
+  }, []);
 
   useEffect(() => {
     if (!flash) return;
-    const message = MESSAGES[flash] ?? null;
-    if (!message) return;
-
-    // メッセージを state に保持してから URL を綺麗にする
-    setDisplayMessage(message);
-    setVisible(true);
+    showFlash(flash);
 
     const url = new URL(window.location.href);
     url.searchParams.delete("flash");
     router.replace(url.pathname + (url.search !== "?" ? url.search : ""), { scroll: false });
 
-    const timer = setTimeout(() => setVisible(false), AUTO_DISMISS_MS);
-    return () => clearTimeout(timer);
-  }, [flash, router]);
+    return undefined;
+  }, [flash, router, showFlash]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<{ type?: string }>;
+      if (!customEvent.detail?.type) return;
+      showFlash(customEvent.detail.type);
+    };
+
+    window.addEventListener("app:flash", handler);
+    return () => window.removeEventListener("app:flash", handler);
+  }, [showFlash]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   if (!visible || !displayMessage) return null;
 

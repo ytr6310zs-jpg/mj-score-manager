@@ -132,7 +132,7 @@ const VERIFY_HEADERS = [
 ];
 
 async function main() {
-  const env = loadEnv(join(ROOT, ".env.dev.local"));
+  const env = loadEnv(join(ROOT, ".env.local"));
   const spreadsheetId = env.GOOGLE_SPREADSHEET_ID;
   const serviceAccountEmail = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n");

@@ -152,7 +152,7 @@ const comparedFields = [
 
 async function main() {
   const writeSheet = process.argv.includes("--write-sheet");
-  const env = loadEnv(join(ROOT, ".env.dev.local"));
+  const env = loadEnv(join(ROOT, ".env.local"));
   const spreadsheetId = env.GOOGLE_SPREADSHEET_ID;
   const serviceAccountEmail = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n");

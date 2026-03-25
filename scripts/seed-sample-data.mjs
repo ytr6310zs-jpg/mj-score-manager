@@ -4,7 +4,7 @@
  * 実行方法:
  *   node scripts/seed-sample-data.mjs
  *
- * .env.dev.local の認証情報を使用します。
+ * .env.local の認証情報を使用します。
  */
 
 import { readFileSync } from "fs";
@@ -14,7 +14,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 
-// .env.dev.local を手動でパース
+// .env.local を手動でパース
 function loadEnv(filePath) {
   try {
     const content = readFileSync(filePath, "utf8");
@@ -38,7 +38,7 @@ function loadEnv(filePath) {
   }
 }
 
-const env = loadEnv(join(ROOT, ".env.dev.local"));
+const env = loadEnv(join(ROOT, ".env.local"));
 
 const SPREADSHEET_ID = env.GOOGLE_SPREADSHEET_ID;
 const SERVICE_ACCOUNT_EMAIL = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;

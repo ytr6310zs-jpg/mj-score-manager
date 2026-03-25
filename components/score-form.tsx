@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 
 import { saveScoreAction, type SaveScoreState } from "@/app/actions";
 import { addPlayerAction } from "@/app/player-actions";
@@ -39,6 +39,7 @@ function today() {
 export function ScoreForm({ players: playerList }: ScoreFormProps) {
   const [state, formAction, pending] = useActionState(saveScoreAction, initialState);
   const [clientError, setClientError] = useState<string | null>(null);
+  const [duplicatePlayerError, setDuplicatePlayerError] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>("3p");
   const [players, setPlayers] = useState<PlayerSelection>({
     1: "",
@@ -64,7 +65,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
     return result;
   }
 
-  const activeSlots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
+  const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
 
   function handleScoreChange(slot: number, value: string) {
     // 自動入力済みのスロットを手動変更した場合はフラグをリセット
@@ -122,6 +123,20 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
       setTobashiPlayer(NONE_VALUE);
     }
   }, [activePlayers, tobiPlayer, tobashiPlayer]);
+
+  useEffect(() => {
+    const selectedPlayers = activeSlots
+      .map((slot) => players[slot as keyof PlayerSelection])
+      .filter(Boolean);
+    const uniquePlayers = new Set(selectedPlayers);
+
+    if (uniquePlayers.size !== selectedPlayers.length) {
+      setDuplicatePlayerError("同じプレイヤーを重複して選択できません。");
+      return;
+    }
+
+    setDuplicatePlayerError(null);
+  }, [activeSlots, players]);
 
   return (
     <Card className="w-full max-w-3xl border-white/70 bg-white/90 shadow-xl backdrop-blur">
@@ -327,6 +342,12 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
             </Alert>
           ) : null}
 
+          {duplicatePlayerError && !clientError ? (
+            <Alert className="border-destructive/40 bg-destructive/5 text-destructive">
+              <AlertDescription>{duplicatePlayerError}</AlertDescription>
+            </Alert>
+          ) : null}
+
           {state.message ? (
             <Alert
               className={state.success ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-destructive/40 bg-destructive/5 text-destructive"}
@@ -335,7 +356,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
             </Alert>
           ) : null}
 
-          <Button type="submit" disabled={pending} className="w-full md:w-auto">
+          <Button type="submit" disabled={pending || duplicatePlayerError !== null} className="w-full md:w-auto">
             {pending ? "保存中..." : "スコアを保存"}
           </Button>
         </form>
