@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { editMatchAction, type EditMatchState } from "@/app/match-actions";
@@ -53,6 +53,7 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
     3: String(match.players[2]?.score ?? ""),
     4: String(match.players[3]?.score ?? ""),
   });
+  const [autoFilledSlot, setAutoFilledSlot] = useState<number | null>(null);
   const [tobiPlayer, setTobiPlayer] = useState(match.tobiPlayer || NONE_VALUE);
   const [tobashiPlayer, setTobashiPlayer] = useState(match.tobashiPlayer || NONE_VALUE);
   const [yakitoriFlags, setYakitoriFlags] = useState<Record<number, boolean>>({
@@ -62,6 +63,55 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
     4: match.players[3]?.isYakitori ?? false,
   });
   const [notes, setNotes] = useState(match.notes);
+
+  const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
+
+  function handleScoreChange(slot: number, value: string) {
+    if (slot === autoFilledSlot || value === "") {
+      setAutoFilledSlot(null);
+    }
+    setScores((prev) => ({ ...prev, [slot]: value }));
+  }
+
+  function handleScoreBlur(slot: number) {
+    const currentValue = scores[slot as keyof typeof scores];
+    if (!currentValue) return;
+
+    const otherSlots = activeSlots.filter((s) => s !== slot);
+    const emptyOtherSlots = otherSlots.filter((s) => {
+      const value = scores[s as keyof typeof scores];
+      return value === undefined || value === "";
+    });
+
+    if (emptyOtherSlots.length === 1) {
+      const target = emptyOtherSlots[0];
+      const filledSum = activeSlots
+        .filter((s) => s !== target)
+        .reduce((acc, s) => acc + Number(scores[s as keyof typeof scores] || 0), 0);
+      setScores((prev) => ({ ...prev, [target]: String(-filledSum) }));
+      setAutoFilledSlot(target);
+    }
+  }
+
+  function clearScore(slot: number) {
+    setScores((prev) => ({ ...prev, [slot]: "" }));
+    if (slot === autoFilledSlot) {
+      setAutoFilledSlot(null);
+    }
+    setClientError(null);
+  }
+
+  function stepScore(slot: number, delta: number) {
+    setScores((prev) => {
+      const current = Number(prev[slot as keyof typeof prev] || 0);
+      const next = Number.isFinite(current) ? current + delta : delta;
+      return { ...prev, [slot]: String(next) };
+    });
+    if (slot === autoFilledSlot) {
+      setAutoFilledSlot(null);
+    }
+    setClientError(null);
+  }
 
   useEffect(() => {
     if (state.success) {
@@ -98,7 +148,17 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
     }
   }, [gameType, players, scores]);
 
-  const activeSlots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
+  useEffect(() => {
+    if (gameType === "3p") {
+      setPlayers((current) => ({ ...current, 4: "" }));
+      setScores((current) => ({ ...current, 4: "" }));
+      setYakitoriFlags((current) => ({ ...current, 4: false }));
+      if (autoFilledSlot === 4) {
+        setAutoFilledSlot(null);
+      }
+    }
+  }, [gameType, autoFilledSlot]);
+
   const playersToCheck = activeSlots
     .map((slot) => players[slot as keyof PlayerSelection])
     .filter(Boolean);
@@ -182,15 +242,54 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
               <div>
                 <Label htmlFor={`score${slot}`} className="mb-2 block text-sm">
                   スコア <span className="text-destructive">*</span>
+                  {autoFilledSlot === slot ? (
+                    <span className="ml-2 text-xs font-normal text-emerald-600">（自動入力）</span>
+                  ) : null}
                 </Label>
-                <Input
-                  id={`score${slot}`}
-                  type="number"
-                  value={scores[slot as keyof typeof scores]}
-                  onChange={(e) => setScores((prev) => ({ ...prev, [slot]: e.target.value }))}
-                  placeholder="例: +100"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id={`score${slot}`}
+                    type="number"
+                    value={scores[slot as keyof typeof scores]}
+                    onChange={(e) => handleScoreChange(slot, e.target.value)}
+                    onBlur={() => handleScoreBlur(slot)}
+                    placeholder="例: +100"
+                    required
+                    className={
+                      autoFilledSlot === slot
+                        ? "border-emerald-300 bg-emerald-50 pr-10 sm:pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        : "pr-10 sm:pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    }
+                  />
+                  {scores[slot as keyof typeof scores] ? (
+                    <button
+                      type="button"
+                      onClick={() => clearScore(slot)}
+                      aria-label={`スコア${slot}をクリア`}
+                      className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:right-9"
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                  <div className="absolute right-1 top-1/2 hidden -translate-y-1/2 sm:flex sm:flex-col">
+                    <button
+                      type="button"
+                      onClick={() => stepScore(slot, 1)}
+                      aria-label={`スコア${slot}を1増やす`}
+                      className="inline-flex h-3 w-6 items-center justify-center rounded-t text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => stepScore(slot, -1)}
+                      aria-label={`スコア${slot}を1減らす`}
+                      className="inline-flex h-3 w-6 items-center justify-center rounded-b text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             <label className="flex items-center gap-2">

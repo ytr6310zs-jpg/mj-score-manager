@@ -52,6 +52,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   const [tobiPlayer, setTobiPlayer] = useState(NONE_VALUE);
   const [tobashiPlayer, setTobashiPlayer] = useState(NONE_VALUE);
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
+  const [notes, setNotes] = useState("");
 
   const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
 
@@ -67,6 +68,16 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
 
   const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
 
+  function resetRoundFields() {
+    setScores({});
+    setAutoFilledSlot(null);
+    setTobiPlayer(NONE_VALUE);
+    setTobashiPlayer(NONE_VALUE);
+    setYakitoriSlots({});
+    setNotes("");
+    setClientError(null);
+  }
+
   function handleScoreChange(slot: number, value: string) {
     // 自動入力済みのスロットを手動変更した場合はフラグをリセット
     if (slot === autoFilledSlot) {
@@ -77,6 +88,32 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
       setAutoFilledSlot(null);
     }
     setScores((prev) => ({ ...prev, [slot]: value }));
+  }
+
+  function clearScore(slot: number) {
+    setScores((prev) => {
+      const next = { ...prev };
+      delete next[slot];
+      return next;
+    });
+
+    if (slot === autoFilledSlot) {
+      setAutoFilledSlot(null);
+    }
+
+    setClientError(null);
+  }
+
+  function stepScore(slot: number, delta: number) {
+    setScores((prev) => {
+      const current = Number(prev[slot] || 0);
+      const next = Number.isFinite(current) ? current + delta : delta;
+      return { ...prev, [slot]: String(next) };
+    });
+    if (slot === autoFilledSlot) {
+      setAutoFilledSlot(null);
+    }
+    setClientError(null);
   }
 
   function handleScoreBlur(slot: number) {
@@ -137,6 +174,14 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
 
     setDuplicatePlayerError(null);
   }, [activeSlots, players]);
+
+  useEffect(() => {
+    if (!state.success) {
+      return;
+    }
+
+    resetRoundFields();
+  }, [state.success]);
 
   return (
     <Card className="w-full max-w-3xl border-white/70 bg-white/90 shadow-xl backdrop-blur">
@@ -244,17 +289,51 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                       <span className="ml-2 text-xs font-normal text-emerald-600">（自動入力）</span>
                     )}
                   </Label>
-                  <Input
-                    id={`score${slot}`}
-                    name={`score${slot}`}
-                    type="number"
-                    step="1"
-                    required
-                    value={scores[slot] ?? ""}
-                    onChange={(e) => handleScoreChange(slot, e.target.value)}
-                    onBlur={() => handleScoreBlur(slot)}
-                    className={autoFilledSlot === slot ? "bg-emerald-50 border-emerald-300" : ""}
-                  />
+                  <div className="relative">
+                    <Input
+                      id={`score${slot}`}
+                      name={`score${slot}`}
+                      type="number"
+                      step="1"
+                      required
+                      value={scores[slot] ?? ""}
+                      onChange={(e) => handleScoreChange(slot, e.target.value)}
+                      onBlur={() => handleScoreBlur(slot)}
+                      className={
+                        autoFilledSlot === slot
+                          ? "border-emerald-300 bg-emerald-50 pr-10 sm:pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          : "pr-10 sm:pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      }
+                    />
+                    {scores[slot] ? (
+                      <button
+                        type="button"
+                        onClick={() => clearScore(slot)}
+                        aria-label={`最終スコア${slot}をクリア`}
+                        className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:right-9"
+                      >
+                        ×
+                      </button>
+                    ) : null}
+                    <div className="absolute right-1 top-1/2 hidden -translate-y-1/2 sm:flex sm:flex-col">
+                      <button
+                        type="button"
+                        onClick={() => stepScore(slot, 1)}
+                        aria-label={`最終スコア${slot}を1増やす`}
+                        className="inline-flex h-3 w-6 items-center justify-center rounded-t text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => stepScore(slot, -1)}
+                        aria-label={`最終スコア${slot}を1減らす`}
+                        className="inline-flex h-3 w-6 items-center justify-center rounded-b text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -327,6 +406,8 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                 id="notes"
                 name="notes"
                 rows={3}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
                 className="flex min-h-24 w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="役満や備考があれば入力してください"
               />
