@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ScoreForm } from "@/components/score-form";
 import { Button } from "@/components/ui/button";
 import { logoutAction } from "@/app/login/actions";
@@ -10,11 +12,16 @@ export default function HomePage() {
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-900/70">
             Mahjong Score Manager
           </p>
-          <form action={logoutAction}>
-            <Button type="submit" variant="outline" size="sm">
-              ログアウト
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/stats">成績集計</Link>
             </Button>
-          </form>
+            <form action={logoutAction}>
+              <Button type="submit" variant="outline" size="sm">
+                ログアウト
+              </Button>
+            </form>
+          </div>
         </div>
         <ScoreForm />
       </div>
