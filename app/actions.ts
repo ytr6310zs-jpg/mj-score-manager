@@ -2,11 +2,8 @@
 
 import { JWT } from "google-auth-library";
 import { GoogleSpreadsheet } from "google-spreadsheet";
-import { PLAYERS } from "@/lib/players";
-
 const NONE_VALUE = "__none__";
 const SCORE_TOLERANCE = 1;
-const PLAYER_NAMES: readonly string[] = PLAYERS;
 
 type GameType = "3p" | "4p";
 
@@ -50,10 +47,6 @@ function parseScore(value: FormDataEntryValue | null) {
 function validatePlayer(name: string, label: string) {
   if (!name) {
     return `${label}を選択してください`;
-  }
-
-  if (!PLAYER_NAMES.includes(name)) {
-    return `${label}が不正です`;
   }
 
   return null;

@@ -1,15 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { saveScoreAction, type SaveScoreState } from "@/app/actions";
-import { PLAYERS } from "@/lib/players";
+import { addPlayerAction } from "@/app/player-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PlayerSelect } from "@/components/ui/player-select";
 
 const initialState: SaveScoreState = {
   success: false,
@@ -19,6 +20,10 @@ const initialState: SaveScoreState = {
 const NONE_VALUE = "__none__";
 
 type GameType = "3p" | "4p";
+
+type ScoreFormProps = {
+  players: string[];
+};
 
 type PlayerSelection = {
   1: string;
@@ -31,7 +36,7 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function ScoreForm() {
+export function ScoreForm({ players: playerList }: ScoreFormProps) {
   const [state, formAction, pending] = useActionState(saveScoreAction, initialState);
   const [clientError, setClientError] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>("3p");
@@ -45,7 +50,18 @@ export function ScoreForm() {
   const [tobashiPlayer, setTobashiPlayer] = useState(NONE_VALUE);
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
 
-  const playerOptions = useMemo(() => [...PLAYERS], []);
+  const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
+
+  async function handleAddPlayer(name: string): Promise<{ success: boolean; message: string }> {
+    const formData = new FormData();
+    formData.append("name", name);
+    const result = await addPlayerAction(undefined, formData);
+    if (result.success) {
+      setPlayerOptions((prev) => [...prev, name]);
+    }
+    return result;
+  }
+
   const activeSlots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
   const activePlayers = activeSlots
     .map((slot) => ({ slot, name: players[slot as keyof PlayerSelection] }))
@@ -161,28 +177,19 @@ export function ScoreForm() {
               <div key={`slot-${slot}`} className="contents">
                 <div key={`player-${slot}`} className="space-y-2">
                   <Label>{`プレイヤー${slot}`}</Label>
-                  <Select
+                  <PlayerSelect
                     name={`player${slot}`}
-                    value={players[slot as keyof PlayerSelection] || undefined}
+                    value={players[slot as keyof PlayerSelection]}
                     onValueChange={(value) =>
                       setPlayers((current) => ({
                         ...current,
                         [slot]: value,
                       }))
                     }
+                    options={playerOptions}
+                    onAddPlayer={handleAddPlayer}
                     required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="選択してください" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {playerOptions.map((player) => (
-                        <SelectItem key={`p${slot}-${player}`} value={player}>
-                          {player}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
 
                 <div key={`score-${slot}`} className="space-y-2">
