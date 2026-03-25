@@ -25,6 +25,18 @@ export function LoginForm() {
             <Label htmlFor="password">パスワード</Label>
             <Input id="password" name="password" type="password" required />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="otp">ワンタイムパスワード</Label>
+            <Input
+              id="otp"
+              name="otp"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              placeholder="6桁コード（2要素認証有効時は必須）"
+              autoComplete="one-time-code"
+            />
+          </div>
           {state.error ? (
             <p className="text-sm font-medium text-destructive">{state.error}</p>
           ) : null}

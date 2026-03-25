@@ -28,6 +28,7 @@ cp .env.example .env.local
 `.env.local` を編集して以下を設定してください。
 
 - `ACCESS_PASSWORD`
+- `MFA_TOTP_SECRET`（任意。設定時はGoogle Authenticator等の6桁ワンタイムコードが必須）
 - `GOOGLE_SPREADSHEET_ID`
 - `GOOGLE_SHEET_TITLE`（任意。未指定時は先頭シート）
 - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
@@ -64,4 +65,6 @@ npm run dev
 - [ ] スマホ対応
 - [ ] 得点を2か所入力したら残りの1か所は自動入力
 - [ ] 同じユーザーが選択されている場合はエラーを表示
+- [x] GoogleAuth等を利用した2要素認証（ワンタイムパスワードなど）
+- [x] セッションタイムアウトを1時間に設定
 - [ ] 

@@ -3,7 +3,7 @@ const encoder = new TextEncoder();
 export const AUTH_COOKIE_NAME = "mj_access";
 export const LOGIN_FAILURE_COOKIE_NAME = "mj_login_failures";
 export const LOGIN_LOCK_COOKIE_NAME = "mj_login_locked_until";
-export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+export const SESSION_MAX_AGE_SECONDS = 60 * 60;
 export const MAX_LOGIN_FAILURES = 5;
 export const LOGIN_LOCK_SECONDS = 60 * 5;
 
