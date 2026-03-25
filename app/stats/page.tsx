@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { logoutAction } from "@/app/login/actions";
 import { fetchPlayerStats } from "@/lib/stats";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "個人成績集計 | 麻雀成績入力",
@@ -40,16 +40,16 @@ export default async function StatsPage() {
       <div className="mx-auto max-w-screen-2xl space-y-6">
         {/* ヘッダー */}
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="text-sm font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-            >
-              ← スコア入力
+          <div className="flex items-center gap-2">
+            <Link href="/" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              スコア入力
             </Link>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-900/60">
-              Mahjong Score Manager
-            </p>
+            <Link href="/matches" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              対局履歴
+            </Link>
+            <Link href="/stats" className={buttonVariants({ variant: "default", size: "sm" })}>
+              成績集計
+            </Link>
           </div>
           <form action={logoutAction}>
             <Button type="submit" variant="outline" size="sm">
@@ -61,12 +61,8 @@ export default async function StatsPage() {
         {/* 集計テーブル */}
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-6 py-4">
-            <h1 className="text-xl font-bold text-emerald-900">
-              個人成績明細（累計）
-            </h1>
-            <p className="mt-1 text-xs text-emerald-700/70">
-              ※ 集計対象：記録済みの全対局
-            </p>
+            <h1 className="text-xl font-bold text-emerald-900">個人成績明細（累計）</h1>
+            <p className="mt-1 text-xs text-emerald-700/70">※ 集計対象：記録済みの全対局</p>
           </div>
 
           <div className="p-4">
@@ -81,9 +77,7 @@ export default async function StatsPage() {
                 <table className="min-w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b-2 border-emerald-800/20 bg-emerald-50/80 text-xs font-semibold text-emerald-900">
-                      <th className="sticky left-0 z-10 bg-emerald-50/80 px-3 py-2.5 text-left">
-                        名前
-                      </th>
+                      <th className="sticky left-0 z-10 bg-emerald-50/80 px-3 py-2.5 text-left">名前</th>
                       <th className="px-3 py-2.5 text-right">合計</th>
                       <th className="px-3 py-2.5 text-center">順位</th>
                       <th className="px-3 py-2.5 text-right">対局数</th>
@@ -126,16 +120,12 @@ export default async function StatsPage() {
                           key={player.name}
                           className={`border-b border-emerald-100 ${rowBg} transition-colors hover:bg-emerald-50/40`}
                         >
-                          <td
-                            className={`sticky left-0 z-10 px-3 py-2 font-semibold ${rowBg}`}
-                          >
+                          <td className={`sticky left-0 z-10 px-3 py-2 font-semibold ${rowBg}`}>
                             {player.name}
                           </td>
                           <td
                             className={`px-3 py-2 text-right font-semibold tabular-nums ${
-                              player.totalScore >= 0
-                                ? "text-emerald-700"
-                                : "text-destructive"
+                              player.totalScore >= 0 ? "text-emerald-700" : "text-destructive"
                             }`}
                           >
                             {score(player.totalScore)}
@@ -147,42 +137,18 @@ export default async function StatsPage() {
                               {player.rank}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {player.games}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {player.topCount}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {player.lastCount}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {pct(player.topRate)}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {pct(player.lastAvoidanceRate)}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {player.tobashiCount}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {player.tobiCount}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {player.yakitoriCount}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {pct(player.tobashiRate)}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {pct(player.tobiAvoidanceRate)}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {pct(player.yakitoriAvoidanceRate)}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">
-                            {pct(player.setaiRate)}
-                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{player.games}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{player.topCount}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{player.lastCount}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.topRate)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.lastAvoidanceRate)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{player.tobashiCount}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{player.tobiCount}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{player.yakitoriCount}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobashiRate)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobiAvoidanceRate)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.yakitoriAvoidanceRate)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.setaiRate)}</td>
                         </tr>
                       );
                     })}

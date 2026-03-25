@@ -15,7 +15,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 
-// .env.dev.local を手動でパース
+// .env.local を手動でパース
 function loadEnv(filePath) {
   const content = readFileSync(filePath, "utf8");
   const env = {};
@@ -34,7 +34,7 @@ function loadEnv(filePath) {
   return env;
 }
 
-const env = loadEnv(join(ROOT, ".env.dev.local"));
+const env = loadEnv(join(ROOT, ".env.local"));
 
 const SPREADSHEET_ID = env.GOOGLE_SPREADSHEET_ID;
 const SERVICE_ACCOUNT_EMAIL = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;

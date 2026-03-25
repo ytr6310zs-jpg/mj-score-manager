@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { logoutAction } from "@/app/login/actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
+import { MatchDeleteButton } from "@/components/match-delete-button";
+import { FlashMessage } from "@/components/flash-message";
 
 export const metadata: Metadata = {
   title: "対局履歴 | 麻雀成績入力",
@@ -29,20 +32,20 @@ export default async function MatchesPage() {
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
+      <Suspense>
+        <FlashMessage />
+      </Suspense>
       <div className="mx-auto max-w-screen-2xl space-y-6">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="text-sm font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-            >
-              ← スコア入力
+          <div className="flex items-center gap-2">
+            <Link href="/" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              スコア入力
             </Link>
-            <Link
-              href="/stats"
-              className="text-sm font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-            >
-              個人成績
+            <Link href="/matches" className={buttonVariants({ variant: "default", size: "sm" })}>
+              対局履歴
+            </Link>
+            <Link href="/stats" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              成績集計
             </Link>
           </div>
           <form action={logoutAction}>
@@ -79,6 +82,7 @@ export default async function MatchesPage() {
                       <th className="px-3 py-2.5 text-left">飛び/飛ばし</th>
                       <th className="px-3 py-2.5 text-left">焼き鳥</th>
                       <th className="px-3 py-2.5 text-left">備考</th>
+                      <th className="px-3 py-2.5 text-center">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -129,12 +133,16 @@ export default async function MatchesPage() {
                             : "-"}
                         </td>
                         <td className="px-3 py-3 text-xs text-emerald-900/80">
-                          {match.yakitoriPlayers.length > 0
-                            ? match.yakitoriPlayers.join("、")
-                            : "-"}
+                          {match.yakitoriPlayers.length > 0 ? match.yakitoriPlayers.join("、") : "-"}
                         </td>
-                        <td className="px-3 py-3 text-xs text-emerald-900/80">
-                          {match.notes || "-"}
+                        <td className="px-3 py-3 text-xs text-emerald-900/80">{match.notes || "-"}</td>
+                        <td className="px-3 py-3 text-center">
+                          <div className="flex gap-2 justify-center">
+                            <Link href={`/matches/${encodeURIComponent(match.createdAt)}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                              編集
+                            </Link>
+                            <MatchDeleteButton createdAt={match.createdAt} />
+                          </div>
                         </td>
                       </tr>
                     ))}

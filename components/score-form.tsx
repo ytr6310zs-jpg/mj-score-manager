@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 
 import { saveScoreAction, type SaveScoreState } from "@/app/actions";
 import { addPlayerAction } from "@/app/player-actions";
@@ -39,6 +39,7 @@ function today() {
 export function ScoreForm({ players: playerList }: ScoreFormProps) {
   const [state, formAction, pending] = useActionState(saveScoreAction, initialState);
   const [clientError, setClientError] = useState<string | null>(null);
+  const [duplicatePlayerError, setDuplicatePlayerError] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>("3p");
   const [players, setPlayers] = useState<PlayerSelection>({
     1: "",
@@ -46,6 +47,8 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
     3: "",
     4: "",
   });
+  const [scores, setScores] = useState<Record<number, string>>({});
+  const [autoFilledSlot, setAutoFilledSlot] = useState<number | null>(null);
   const [tobiPlayer, setTobiPlayer] = useState(NONE_VALUE);
   const [tobashiPlayer, setTobashiPlayer] = useState(NONE_VALUE);
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
@@ -62,7 +65,36 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
     return result;
   }
 
-  const activeSlots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
+  const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
+
+  function handleScoreChange(slot: number, value: string) {
+    // 自動入力済みのスロットを手動変更した場合はフラグをリセット
+    if (slot === autoFilledSlot) {
+      setAutoFilledSlot(null);
+    }
+    // 値が空になった場合も自動入力をリセット
+    if (value === "") {
+      setAutoFilledSlot(null);
+    }
+    setScores((prev) => ({ ...prev, [slot]: value }));
+  }
+
+  function handleScoreBlur(slot: number) {
+    // フォーカスが外れたタイミングで残り1か所を自動計算
+    const currentValue = scores[slot];
+    if (currentValue === undefined || currentValue === "") return;
+
+    const otherSlots = activeSlots.filter((s) => s !== slot);
+    const emptyOtherSlots = otherSlots.filter((s) => scores[s] === undefined || scores[s] === "");
+
+    if (emptyOtherSlots.length === 1) {
+      const filledSum = activeSlots
+        .filter((s) => s !== emptyOtherSlots[0])
+        .reduce((acc, s) => acc + Number(scores[s] || 0), 0);
+      setScores((prev) => ({ ...prev, [emptyOtherSlots[0]]: String(-filledSum) }));
+      setAutoFilledSlot(emptyOtherSlots[0]);
+    }
+  }
   const activePlayers = activeSlots
     .map((slot) => ({ slot, name: players[slot as keyof PlayerSelection] }))
     .filter((entry) => entry.name);
@@ -70,13 +102,15 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   useEffect(() => {
     if (gameType === "3p") {
       setPlayers((current) => ({ ...current, 4: "" }));
+      setScores((current) => { const next = { ...current }; delete next[4]; return next; });
       setYakitoriSlots((current) => {
         const next = { ...current };
         delete next[4];
         return next;
       });
+      if (autoFilledSlot === 4) setAutoFilledSlot(null);
     }
-  }, [gameType]);
+  }, [gameType, autoFilledSlot]);
 
   useEffect(() => {
     const playerNames = new Set(activePlayers.map((entry) => entry.name));
@@ -89,6 +123,20 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
       setTobashiPlayer(NONE_VALUE);
     }
   }, [activePlayers, tobiPlayer, tobashiPlayer]);
+
+  useEffect(() => {
+    const selectedPlayers = activeSlots
+      .map((slot) => players[slot as keyof PlayerSelection])
+      .filter(Boolean);
+    const uniquePlayers = new Set(selectedPlayers);
+
+    if (uniquePlayers.size !== selectedPlayers.length) {
+      setDuplicatePlayerError("同じプレイヤーを重複して選択できません。");
+      return;
+    }
+
+    setDuplicatePlayerError(null);
+  }, [activeSlots, players]);
 
   return (
     <Card className="w-full max-w-3xl border-white/70 bg-white/90 shadow-xl backdrop-blur">
@@ -103,16 +151,13 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
           action={formAction}
           className="space-y-6"
           onSubmit={(e) => {
-            const form = e.currentTarget;
             const slots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
             const selectedPlayers = slots.map(
               (slot) => players[slot as keyof PlayerSelection]
             );
             const uniquePlayers = new Set(selectedPlayers.filter(Boolean));
             const total = slots.reduce((sum, slot) => {
-              const value = Number(
-                (form.elements.namedItem(`score${slot}`) as HTMLInputElement)?.value || 0
-              );
+              const value = Number(scores[slot] || 0);
               return sum + value;
             }, 0);
 
@@ -193,8 +238,23 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                 </div>
 
                 <div key={`score-${slot}`} className="space-y-2">
-                  <Label htmlFor={`score${slot}`}>{`最終スコア${slot}`}</Label>
-                  <Input id={`score${slot}`} name={`score${slot}`} type="number" step="1" required />
+                  <Label htmlFor={`score${slot}`}>
+                    {`最終スコア${slot}`}
+                    {autoFilledSlot === slot && (
+                      <span className="ml-2 text-xs font-normal text-emerald-600">（自動入力）</span>
+                    )}
+                  </Label>
+                  <Input
+                    id={`score${slot}`}
+                    name={`score${slot}`}
+                    type="number"
+                    step="1"
+                    required
+                    value={scores[slot] ?? ""}
+                    onChange={(e) => handleScoreChange(slot, e.target.value)}
+                    onBlur={() => handleScoreBlur(slot)}
+                    className={autoFilledSlot === slot ? "bg-emerald-50 border-emerald-300" : ""}
+                  />
                 </div>
               </div>
             ))}
@@ -282,6 +342,12 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
             </Alert>
           ) : null}
 
+          {duplicatePlayerError && !clientError ? (
+            <Alert className="border-destructive/40 bg-destructive/5 text-destructive">
+              <AlertDescription>{duplicatePlayerError}</AlertDescription>
+            </Alert>
+          ) : null}
+
           {state.message ? (
             <Alert
               className={state.success ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-destructive/40 bg-destructive/5 text-destructive"}
@@ -290,7 +356,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
             </Alert>
           ) : null}
 
-          <Button type="submit" disabled={pending} className="w-full md:w-auto">
+          <Button type="submit" disabled={pending || duplicatePlayerError !== null} className="w-full md:w-auto">
             {pending ? "保存中..." : "スコアを保存"}
           </Button>
         </form>
