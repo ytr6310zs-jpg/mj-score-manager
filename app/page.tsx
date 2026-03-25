@@ -13,6 +13,9 @@ export default function HomePage() {
             Mahjong Score Manager
           </p>
           <div className="flex items-center gap-2">
+            <Link href="/matches" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              対局履歴
+            </Link>
             <Link href="/stats" className={buttonVariants({ variant: "outline", size: "sm" })}>
               成績集計
             </Link>
