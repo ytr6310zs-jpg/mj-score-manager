@@ -3,8 +3,10 @@ import Link from "next/link";
 import { ScoreForm } from "@/components/score-form";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { logoutAction } from "@/app/login/actions";
+import { fetchPlayerNames } from "@/lib/players-sheet";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const players = await fetchPlayerNames();
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-10">
       <div className="w-full space-y-4">
@@ -26,7 +28,7 @@ export default function HomePage() {
             </form>
           </div>
         </div>
-        <ScoreForm />
+        <ScoreForm players={players} />
       </div>
     </main>
   );
