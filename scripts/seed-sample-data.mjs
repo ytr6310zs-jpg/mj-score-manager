@@ -307,91 +307,49 @@ const SAMPLE_GAMES = [
   },
 ];
 
-function loadLocalEnv(){
-  try{
-    const root = join(__dirname,'..');
-    const content = readFileSync(join(root,'.env.local'),'utf8');
-    const env = {};
-    for(const line of content.split('\n')){
-      const trimmed = line.trim();
-      if(!trimmed || trimmed.startsWith('#')) continue;
-      const eq = trimmed.indexOf('=');
-      if(eq===-1) continue;
-      let key = trimmed.slice(0,eq).trim();
-      let val = trimmed.slice(eq+1).trim();
-      if(val.startsWith('"') && val.endsWith('"')) val = val.slice(1,-1);
-      env[key]=val;
-    }
-    return env;
-  }catch(e){ return {}; }
-}
+async function main() {
+  const { JWT } = await import("google-auth-library");
+  const { GoogleSpreadsheet } = await import("google-spreadsheet");
 
-async function main(){
-  const local = await loadLocalEnv();
-  const SUPABASE_URL = process.env.SUPABASE_URL || local.SUPABASE_URL;
-  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || local.SUPABASE_SERVICE_ROLE_KEY;
-
-  if(!SUPABASE_URL || !SUPABASE_KEY){
-    console.error('Supabase keys not found in env or .env.local');
-    process.exit(1);
-  }
-
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
-
-  // Insert a subset of sample games (same as previous behavior: slice(5))
-  const newGames = SAMPLE_GAMES.slice(5).map(g => {
-    // normalize keys to snake_case used in DB
-    const mapped = {
-      date: g.date,
-      game_type: g.gameType,
-      player_count: g.playerCount,
-      player1: g.player1,
-      score1: g.score1,
-      rank1: g.rank1,
-      is_tobi1: g.isTobi1,
-      is_tobashi1: g.isTobashi1,
-      is_yakitori1: g.isYakitori1,
-      player2: g.player2,
-      score2: g.score2,
-      rank2: g.rank2,
-      is_tobi2: g.isTobi2,
-      is_tobashi2: g.isTobashi2,
-      is_yakitori2: g.isYakitori2,
-      player3: g.player3,
-      score3: g.score3,
-      rank3: g.rank3,
-      is_tobi3: g.isTobi3,
-      is_tobashi3: g.isTobashi3,
-      is_yakitori3: g.isYakitori3,
-      player4: g.player4 || null,
-      score4: (g.score4 === "" ? null : g.score4),
-      rank4: (g.rank4 === "" ? null : g.rank4),
-      is_tobi4: g.isTobi4 || false,
-      is_tobashi4: g.isTobashi4 || false,
-      is_yakitori4: g.isYakitori4 || false,
-      score_total: g.scoreTotal,
-      top_player: g.topPlayer,
-      last_player: g.lastPlayer,
-      tobi_player: g.tobiPlayer || null,
-      tobashi_player: g.tobashiPlayer || null,
-      yakitori_players: g.yakitoriPlayers || "",
-      notes: g.notes || "",
-      created_at: g.createdAt,
-    };
-    return mapped;
+  const auth = new JWT({
+    email: SERVICE_ACCOUNT_EMAIL,
+    key: PRIVATE_KEY,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 
-  for(const [i,row] of newGames.entries()){
-    const { error } = await supabase.from('games').insert([row]);
-    if(error){
-      console.error('Insert error at', i, error);
-      process.exit(1);
-    }
-    console.log(`  [${i+1}/${newGames.length}] ${row.date} (${row.game_type}) top: ${row.top_player} -> inserted`);
+  const doc = new GoogleSpreadsheet(SPREADSHEET_ID, auth);
+  await doc.loadInfo();
+
+  const sheet = doc.sheetsByTitle[SHEET_TITLE] ?? doc.sheetsByIndex[0];
+  if (!sheet) {
+    throw new Error(`シート "${SHEET_TITLE}" が見つかりません`);
   }
 
-  console.log(`\n完了: ${newGames.length} 件のサンプルデータを Supabase に投入しました`);
+  console.log(`シート: "${sheet.title}" に接続しました`);
+
+  // ヘッダー行を設定（空シートの場合のみ）
+  await sheet.loadHeaderRow().catch(() => null);
+  if (!sheet.headerValues || sheet.headerValues.length === 0) {
+    console.log("ヘッダー行を設定します...");
+    await sheet.setHeaderRow(HEADERS);
+    console.log("ヘッダー行を設定しました");
+  } else {
+    console.log(`既存ヘッダーを使用: ${sheet.headerValues.join(", ")}`);
+  }
+
+  // サンプルデータを1行ずつ追加（同日複数対戦の10試合のみ）
+  const newGames = SAMPLE_GAMES.slice(5);
+  for (const [index, game] of newGames.entries()) {
+    await sheet.addRow(game);
+    console.log(
+      `  [${index + 1}/${newGames.length}] ${game.date} (${game.gameType}) トップ: ${game.topPlayer} → 追加`
+    );
+  }
+
+  console.log(`\n完了: ${newGames.length} 件のサンプルデータを投入しました`);
 }
 
-main().catch((err)=>{ console.error('エラー:', err); process.exit(1); });
+main().catch((err) => {
+  console.error("エラー:", err.message ?? err);
+  process.exit(1);
+});
