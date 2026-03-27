@@ -185,10 +185,7 @@ export async function saveScoreAction(
 
   const notes = parseString(formData.get("notes"));
 
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetTitle = process.env.GOOGLE_SHEET_TITLE;
+  
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

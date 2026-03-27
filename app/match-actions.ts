@@ -17,7 +17,6 @@ export async function deleteMatchAction(
     return { success: false, message: "対局IDが不正です。" };
   }
 
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

@@ -2,7 +2,6 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-import { PLAYER_MASTER_SHEET_TITLE } from "@/lib/players-sheet";
 
 export type AddPlayerState = {
   success: boolean;
@@ -23,7 +22,6 @@ export async function addPlayerAction(
     return { success: false, message: "名前は20文字以内で入力してください。" };
   }
 
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
