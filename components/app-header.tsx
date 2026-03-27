@@ -4,7 +4,7 @@ import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 type AppHeaderProps = {
-  current: "input" | "matches" | "stats";
+  current: "input" | "matches" | "stats" | "admin";
 };
 
 export function AppHeader({ current }: AppHeaderProps) {
@@ -40,6 +40,16 @@ export function AppHeader({ current }: AppHeaderProps) {
           })}
         >
           成績集計
+        </Link>
+        <Link
+          href="/admin"
+          className={buttonVariants({
+            variant: current === "admin" ? "default" : "outline",
+            size: "sm",
+            className: "w-full sm:w-auto",
+          })}
+        >
+          管理
         </Link>
       </div>
       <form action={logoutAction} className="w-full sm:w-auto">
