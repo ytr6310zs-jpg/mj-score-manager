@@ -1,7 +1,9 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
+import { JWT } from "google-auth-library";
+import { GoogleSpreadsheet } from "google-spreadsheet";
 
+import { PLAYER_MASTER_SHEET_TITLE } from "@/lib/players-sheet";
 
 export type AddPlayerState = {
   success: boolean;
@@ -22,40 +24,46 @@ export async function addPlayerAction(
     return { success: false, message: "名前は20文字以内で入力してください。" };
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
 
-  if (!supabaseUrl || !supabaseKey) {
-    return { success: false, message: "Supabase 連携用の環境変数が不足しています。" };
+  if (!spreadsheetId || !serviceAccountEmail || !privateKeyRaw) {
+    return { success: false, message: "Google Sheets 連携用の環境変数が不足しています。" };
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
 
   try {
-    // check existing by lower(name) to match unique index behavior
-    const { data: existing, error: selErr } = await supabase
-      .from("players")
-      .select("name")
-      .ilike("name", name);
-    if (selErr) {
-      console.error(selErr);
-      return { success: false, message: "プレイヤーの確認に失敗しました。" };
+    const auth = new JWT({
+      email: serviceAccountEmail,
+      key: privateKey,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+
+    const doc = new GoogleSpreadsheet(spreadsheetId, auth);
+    await doc.loadInfo();
+
+    let sheet = doc.sheetsByTitle[PLAYER_MASTER_SHEET_TITLE];
+
+    if (!sheet) {
+      sheet = await doc.addSheet({
+        title: PLAYER_MASTER_SHEET_TITLE,
+        headerValues: ["name"],
+      });
     }
 
-    const existingNames = (existing || []).map((r: Record<string, unknown>) => String(r.name ?? "").trim());
-    if (existingNames.includes(name)) {
+    const rows = await sheet.getRows();
+    const existing = rows.map((row) => String(row.get("name") ?? "").trim());
+
+    if (existing.includes(name)) {
       return { success: false, message: `「${name}」はすでに登録されています。` };
     }
 
-    const { error: insErr } = await supabase.from("players").insert([{ name, display_name: name }]);
-    if (insErr) {
-      console.error(insErr);
-      return { success: false, message: "プレイヤーの追加に失敗しました。" };
-    }
+    await sheet.addRow({ name });
 
     return { success: true, message: `「${name}」を追加しました。`, name };
-  } catch (err) {
-    console.error(err);
+  } catch {
     return { success: false, message: "プレイヤーの追加に失敗しました。" };
   }
 }

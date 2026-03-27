@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { JWT } from "google-auth-library";
+import { GoogleSpreadsheet } from "google-spreadsheet";
 
 import { PLAYERS } from "@/lib/players";
 
@@ -13,21 +14,36 @@ export const PLAYER_MASTER_SHEET_TITLE = "プレイヤーマスタ";
  *   データ行: 各プレイヤーの名前（1行1名）
  */
 export async function fetchPlayerNames(): Promise<string[]> {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
 
-  if (!supabaseUrl || !supabaseKey) {
+  if (!spreadsheetId || !serviceAccountEmail || !privateKeyRaw) {
     return [...PLAYERS];
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
 
   try {
-    const { data, error } = await supabase.from("players").select("name").order("name", { ascending: true });
-    if (error || !data) return [...PLAYERS];
+    const auth = new JWT({
+      email: serviceAccountEmail,
+      key: privateKey,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
 
-    const rows = data as Array<{ name?: unknown }>;
-    const names = rows.map((r) => String(r.name ?? "").trim()).filter(Boolean);
+    const doc = new GoogleSpreadsheet(spreadsheetId, auth);
+    await doc.loadInfo();
+
+    const sheet = doc.sheetsByTitle[PLAYER_MASTER_SHEET_TITLE];
+    if (!sheet) {
+      return [...PLAYERS];
+    }
+
+    const rows = await sheet.getRows();
+    const names = rows
+      .map((row) => String(row.get("name") ?? "").trim())
+      .filter(Boolean);
+
     return names.length > 0 ? names : [...PLAYERS];
   } catch {
     return [...PLAYERS];
