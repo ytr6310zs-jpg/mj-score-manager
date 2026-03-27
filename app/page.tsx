@@ -2,6 +2,8 @@ import { ScoreForm } from "@/components/score-form";
 import { AppHeader } from "@/components/app-header";
 import { fetchPlayerNames } from "@/lib/players-sheet";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const players = await fetchPlayerNames();
   return (
