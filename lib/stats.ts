@@ -1,5 +1,4 @@
-import { JWT } from "google-auth-library";
-import { GoogleSpreadsheet } from "google-spreadsheet";
+import { fetchMatchResults } from "./matches";
 
 export type PlayerStats = {
   name: string;
@@ -49,60 +48,21 @@ function toInt(value: unknown): number {
   return 0;
 }
 
-export async function fetchPlayerStats(): Promise<{
+export async function fetchPlayerStats(startDate?: string, endDate?: string): Promise<{
   stats: PlayerStats[];
   error: string | null;
 }> {
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetTitle = process.env.GOOGLE_SHEET_TITLE;
-
-  if (!spreadsheetId || !serviceAccountEmail || !privateKeyRaw) {
-    return {
-      stats: [],
-      error: "Google Sheets 連携用の環境変数が不足しています。",
-    };
-  }
-
-  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
-
   try {
-    const auth = new JWT({
-      email: serviceAccountEmail,
-      key: privateKey,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
+    const { matches, error } = await fetchMatchResults(startDate, endDate);
+    if (error) return { stats: [], error };
 
-    const doc = new GoogleSpreadsheet(spreadsheetId, auth);
-    await doc.loadInfo();
-
-    const sheet = sheetTitle
-      ? doc.sheetsByTitle[sheetTitle]
-      : doc.sheetsByIndex[0];
-
-    if (!sheet) {
-      return { stats: [], error: "指定されたシートが見つかりません。" };
-    }
-
-    const rows = await sheet.getRows();
     const playerMap = new Map<string, PlayerAccumulator>();
 
-    for (const row of rows) {
-      const playerCount = toInt(row.get("playerCount")) || 3;
-      const slots = playerCount >= 4 ? [1, 2, 3, 4] : [1, 2, 3];
-
-      for (const slot of slots) {
-        const playerName = String(row.get(`player${slot}`) ?? "").trim();
+    for (const match of matches) {
+      const playerCount = match.playerCount || 3;
+      for (const p of match.players) {
+        const playerName = p.name.trim();
         if (!playerName) continue;
-
-        const score = toInt(row.get(`score${slot}`));
-        const rank = toInt(row.get(`rank${slot}`));
-        const isTop = rank === 1;
-        const isLast = rank === playerCount;
-        const isTobashi = toBool(row.get(`isTobashi${slot}`));
-        const isTobi = toBool(row.get(`isTobi${slot}`));
-        const isYakitori = toBool(row.get(`isYakitori${slot}`));
 
         if (!playerMap.has(playerName)) {
           playerMap.set(playerName, {
@@ -117,13 +77,13 @@ export async function fetchPlayerStats(): Promise<{
         }
 
         const acc = playerMap.get(playerName)!;
-        acc.totalScore += score;
+        acc.totalScore += p.score;
         acc.games += 1;
-        if (isTop) acc.topCount += 1;
-        if (isLast) acc.lastCount += 1;
-        if (isTobashi) acc.tobashiCount += 1;
-        if (isTobi) acc.tobiCount += 1;
-        if (isYakitori) acc.yakitoriCount += 1;
+        if (p.rank === 1) acc.topCount += 1;
+        if (p.rank === playerCount) acc.lastCount += 1;
+        if (p.isTobashi) acc.tobashiCount += 1;
+        if (p.isTobi) acc.tobiCount += 1;
+        if (p.isYakitori) acc.yakitoriCount += 1;
       }
     }
 
@@ -158,7 +118,7 @@ export async function fetchPlayerStats(): Promise<{
   } catch {
     return {
       stats: [],
-      error: "データの取得に失敗しました。環境変数・権限・シート名を確認してください。",
+      error: "データの取得に失敗しました。",
     };
   }
 }

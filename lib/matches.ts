@@ -54,7 +54,7 @@ function parseEpoch(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export async function fetchMatchResults(): Promise<{
+export async function fetchMatchResults(startDate?: string, endDate?: string): Promise<{
   matches: MatchResult[];
   error: string | null;
 }> {
@@ -138,8 +138,44 @@ export async function fetchMatchResults(): Promise<{
       return -byCreatedAt;
     });
 
+    // If start/end filters provided, apply by comparing date-only values (YYYY-MM-DD)
+    function toLocalYMD(dt: Date) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const d = String(dt.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    const filtered = matches.filter((m) => {
+      if (!m.date) return false;
+      try {
+        const d = new Date(m.date);
+        if (Number.isNaN(d.getTime())) return false;
+
+        const dateStr = toLocalYMD(d);
+
+        if (startDate) {
+          const s = new Date(startDate);
+          if (!Number.isNaN(s.getTime())) {
+            const sStr = toLocalYMD(s);
+            if (dateStr < sStr) return false;
+          }
+        }
+        if (endDate) {
+          const e = new Date(endDate);
+          if (!Number.isNaN(e.getTime())) {
+            const eStr = toLocalYMD(e);
+            if (dateStr > eStr) return false;
+          }
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    });
+
     return {
-      matches,
+      matches: filtered,
       error: null,
     };
   } catch {
