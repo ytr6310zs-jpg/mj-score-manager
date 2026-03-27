@@ -196,7 +196,9 @@ export async function saveScoreAction(
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const row: Record<string, any> = {
+    type RowValue = string | number | boolean | null;
+
+    const row: Record<string, RowValue> = {
       date: gameDate,
       game_type: gameType,
       player_count: players.length,

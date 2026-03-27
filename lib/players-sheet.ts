@@ -26,7 +26,8 @@ export async function fetchPlayerNames(): Promise<string[]> {
     const { data, error } = await supabase.from("players").select("name").order("name", { ascending: true });
     if (error || !data) return [...PLAYERS];
 
-    const names = data.map((r: any) => String(r.name ?? "").trim()).filter(Boolean);
+    const rows = data as Array<{ name?: unknown }>;
+    const names = rows.map((r) => String(r.name ?? "").trim()).filter(Boolean);
     return names.length > 0 ? names : [...PLAYERS];
   } catch {
     return [...PLAYERS];

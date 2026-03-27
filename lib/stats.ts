@@ -29,24 +29,7 @@ type PlayerAccumulator = {
   yakitoriCount: number;
 };
 
-function toBool(value: unknown): boolean {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "string") {
-    const upper = value.trim().toUpperCase();
-    return upper === "TRUE" || upper === "1";
-  }
-  if (typeof value === "number") return value !== 0;
-  return false;
-}
-
-function toInt(value: unknown): number {
-  if (typeof value === "number") return Math.round(value);
-  if (typeof value === "string") {
-    const n = Number(value.trim());
-    return Number.isFinite(n) ? Math.round(n) : 0;
-  }
-  return 0;
-}
+// helper converters removed: unused in this module
 
 export async function fetchPlayerStats(): Promise<{
   stats: PlayerStats[];
@@ -59,7 +42,6 @@ export async function fetchPlayerStats(): Promise<{
 
   for (const row of matches) {
     const playerCount = row.playerCount || 3;
-    const slots = playerCount >= 4 ? [1, 2, 3, 4] : [1, 2, 3];
 
     for (const p of row.players) {
       const playerName = p.name;

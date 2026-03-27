@@ -220,7 +220,6 @@ export async function editMatchAction(
 
   const notes = parseString(formData.get("notes"));
 
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -231,7 +230,9 @@ export async function editMatchAction(
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const updatePayload: Record<string, any> = {
+    type RowValue = string | number | boolean | null;
+
+    const updatePayload: Record<string, RowValue> = {
       date: gameDate,
       game_type: gameType,
       player_count: players.length,

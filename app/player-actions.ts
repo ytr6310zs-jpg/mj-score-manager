@@ -42,7 +42,8 @@ export async function addPlayerAction(
       return { success: false, message: "プレイヤーの確認に失敗しました。" };
     }
 
-    if ((existing || []).some((r: any) => String(r.name).trim() === name)) {
+    const existingNames = (existing || []).map((r: Record<string, unknown>) => String(r.name ?? "").trim());
+    if (existingNames.includes(name)) {
       return { success: false, message: `「${name}」はすでに登録されています。` };
     }
 

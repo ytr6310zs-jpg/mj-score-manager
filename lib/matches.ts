@@ -48,10 +48,7 @@ function toString(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function parseEpoch(value: string): number {
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
+// removed unused parseEpoch
 
 export async function fetchMatchResults(): Promise<{
   matches: MatchResult[];
@@ -70,12 +67,16 @@ export async function fetchMatchResults(): Promise<{
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const { data: rows, error } = await supabase.from("games").select("*").order("date", { ascending: false }).order("created_at", { ascending: false });
-    if (error || !rows) {
-      return { matches: [], error: "対局履歴の取得に失敗しました。" };
-    }
+      const res = await supabase.from("games").select("*").order("date", { ascending: false }).order("created_at", { ascending: false });
+      const rows = (res.data as Array<Record<string, unknown>> | null);
+      const error = res.error;
+      if (error || !rows) {
+        return { matches: [], error: "対局履歴の取得に失敗しました。" };
+      }
 
-    const matches: MatchResult[] = (rows as any[]).map((row) => {
+      const rowsData = rows;
+
+    const matches: MatchResult[] = rowsData.map((row) => {
       const playerCount = toInt(row.player_count) || 3;
       const slots = playerCount >= 4 ? [1, 2, 3, 4] : [1, 2, 3];
 
@@ -117,7 +118,7 @@ export async function fetchMatchResults(): Promise<{
     });
 
     return { matches, error: null };
-  } catch (e) {
+  } catch {
     return {
       matches: [],
       error: "対局履歴の取得に失敗しました。環境変数・権限を確認してください。",
