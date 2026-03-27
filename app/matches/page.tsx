@@ -59,7 +59,15 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
 
           <div className="p-4">
             {/* client-side date filter that sets start/end when '当日' is checked */}
-            <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/matches" />
+            <div className="flex items-center gap-2">
+              <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/matches" />
+              <a
+                href={`/api/export/matches?start=${encodeURIComponent(start ?? "")}&end=${encodeURIComponent(end ?? "")}`}
+                className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white"
+              >
+                CSV 出力
+              </a>
+            </div>
             {error ? (
               <p className="py-8 text-center text-sm text-destructive">{error}</p>
             ) : matches.length === 0 ? (
