@@ -1,0 +1,91 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Props = {
+  initialStart?: string | null;
+  initialEnd?: string | null;
+  initialToday?: boolean;
+  actionPath?: string;
+};
+
+export default function DateRangeFilter({ initialStart, initialEnd, initialToday, actionPath }: Props) {
+  const [start, setStart] = useState<string>(initialStart ?? "");
+  const [end, setEnd] = useState<string>(initialEnd ?? "");
+  const [todayChecked, setTodayChecked] = useState<boolean>(!!initialToday);
+
+  useEffect(() => {
+    if (todayChecked) {
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = String(today.getMonth() + 1).padStart(2, "0");
+      const d = String(today.getDate()).padStart(2, "0");
+      const todayStr = `${y}-${m}-${d}`;
+      setStart(todayStr);
+      setEnd(todayStr);
+    }
+  }, [todayChecked]);
+
+  useEffect(() => {
+    // initialize from server props when component mounts
+    setStart(initialStart ?? "");
+    setEnd(initialEnd ?? "");
+    setTodayChecked(!!initialToday);
+  }, [initialStart, initialEnd, initialToday]);
+
+  // helper to dispatch flash
+  function showInvalidDateFlash() {
+    try {
+      window.dispatchEvent(new CustomEvent("app:flash", { detail: { type: "invalidDate" } }));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function handleStartChange(value: string) {
+    setStart(value);
+    if (end && value && value > end) {
+      // invalid: start after end -> clear start and show flash
+      setStart("");
+      showInvalidDateFlash();
+    }
+  }
+
+  function handleEndChange(value: string) {
+    setEnd(value);
+    if (start && value && start > value) {
+      // invalid: end before start -> clear end and show flash
+      setEnd("");
+      showInvalidDateFlash();
+    }
+  }
+
+  return (
+    <form method="get" action={actionPath} className="mb-4 flex flex-wrap items-end gap-2">
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-emerald-800">開始日</label>
+        <input name="start" type="date" value={start} onChange={(e) => handleStartChange(e.target.value)} className="rounded border p-1 text-sm" />
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-emerald-800">終了日</label>
+        <input name="end" type="date" value={end} onChange={(e) => handleEndChange(e.target.value)} className="rounded border p-1 text-sm" />
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-emerald-800">当日</label>
+        <input name="today" type="checkbox" checked={todayChecked} onChange={(e) => setTodayChecked(e.target.checked)} className="h-4 w-4" />
+      </div>
+      <button type="submit" className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white">絞込</button>
+      <button
+        type="button"
+        className="ml-2 rounded border px-3 py-1 text-sm"
+        onClick={() => {
+          setStart("");
+          setEnd("");
+          setTodayChecked(false);
+        }}
+      >
+        クリア
+      </button>
+    </form>
+  );
+}

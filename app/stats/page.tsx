@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
 import { AppHeader } from "@/components/app-header";
+import DateRangeFilter from "@/components/date-range-filter";
+import { Suspense } from "react";
+import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
 
 export const metadata: Metadata = {
@@ -30,11 +33,22 @@ const RANK_BADGE: Record<number, string> = {
   3: "bg-amber-400/70 text-amber-900",
 };
 
-export default async function StatsPage() {
-  const { stats, error } = await fetchPlayerStats();
+export default async function StatsPage({ searchParams }: any) {
+  const params = await searchParams;
+  const startRaw = params?.start;
+  const endRaw = params?.end;
+  const todayRaw = params?.today;
+  const todayChecked = todayRaw !== undefined;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const start = todayChecked ? todayStr : Array.isArray(startRaw) ? startRaw[0] : startRaw;
+  const end = todayChecked ? todayStr : Array.isArray(endRaw) ? endRaw[0] : endRaw;
+  const { stats, error } = await fetchPlayerStats(start, end);
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
+      <Suspense>
+        <FlashMessage />
+      </Suspense>
       <div className="mx-auto max-w-screen-2xl space-y-6">
         <AppHeader current="stats" />
 
@@ -45,6 +59,8 @@ export default async function StatsPage() {
           </div>
 
           <div className="p-4">
+            {/* client-side date filter that sets start/end when '当日' is checked */}
+            <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/stats" />
             {error ? (
               <p className="py-8 text-center text-sm text-destructive">{error}</p>
             ) : stats.length === 0 ? (
