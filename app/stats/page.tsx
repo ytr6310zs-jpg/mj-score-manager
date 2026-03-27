@@ -33,8 +33,10 @@ const RANK_BADGE: Record<number, string> = {
   3: "bg-amber-400/70 text-amber-900",
 };
 
-export default async function StatsPage({ searchParams }: any) {
-  const params = await searchParams;
+type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
+
+export default async function StatsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const params = await (searchParams as Promise<SearchParams> | undefined);
   const startRaw = params?.start;
   const endRaw = params?.end;
   const todayRaw = params?.today;
