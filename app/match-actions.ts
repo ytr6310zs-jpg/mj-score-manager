@@ -1,7 +1,6 @@
 "use server";
 
-import { JWT } from "google-auth-library";
-import { GoogleSpreadsheet } from "google-spreadsheet";
+import { createClient } from "@supabase/supabase-js";
 
 export type DeleteMatchState = {
   success: boolean;
@@ -18,41 +17,21 @@ export async function deleteMatchAction(
     return { success: false, message: "対局IDが不正です。" };
   }
 
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetTitle = process.env.GOOGLE_SHEET_TITLE;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!spreadsheetId || !serviceAccountEmail || !privateKeyRaw) {
-    return { success: false, message: "Google Sheets 連携用の環境変数が不足しています。" };
+  if (!supabaseUrl || !supabaseKey) {
+    return { success: false, message: "Supabase 連携用の環境変数が不足しています。" };
   }
 
-  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const auth = new JWT({
-      email: serviceAccountEmail,
-      key: privateKey,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
-
-    const doc = new GoogleSpreadsheet(spreadsheetId, auth);
-    await doc.loadInfo();
-
-    const sheet = sheetTitle ? doc.sheetsByTitle[sheetTitle] : doc.sheetsByIndex[0];
-
-    if (!sheet) {
-      return { success: false, message: "指定されたシートが見つかりません。" };
+    const { error } = await supabase.from("games").delete().eq("created_at", createdAt).limit(1);
+    if (error) {
+      console.error("Delete match error:", error);
+      return { success: false, message: "対局の削除に失敗しました。" };
     }
-
-    const rows = await sheet.getRows();
-    const targetRow = rows.find((row) => String(row.get("createdAt") ?? "").trim() === createdAt);
-
-    if (!targetRow) {
-      return { success: false, message: "対局データが見つかりません。" };
-    }
-
-    await targetRow.delete();
 
     return { success: true, message: "対局を削除しました。" };
   } catch (error) {
@@ -241,70 +220,54 @@ export async function editMatchAction(
 
   const notes = parseString(formData.get("notes"));
 
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetTitle = process.env.GOOGLE_SHEET_TITLE;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!spreadsheetId || !serviceAccountEmail || !privateKeyRaw) {
-    return { success: false, message: "Google Sheets 連携用の環境変数が不足しています。" };
+  if (!supabaseUrl || !supabaseKey) {
+    return { success: false, message: "Supabase 連携用の環境変数が不足しています。" };
   }
 
-  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const auth = new JWT({
-      email: serviceAccountEmail,
-      key: privateKey,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
+    type RowValue = string | number | boolean | null;
 
-    const doc = new GoogleSpreadsheet(spreadsheetId, auth);
-    await doc.loadInfo();
-
-    const sheet = sheetTitle ? doc.sheetsByTitle[sheetTitle] : doc.sheetsByIndex[0];
-
-    if (!sheet) {
-      return { success: false, message: "指定されたシートが見つかりません。" };
-    }
-
-    const rows = await sheet.getRows();
-    const targetRow = rows.find((row) => String(row.get("createdAt") ?? "").trim() === createdAt);
-
-    if (!targetRow) {
-      return { success: false, message: "対局データが見つかりません。" };
-    }
-
-    targetRow.set("date", gameDate);
-    targetRow.set("gameType", gameType);
-    targetRow.set("playerCount", players.length);
-    targetRow.set("scoreTotal", total);
-    targetRow.set("topPlayer", topPlayer);
-    targetRow.set("lastPlayer", lastPlayer);
-    targetRow.set("tobiPlayer", tobiPlayer ?? "");
-    targetRow.set("tobashiPlayer", tobashiPlayer ?? "");
-    targetRow.set("yakitoriPlayers", [...yakitoriPlayers].join(","));
-    targetRow.set("notes", notes);
+    const updatePayload: Record<string, RowValue> = {
+      date: gameDate,
+      game_type: gameType,
+      player_count: players.length,
+      score_total: total,
+      top_player: topPlayer,
+      last_player: lastPlayer,
+      tobi_player: tobiPlayer ?? null,
+      tobashi_player: tobashiPlayer ?? null,
+      yakitori_players: [...yakitoriPlayers].join(","),
+      notes,
+    };
 
     for (const entry of entries) {
-      targetRow.set(`player${entry.slot}`, entry.player);
-      targetRow.set(`score${entry.slot}`, entry.score);
-      targetRow.set(`rank${entry.slot}`, entry.rank);
-      targetRow.set(`isTobi${entry.slot}`, entry.isTobi);
-      targetRow.set(`isTobashi${entry.slot}`, entry.isTobashi);
-      targetRow.set(`isYakitori${entry.slot}`, entry.isYakitori);
+      updatePayload[`player${entry.slot}`] = entry.player;
+      updatePayload[`score${entry.slot}`] = entry.score;
+      updatePayload[`rank${entry.slot}`] = entry.rank;
+      updatePayload[`is_tobi${entry.slot}`] = entry.isTobi;
+      updatePayload[`is_tobashi${entry.slot}`] = entry.isTobashi;
+      updatePayload[`is_yakitori${entry.slot}`] = entry.isYakitori;
     }
 
     if (gameType === "3p") {
-      targetRow.set("player4", "");
-      targetRow.set("score4", "");
-      targetRow.set("rank4", "");
-      targetRow.set("isTobi4", false);
-      targetRow.set("isTobashi4", false);
-      targetRow.set("isYakitori4", false);
+      updatePayload.player4 = null;
+      updatePayload.score4 = null;
+      updatePayload.rank4 = null;
+      updatePayload.is_tobi4 = false;
+      updatePayload.is_tobashi4 = false;
+      updatePayload.is_yakitori4 = false;
     }
 
-    await targetRow.save();
+    const { error } = await supabase.from("games").update(updatePayload).eq("created_at", createdAt).limit(1);
+    if (error) {
+      console.error("Edit match error:", error);
+      return { success: false, message: "対局の編集に失敗しました。" };
+    }
 
     return { success: true, message: "対局を編集しました。" };
   } catch (error) {
