@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { AppHeader } from "@/components/app-header";
+import DateRangeFilter from "@/components/date-range-filter";
 import { buttonVariants } from "@/components/ui/button";
 import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
 import { MatchDeleteButton } from "@/components/match-delete-button";
@@ -27,8 +28,16 @@ function resultBadge(player: MatchPlayer): string {
   return "";
 }
 
-export default async function MatchesPage() {
-  const { matches, error } = await fetchMatchResults();
+export default async function MatchesPage({ searchParams }: any) {
+  const params = await searchParams;
+  const startRaw = params?.start;
+  const endRaw = params?.end;
+  const todayRaw = params?.today;
+  const todayChecked = todayRaw !== undefined;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const start = todayChecked ? todayStr : Array.isArray(startRaw) ? startRaw[0] : startRaw;
+  const end = todayChecked ? todayStr : Array.isArray(endRaw) ? endRaw[0] : endRaw;
+  const { matches, error } = await fetchMatchResults(start, end);
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
@@ -47,6 +56,8 @@ export default async function MatchesPage() {
           </div>
 
           <div className="p-4">
+            {/* client-side date filter that sets start/end when '当日' is checked */}
+            <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/matches" />
             {error ? (
               <p className="py-8 text-center text-sm text-destructive">{error}</p>
             ) : matches.length === 0 ? (
