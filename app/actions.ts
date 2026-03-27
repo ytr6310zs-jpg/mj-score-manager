@@ -1,7 +1,6 @@
 "use server";
 
-import { JWT } from "google-auth-library";
-import { GoogleSpreadsheet } from "google-spreadsheet";
+import { createClient } from "@supabase/supabase-js";
 const NONE_VALUE = "__none__";
 const SCORE_TOLERANCE = 1;
 
@@ -186,84 +185,60 @@ export async function saveScoreAction(
 
   const notes = parseString(formData.get("notes"));
 
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetTitle = process.env.GOOGLE_SHEET_TITLE;
+  
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!spreadsheetId || !serviceAccountEmail || !privateKeyRaw) {
-    return {
-      success: false,
-      message: "Google Sheets 連携用の環境変数が不足しています。",
-    };
+  if (!supabaseUrl || !supabaseKey) {
+    return { success: false, message: "Supabase 連携用の環境変数が不足しています。" };
   }
 
-  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const auth = new JWT({
-      email: serviceAccountEmail,
-      key: privateKey,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
+    type RowValue = string | number | boolean | null;
 
-    const doc = new GoogleSpreadsheet(spreadsheetId, auth);
-    await doc.loadInfo();
-
-    const sheet = sheetTitle
-      ? doc.sheetsByTitle[sheetTitle]
-      : doc.sheetsByIndex[0];
-
-    if (!sheet) {
-      return {
-        success: false,
-        message: "指定されたシートが見つかりません。",
-      };
-    }
-
-    const row: Record<string, string | number | boolean> = {
+    const row: Record<string, RowValue> = {
       date: gameDate,
-      gameType,
-      playerCount: players.length,
-      scoreTotal: total,
-      topPlayer,
-      lastPlayer,
-      tobiPlayer: tobiPlayer ?? "",
-      tobashiPlayer: tobashiPlayer ?? "",
-      yakitoriPlayers: [...yakitoriPlayers].join(","),
+      game_type: gameType,
+      player_count: players.length,
+      score_total: total,
+      top_player: topPlayer,
+      last_player: lastPlayer,
+      tobi_player: tobiPlayer ?? null,
+      tobashi_player: tobashiPlayer ?? null,
+      yakitori_players: [...yakitoriPlayers].join(","),
       notes,
-      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
 
     for (const entry of entries) {
       row[`player${entry.slot}`] = entry.player;
       row[`score${entry.slot}`] = entry.score;
       row[`rank${entry.slot}`] = entry.rank;
-      row[`isTobi${entry.slot}`] = entry.isTobi;
-      row[`isTobashi${entry.slot}`] = entry.isTobashi;
-      row[`isYakitori${entry.slot}`] = entry.isYakitori;
+      row[`is_tobi${entry.slot}`] = entry.isTobi;
+      row[`is_tobashi${entry.slot}`] = entry.isTobashi;
+      row[`is_yakitori${entry.slot}`] = entry.isYakitori;
     }
 
     if (gameType === "3p") {
-      row.player4 = "";
-      row.score4 = "";
-      row.rank4 = "";
-      row.isTobi4 = false;
-      row.isTobashi4 = false;
-      row.isYakitori4 = false;
+      row.player4 = null;
+      row.score4 = null;
+      row.rank4 = null;
+      row.is_tobi4 = false;
+      row.is_tobashi4 = false;
+      row.is_yakitori4 = false;
     }
 
-    await sheet.addRow(row);
+    const { error } = await supabase.from("games").insert([row]);
+    if (error) {
+      console.error("Save score error:", error);
+      return { success: false, message: "データ保存に失敗しました。" };
+    }
 
-    return {
-      success: true,
-      message: "スコアを保存しました。",
-    };
-  } catch {
-    return {
-      success: false,
-      message:
-        "Googleスプレッドシートへの保存に失敗しました。権限・ID・シート名を確認してください。",
-    };
+    return { success: true, message: "スコアを保存しました。" };
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: "データ保存に失敗しました。" };
   }
 }
