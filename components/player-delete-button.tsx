@@ -3,42 +3,38 @@
 import { useActionState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { deleteMatchAction, type DeleteMatchState } from "@/app/match-actions";
+import { deletePlayerAction, type DeletePlayerState } from "@/app/player-actions";
 import { Button } from "@/components/ui/button";
 
-const initialState: DeleteMatchState = {
+const initialState: DeletePlayerState = {
   success: false,
   message: "",
 };
 
-type MatchDeleteButtonProps = {
-  createdAt: string;
+type Props = {
+  id: number;
 };
 
-export function MatchDeleteButton({ createdAt }: MatchDeleteButtonProps) {
+export function PlayerDeleteButton({ id }: Props) {
   const router = useRouter();
-  const [state, formAction] = useActionState(deleteMatchAction, initialState);
+  const [state, formAction] = useActionState(deletePlayerAction, initialState);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (state.success) {
-      // Refresh first, then set the `flash` query param so the message
-      // is shown after the list updates (mirrors player deletion behavior).
+      // For admin UI we do not show a deletion flash; simply refresh the list.
       router.refresh();
-      const url = new URL(window.location.href);
-      url.searchParams.set("flash", "deleted");
-      router.replace(url.pathname + (url.search !== "?" ? url.search : ""));
     }
   }, [state.success, router]);
 
   const handleDelete = () => {
-    if (window.confirm("この対局を削除してもよろしいですか？")) {
-      const formData = new FormData();
-      formData.append("createdAt", createdAt);
-      startTransition(() => {
-        formAction(formData);
-      });
-    }
+    if (!window.confirm("このプレイヤーを削除してもよろしいですか？")) return;
+
+    const formData = new FormData();
+    formData.append("id", String(id));
+    startTransition(() => {
+      formAction(formData);
+    });
   };
 
   return (

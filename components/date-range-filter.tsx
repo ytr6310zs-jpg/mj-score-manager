@@ -37,7 +37,7 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
   function showInvalidDateFlash() {
     try {
       window.dispatchEvent(new CustomEvent("app:flash", { detail: { type: "invalidDate" } }));
-    } catch (e) {
+    } catch {
       // ignore
     }
   }

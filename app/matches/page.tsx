@@ -28,8 +28,10 @@ function resultBadge(player: MatchPlayer): string {
   return "";
 }
 
-export default async function MatchesPage({ searchParams }: any) {
-  const params = await searchParams;
+type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
+
+export default async function MatchesPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const params = await (searchParams as Promise<SearchParams> | undefined);
   const startRaw = params?.start;
   const endRaw = params?.end;
   const todayRaw = params?.today;
