@@ -1,0 +1,37 @@
+classDiagram
+class GamesExportCSV {
+  +match_id: string
+  +match_date: date
+  +tournament?: string
+  +venue?: string
+  +round_number?: int
+  +table?: string
+  +rule_set?: string
+  +players_count: int
+  +player_1_id?: string
+  +player_1_name: string
+  +player_1_score_change?: int
+  +player_1_final_score?: int
+  +player_2_id?: string
+  +player_2_name: string
+  +player_2_score_change?: int
+  +player_2_final_score?: int
+  +player_3_id?: string
+  +player_3_name: string
+  +player_3_score_change?: int
+  +player_3_final_score?: int
+  +player_4_id?: string
+  +player_4_name: string
+  +player_4_score_change?: int
+  +player_4_final_score?: int
+  +notes?: string
+  +metadata_json?: string
+  +export_version: string
+}
+
+class CSVSample {
+  +Header: match_id,match_date,...,notes,metadata_json,export_version
+  +Sample: M-20260328-4,2026-03-28,第3回,会場A,4,Table1,default,4,player_1,田宮,32000,42000,player_2,佐藤,-8000,12000,player_3,鈴木,-12000,8000,player_4,高橋,-12000,4000,"国士（無双）あり","{\"deck\":\"riichi\",\"yakuman_flag\":true,\"table_notes\":\"赤字\"}",v1
+}
+
+GamesExportCSV <|-- CSVSample

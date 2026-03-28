@@ -1,0 +1,28 @@
+classDiagram
+class PlayerStatsCSV {
+  +player_id: string
+  +player_name: string
+  +start_date: date
+  +end_date: date
+  +total_matches: int
+  +total_points: int
+  +average_score: float
+  +first_place_count: int
+  +second_place_count: int
+  +third_place_count: int
+  +fourth_place_count: int
+  +yakuman_count: int
+  +total_wins: int
+  +win_rate: float
+  +notes?: string
+  +source_query?: string
+  +recorded_at: timestamp
+  +recorded_by?: string
+}
+
+class CSVExample {
+  +Header: player_id,player_name,start_date,end_date,total_matches,total_points,average_score,first_place_count,second_place_count,third_place_count,fourth_place_count,yakuman_count,total_wins,win_rate,notes,source_query,recorded_at,recorded_by
+  +Sample: player_123,田宮,2026-01-01,2026-03-28,45,12000,266.7,10,12,15,8,2,20,0.44,,query: "last 90 days",2026-03-28T10:00:00Z,admin
+}
+
+PlayerStatsCSV <|-- CSVExample

@@ -64,12 +64,20 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
             {/* client-side date filter that sets start/end when '当日' is checked */}
             <div className="flex items-center gap-2">
               <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/stats" />
-              <a
-                href={`/api/export/stats?start=${encodeURIComponent(start ?? "")}&end=${encodeURIComponent(end ?? "")}`}
-                className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white"
-              >
-                CSV 出力
-              </a>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/api/export/stats?start=${encodeURIComponent(start ?? "")}&end=${encodeURIComponent(end ?? "")}`}
+                  className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white"
+                >
+                  CSV 出力
+                </a>
+                <a
+                  href={`/api/export/games?start=${encodeURIComponent(start ?? "")}&end=${encodeURIComponent(end ?? "")}`}
+                  className="ml-2 rounded bg-emerald-600/90 px-3 py-1 text-sm text-white"
+                >
+                  games CSV
+                </a>
+              </div>
             </div>
             {error ? (
               <p className="py-8 text-center text-sm text-destructive">{error}</p>
