@@ -71,12 +71,6 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                 >
                   CSV 出力
                 </a>
-                <a
-                  href={`/api/export/games?start=${encodeURIComponent(start ?? "")}&end=${encodeURIComponent(end ?? "")}`}
-                  className="ml-2 rounded bg-emerald-600/90 px-3 py-1 text-sm text-white"
-                >
-                  games CSV
-                </a>
               </div>
             </div>
             {error ? (
