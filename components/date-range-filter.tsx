@@ -61,31 +61,35 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
   }
 
   return (
-    <form method="get" action={actionPath} className="mb-4 flex flex-wrap items-end gap-2">
-      <div className="flex items-center gap-2">
+    <form method="get" action={actionPath} className="mb-4 flex w-full items-end gap-2">
+      <div className="flex items-end gap-2">
         <label className="text-xs text-emerald-800">開始日</label>
         <input name="start" type="date" value={start} onChange={(e) => handleStartChange(e.target.value)} className="rounded border p-1 text-sm" />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-end gap-2">
         <label className="text-xs text-emerald-800">終了日</label>
         <input name="end" type="date" value={end} onChange={(e) => handleEndChange(e.target.value)} className="rounded border p-1 text-sm" />
       </div>
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-emerald-800">当日</label>
-        <input name="today" type="checkbox" checked={todayChecked} onChange={(e) => setTodayChecked(e.target.checked)} className="h-4 w-4" />
+
+      <div className="ml-2 flex items-end gap-2">
+        <label className="text-xs text-emerald-800 flex items-center gap-2">
+          <input name="today" type="checkbox" checked={todayChecked} onChange={(e) => setTodayChecked(e.target.checked)} className="h-4 w-4" />
+          <span>当日</span>
+        </label>
+
+        <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white">絞込</button>
+        <button
+          type="button"
+          className="rounded border px-3 py-1 text-sm"
+          onClick={() => {
+            setStart("");
+            setEnd("");
+            setTodayChecked(false);
+          }}
+        >
+          クリア
+        </button>
       </div>
-      <button type="submit" className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white">絞込</button>
-      <button
-        type="button"
-        className="ml-2 rounded border px-3 py-1 text-sm"
-        onClick={() => {
-          setStart("");
-          setEnd("");
-          setTodayChecked(false);
-        }}
-      >
-        クリア
-      </button>
     </form>
   );
 }
