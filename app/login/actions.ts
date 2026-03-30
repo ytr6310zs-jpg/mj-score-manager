@@ -28,7 +28,8 @@ export async function loginAction(
   const input = String(formData.get("password") ?? "");
   const otp = String(formData.get("otp") ?? "");
   const requiredPassword = process.env.ACCESS_PASSWORD;
-  const totpSecret = (process.env.MFA_TOTP_SECRET ?? "").trim();
+  const rawTotp = String(process.env.MFA_TOTP_SECRET ?? "").trim();
+  const totpSecret = rawTotp === "" || rawTotp === "MFA_TOTP_SECRET" ? "" : rawTotp;
   const cookieStore = await cookies();
 
   const handleInvalidCredential = () => {

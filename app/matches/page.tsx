@@ -63,10 +63,10 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
               <div className="flex-1">
                 <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/matches" />
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end mb-2">
                 <a
                   href={`/api/export/games?start=${encodeURIComponent(start ?? "")}&end=${encodeURIComponent(end ?? "")}`}
-                  className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white"
+                  className="ml-0 sm:ml-2 rounded bg-emerald-600 px-3 text-sm text-white w-full sm:w-auto text-center sm:text-left h-10 flex items-center justify-center"
                 >
                   CSV 出力
                 </a>
