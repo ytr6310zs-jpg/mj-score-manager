@@ -1,4 +1,4 @@
-import { buildGamesCsv } from "./csv-builder";
+import { buildGamesCsv } from "./csv-builder.js";
 
 /**
  * Build response payload for games export from matches array.
