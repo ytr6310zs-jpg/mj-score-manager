@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "seeds": "node scripts/seed-sample-data.mjs"
+    ,
+    "test": "node --test"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.0",

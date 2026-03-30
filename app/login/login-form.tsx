@@ -10,11 +10,7 @@ import { Label } from "@/components/ui/label";
 
 const initialState = { error: null as string | null };
 
-type LoginFormProps = {
-  mfaEnabled?: boolean;
-};
-
-export function LoginForm({ mfaEnabled = false }: LoginFormProps) {
+export function LoginForm({ showOtp = true }: { showOtp?: boolean }) {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
@@ -29,7 +25,7 @@ export function LoginForm({ mfaEnabled = false }: LoginFormProps) {
             <Label htmlFor="password">パスワード</Label>
             <Input id="password" name="password" type="password" required />
           </div>
-          {mfaEnabled ? (
+          {showOtp ? (
             <div className="space-y-2">
               <Label htmlFor="otp">ワンタイムパスワード</Label>
               <Input

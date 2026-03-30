@@ -1,0 +1,44 @@
+classDiagram
+class MatchHistoryCSV {
+  +match_id: string
+  +match_date: date
+  +tournament?: string
+  +venue?: string
+  +round_number?: int
+  +table?: string
+  +rule_set?: string
+  +players_count: int
+  +player_1_id?: string
+  +player_1_name: string
+  +player_1_seat?: string
+  +player_1_score_change?: int
+  +player_1_final_score?: int
+  +player_2_id?: string
+  +player_2_name: string
+  +player_2_seat?: string
+  +player_2_score_change?: int
+  +player_2_final_score?: int
+  +player_3_id?: string
+  +player_3_name: string
+  +player_3_seat?: string
+  +player_3_score_change?: int
+  +player_3_final_score?: int
+  +player_4_id?: string
+  +player_4_name: string
+  +player_4_seat?: string
+  +player_4_score_change?: int
+  +player_4_final_score?: int
+  +notes?: string
+  +source_file?: string
+  +source_sheet?: string
+  +source_row?: int
+  +recorded_at: timestamp
+  +recorded_by?: string
+}
+
+class CSVSample {
+  +Header: match_id,match_date,...,player_4_final_score,notes,source_file,source_sheet,source_row,recorded_at,recorded_by
+  +Sample: M-20260328,2026-03-28,第3回,会場A,1,Table1,default,4,player_1,田宮,E,0,32000,player_2,他,....
+}
+
+MatchHistoryCSV <|-- CSVSample
