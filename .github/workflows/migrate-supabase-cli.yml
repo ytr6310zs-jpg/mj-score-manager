@@ -58,9 +58,12 @@ jobs:
           echo "DATABASE_URL=$PROD_DATABASE_URL" >> $GITHUB_OUTPUT
 
       - name: "Optional: write CA bundle (base64) to file"
-        if: ${{ secrets.DB_CA_BUNDLE_BASE64 != '' }}
         run: |
           set -euo pipefail
+          if [ -z "${DB_CA_BUNDLE_BASE64:-}" ]; then
+            echo "DB_CA_BUNDLE_BASE64 is empty, skipping."
+            exit 0
+          fi
           echo "$DB_CA_BUNDLE_BASE64" | base64 -d > /tmp/db-ca.pem
           echo "Wrote CA bundle to /tmp/db-ca.pem"
         env:
@@ -181,9 +184,12 @@ jobs:
           echo "DATABASE_URL=$PROD_DATABASE_URL" >> $GITHUB_OUTPUT
 
       - name: "Optional: write CA bundle (base64) to file"
-        if: ${{ secrets.DB_CA_BUNDLE_BASE64 != '' }}
         run: |
           set -euo pipefail
+          if [ -z "${DB_CA_BUNDLE_BASE64:-}" ]; then
+            echo "DB_CA_BUNDLE_BASE64 is empty, skipping."
+            exit 0
+          fi
           echo "$DB_CA_BUNDLE_BASE64" | base64 -d > /tmp/db-ca.pem
           echo "Wrote CA bundle to /tmp/db-ca.pem"
         env:

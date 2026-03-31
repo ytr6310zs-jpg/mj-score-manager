@@ -91,9 +91,12 @@ jobs:
           pg_dump -h "$HOST" -p "$PORT" -U "$USER" -Fc "$DB" -f staging-backup.dump || true
 
       - name: "Optional: write CA bundle (base64) to file"
-        if: ${{ secrets.DB_CA_BUNDLE_BASE64 != '' }}
         run: |
           set -euo pipefail
+          if [ -z "${DB_CA_BUNDLE_BASE64:-}" ]; then
+            echo "DB_CA_BUNDLE_BASE64 is empty, skipping."
+            exit 0
+          fi
           echo "$DB_CA_BUNDLE_BASE64" | base64 -d > /tmp/db-ca.pem
         env:
           DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
