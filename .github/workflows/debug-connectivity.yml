@@ -1,0 +1,62 @@
+name: Debug DB Connectivity
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target environment (preview | staging | prod)'
+        required: false
+        default: 'staging'
+
+jobs:
+  debug-connectivity:
+    runs-on: ubuntu-latest
+    env:
+      PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node DNS/TCP connectivity check
+        run: |
+          set -euo pipefail
+          TARGET=${{ github.event.inputs.target || 'staging' }}
+          echo "Selected target: $TARGET"
+          if [ "$TARGET" = "preview" ]; then
+            DBURL="$PREVIEW_DATABASE_URL"
+          elif [ "$TARGET" = "staging" ]; then
+            DBURL="$STAGING_DATABASE_URL"
+          else
+            DBURL="$PROD_DATABASE_URL"
+          fi
+          if [ -z "$DBURL" ]; then
+            echo "No DATABASE_URL for target $TARGET"; exit 2
+          fi
+          node -e "
+          try {
+            const url = process.env.DBURL || '$DBURL';
+            if(!url) { console.error('no url'); process.exit(2); }
+            const u = new URL(url);
+            const host = u.hostname; const port = parseInt(u.port||'5432',10);
+            console.log('Parsed host:', host);
+            console.log('Parsed port:', port);
+            console.log('Parsed user:', u.username || '(none)');
+            const dns = require('dns');
+            dns.lookup(host, (err, address) => {
+              if (err) { console.error('DNS lookup failed:', err.message); process.exit(3); }
+              console.log('DNS resolved to', address);
+              const net = require('net');
+              const sock = new net.Socket();
+              const timeout = setTimeout(() => { console.error('TCP connect timed out'); sock.destroy(); process.exit(4); }, 10000);
+              sock.once('error', e => { clearTimeout(timeout); console.error('TCP error:', e.message); process.exit(5); });
+              sock.connect(port, address, () => { clearTimeout(timeout); console.log('TCP connect OK'); sock.end(); process.exit(0); });
+            });
+          } catch (e) { console.error(e); process.exit(10); }
+          "
+        env:
+          DBURL: ${{ steps.resolve_db_url.outputs.DBURL || '' }}
