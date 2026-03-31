@@ -11,6 +11,7 @@ on:
 jobs:
   migrate-staging:
     runs-on: ubuntu-latest
+    environment: "Preview – mj-score-manager-tfvp"
     env:
       PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
       STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
