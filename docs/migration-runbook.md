@@ -1,52 +1,34 @@
-# Migration Runbook
+# Migration runbook (セルフホスト runner 用)
 
-目的
-- 本番マイグレーションを安全に実行・復旧するための手順と連絡先テンプレを提供する。
+目的: GitHub-hosted runner からの TCP 制限を回避するため、セルフホスト runner でマイグレーションを実行する手順と運用手順をまとめる。
 
-事前確認 (Before)
-- ステージングで同一マイグレーションが通っていること
-- 最新のフルバックアップが存在すること（S3/バックアップ領域）
-- 監視・オンコールの連絡先を用意すること
+セットアップ（運用担当）
+- VM を用意（Ubuntu 推奨）。内部ネットワークまたは DB に到達できることを確認。
+- 必要パッケージ: node, npm, postgresql-client
+- レジストレーショントークンを GitHub で発行（Settings → Actions → Runners → New self-hosted runner）
+- VM に `scripts/bootstrap-runner.sh` を配置し、以下で実行:
 
-バックアップ手順
-- RDS 等マネージド DB:
-  - AWS RDS: `aws rds create-db-snapshot --db-instance-identifier <id> --db-snapshot-identifier snapshot-$(date +%Y%m%d%H%M)`
-  - GCP Cloud SQL: `gcloud sql backups create --instance=<instance>`
-- 自前 Postgres:
-  - `PGPASSWORD=$DB_PASS pg_dump -h $DB_HOST -p $DB_PORT -U $DB_USER -Fc $DB_NAME > prod-backup-$(date +%s).dump`
+```bash
+sudo ./scripts/bootstrap-runner.sh https://github.com/<org>/<repo> <REGISTRATION_TOKEN>
+```
 
-マイグレーション実行手順
-1. 通知: Slack とオンコールに「マイグレーション開始」を通知する。
-2. バックアップ取得（上記）を確認。
-3. マイグレーション実行:
-   - `export DATABASE_URL="<prod url from secret>"`
-   - `npm ci`
-   - `npm run migrate:up`
-4. 検証:
-   - `curl -fsS <APP_URL>/health`
-   - 主要クエリを手動で実行して応答を確認する。
+セキュリティ
+- ランナーは最小権限のネットワーク内に配置し、アクセスは限定する。
+- シークレット（`DATABASE_URL` 等）は GitHub Secrets に保存し、ランナーのアクセスは運用者に限定する。
+- シークレットのローテーション手順を定義すること。
 
-問題発生時の初動
-- 1) 重大な障害（サービス停止・致命的データ欠損）の場合、即時ロールバック/リカバリ手順を開始。
-- 2) ロールバック（非破壊的変更）:
-  - `npm run migrate:down`（down が安全であることを事前確認している場合のみ）
-- 3) バックアップからの復元（最終手段）:
-  - `pg_restore -h $HOST -p $PORT -U $USER -d $DB -c prod-backup.dump`
-  - 注意: 復元はダウンタイムを伴う可能性が高い。
+ワークフロー運用
+- 既存の `migrate-staging.yml` は `use_self_hosted: 'true'` を渡すと `mj-db-runner` ラベルのセルフホスト上で実行される。
+- 手動実行例（workflow_dispatch）: ワークフローの `use_self_hosted` を `true` に設定してトリガー。
 
-連絡テンプレ
-- タイトル: [URGENT] Production migration failure - <migration-name>
-- 内容:
-  - 何をしたか: `<migration-name>` を適用中にエラー発生
-  - 時刻:
-  - 影響範囲:
-  - 現在の状況:
-  - 次のアクション（担当者）:
+検証・ロールバック
+- マイグレーション前に自動で `pg_dump` によるバックアップを取得するワークフローが含まれている。
+- ロールバック手順: まずステージングで `npm run migrate:down` を検証。重大な場合は手動 SQL による復旧手順を準備する。
 
-復旧報告
-- 復旧が完了したら日時、原因、対応、今後の対策を記載して共有する。
+運用チェックリスト
+- ランナーが GitHub に正常に接続していること（Actions → Runners）
+- `debug-connectivity.yml` をセルフホストで実行して DB へ TCP 接続ができること
+- 定期的に OS パッチと runner のアップデートを適用する
 
-付録: 事前に確認すべき簡易テストリスト
-- 主要 API の GET/POST が期待通りに応答するか
-- DB の行数が急減していないか
-- エラー率が上昇していないか
+連絡先
+- ランナー運用担当: TODO（チーム内担当者を記載してください）

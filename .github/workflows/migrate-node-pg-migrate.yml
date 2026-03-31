@@ -1,0 +1,70 @@
+name: Migrate via node-pg-migrate
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target environment (preview | staging | prod)'
+        required: false
+        default: 'staging'
+      use_self_hosted:
+        description: 'Run on self-hosted runner with label mj-db-runner'
+        required: false
+        default: 'false'
+
+jobs:
+  migrate:
+    runs-on: ${{ github.event.inputs.use_self_hosted == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    env:
+      PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve DATABASE_URL from target
+        id: resolve
+        run: |
+          set -euo pipefail
+          TARGET=${{ github.event.inputs.target || 'staging' }}
+          echo "Selected target: $TARGET"
+          if [ "$TARGET" = "preview" ]; then
+            echo "DATABASE_URL=$PREVIEW_DATABASE_URL" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          if [ "$TARGET" = "staging" ]; then
+            echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "DATABASE_URL=$PROD_DATABASE_URL" >> $GITHUB_OUTPUT
+
+      - name: Optional: write CA bundle (base64) to file
+        if: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
+        run: |
+          set -euo pipefail
+          echo "$DB_CA_BUNDLE_BASE64" | base64 -d > /tmp/db-ca.pem
+          echo "Wrote CA bundle to /tmp/db-ca.pem"
+        env:
+          DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          echo "Using DATABASE_URL=${DATABASE_URL}"
+          # If custom CA was written, ensure Node trusts it via NODE_EXTRA_CA_CERTS
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            echo "NODE_EXTRA_CA_CERTS set to $NODE_EXTRA_CA_CERTS"
+          fi
+          npm run migrate:up
