@@ -1,0 +1,99 @@
+name: Migrate Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target environment (preview | staging | prod)'
+        required: false
+        default: 'prod'
+
+jobs:
+  migrate-prod:
+    runs-on: ubuntu-latest
+    env:
+      PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      PREVIEW_APP_URL: ${{ secrets.PREVIEW_APP_URL }}
+      STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
+      PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve DATABASE_URL from target
+        id: resolve
+        run: |
+          set -euo pipefail
+          TARGET=${{ github.event.inputs.target || 'prod' }}
+          BRANCH_INPUT=${{ github.event.inputs.branch || '' }}
+          echo "Selected target: $TARGET"
+          if [ "$TARGET" = "preview" ]; then
+            echo "Using preview database"
+            if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+              BRANCH=${BRANCH_INPUT:-${GITHUB_REF_NAME:-main}}
+              echo "Resolving Vercel deployment for branch: $BRANCH"
+              apt-get update && apt-get install -y jq curl
+              DEPLOY_URL=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&meta-gitBranch=$BRANCH" | jq -r '.deployments[0].url // empty') || true
+              if [ -n "$DEPLOY_URL" ]; then
+                echo "DATABASE_URL=$PREVIEW_DATABASE_URL" >> $GITHUB_OUTPUT
+                echo "APP_URL=https://$DEPLOY_URL" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            fi
+            echo "DATABASE_URL=$PREVIEW_DATABASE_URL" >> $GITHUB_OUTPUT
+            echo "APP_URL=$PREVIEW_APP_URL" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          if [ "$TARGET" = "staging" ]; then
+            echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
+            echo "APP_URL=$STAGING_APP_URL" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "DATABASE_URL=$PROD_DATABASE_URL" >> $GITHUB_OUTPUT
+          echo "APP_URL=$PROD_APP_URL" >> $GITHUB_OUTPUT
+
+      - name: Take DB backup
+        run: |
+          set -euo pipefail
+          DBURL=${{ steps.resolve.outputs.DATABASE_URL }}
+          echo "[PROD] Creating backup artifact"
+          apt-get update && apt-get install -y postgresql-client
+          export PGPASSWORD=$(echo "$DBURL" | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+          HOST=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\1#')
+          PORT=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\2#')
+          DB=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\3#')
+          USER=$(echo "$DBURL" | sed -E 's#.*://([^:]+):.*#\1#')
+          pg_dump -h "$HOST" -p "$PORT" -U "$USER" -Fc "$DB" -f prod-backup.dump
+
+      - name: Upload backup artifact (for retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-backup
+          path: prod-backup.dump
+
+      - name: Run migrations against target
+        env:
+          DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
+        run: |
+          echo "Running migrations"
+          npm run migrate:up
+
+      - name: Post-migration smoke tests
+        run: |
+          APP_URL=${{ steps.resolve.outputs.APP_URL }}
+          if [ -z "$APP_URL" ]; then echo "No APP_URL set, skipping healthcheck"; exit 0; fi
+          for i in $(seq 1 12); do
+            if curl -fsS "$APP_URL/health" >/dev/null 2>&1; then
+              echo "Prod health OK"; exit 0
+            fi
+            sleep 5
+          done
+          echo "Production healthcheck failed"; exit 2
