@@ -65,10 +65,13 @@ jobs:
 
       - name: Dump backup (artifact)
         if: always()
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
         run: |
           set -euo pipefail
-          DBURL=${{ env.PROD_DATABASE_URL }}
-          echo "Using DATABASE_URL=$DBURL"
+          DBURL="$DATABASE_URL"
+          echo "Using DATABASE_URL (masked)..."
           apt-get update && apt-get install -y postgresql-client
           export PGPASSWORD=$(echo "$DBURL" | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
           HOST=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\1#')
