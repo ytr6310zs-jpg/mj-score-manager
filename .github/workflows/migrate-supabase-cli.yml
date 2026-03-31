@@ -38,8 +38,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install supabase CLI
-        run: npm install -g supabase@latest
+      - name: Check supabase CLI availability
+        run: npx -y supabase@latest --version
 
       - name: Resolve DATABASE_URL from target
         id: resolve
@@ -138,8 +138,8 @@ jobs:
             echo "NODE_EXTRA_CA_CERTS set to $NODE_EXTRA_CA_CERTS"
           fi
           # register remote and run migration/push. Adjust commands to your migration flow.
-          supabase db remote set "$DATABASE_URL"
-          supabase db push
+          npx -y supabase@latest db remote set "$DATABASE_URL"
+          npx -y supabase@latest db push
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
@@ -164,8 +164,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install supabase CLI
-        run: npm install -g supabase@latest
+      - name: Check supabase CLI availability
+        run: npx -y supabase@latest --version
 
       - name: Resolve DATABASE_URL from target
         id: resolve
@@ -262,7 +262,7 @@ jobs:
             export PGSSLROOTCERT=/tmp/db-ca.pem
             echo "NODE_EXTRA_CA_CERTS set to $NODE_EXTRA_CA_CERTS"
           fi
-          supabase db remote set "$DATABASE_URL"
-          supabase db push
+          npx -y supabase@latest db remote set "$DATABASE_URL"
+          npx -y supabase@latest db push
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
