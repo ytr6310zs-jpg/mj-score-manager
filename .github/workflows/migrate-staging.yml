@@ -92,6 +92,18 @@ jobs:
         env:
           DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
 
+      - name: Prepare DB URL for Supabase CLI
+        env:
+          DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is empty after resolution" >&2
+            exit 1
+          fi
+          SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
+          echo "SUPABASE_DB_URL=$SUPABASE_DB_URL" >> "$GITHUB_ENV"
+
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
@@ -101,18 +113,17 @@ jobs:
       - name: Run migrations against target via Supabase CLI
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
         run: |
           set -euo pipefail
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is empty after resolution" >&2
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty after preparation" >&2
             exit 1
           fi
           if [ -f /tmp/db-ca.pem ]; then
             export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
             export PGSSLROOTCERT=/tmp/db-ca.pem
           fi
-          npx -y supabase@latest db push --db-url "$DATABASE_URL"
+          npx -y supabase@latest db push --db-url "$SUPABASE_DB_URL"
 
       - name: Post-migration healthcheck
         run: |
