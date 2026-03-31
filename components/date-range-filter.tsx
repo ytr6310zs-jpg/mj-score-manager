@@ -61,31 +61,65 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
   }
 
   return (
-    <form method="get" action={actionPath} className="mb-4 flex flex-wrap items-end gap-2">
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-emerald-800">開始日</label>
-        <input name="start" type="date" value={start} onChange={(e) => handleStartChange(e.target.value)} className="rounded border p-1 text-sm" />
+    <form
+      method="get"
+      action={actionPath}
+      className="flex w-full flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-2"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2 w-full">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-emerald-800">開始日</label>
+          <input
+            name="start"
+            type="date"
+            value={start}
+            onChange={(e) => handleStartChange(e.target.value)}
+            className="rounded border p-1 text-sm h-10"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-emerald-800">終了日</label>
+          <input
+            name="end"
+            type="date"
+            value={end}
+            onChange={(e) => handleEndChange(e.target.value)}
+            className="rounded border p-1 text-sm h-10"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-emerald-800 flex items-center gap-2">
+            <input
+              name="today"
+              type="checkbox"
+              checked={todayChecked}
+              onChange={(e) => setTodayChecked(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <span>当日</span>
+          </label>
+
+          <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
+            絞込
+          </button>
+
+          <button
+            type="button"
+            className="rounded border px-3 py-1 text-sm h-10 flex items-center justify-center"
+            onClick={() => {
+              setStart("");
+              setEnd("");
+              setTodayChecked(false);
+            }}
+          >
+            クリア
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-emerald-800">終了日</label>
-        <input name="end" type="date" value={end} onChange={(e) => handleEndChange(e.target.value)} className="rounded border p-1 text-sm" />
-      </div>
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-emerald-800">当日</label>
-        <input name="today" type="checkbox" checked={todayChecked} onChange={(e) => setTodayChecked(e.target.checked)} className="h-4 w-4" />
-      </div>
-      <button type="submit" className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white">絞込</button>
-      <button
-        type="button"
-        className="ml-2 rounded border px-3 py-1 text-sm"
-        onClick={() => {
-          setStart("");
-          setEnd("");
-          setTodayChecked(false);
-        }}
-      >
-        クリア
-      </button>
+
+      {/* CSV button slot kept empty here; pages place CSV button on the right */}
     </form>
   );
 }

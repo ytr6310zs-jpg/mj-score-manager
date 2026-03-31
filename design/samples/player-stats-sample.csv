@@ -1,0 +1,2 @@
+player_id,player_name,start_date,end_date,total_matches,total_points,average_score,first_place_count,second_place_count,third_place_count,fourth_place_count,yakuman_count,total_wins,win_rate,notes,source_query,recorded_at,recorded_by
+player_123,田宮,2026-01-01,2026-03-28,45,12000,266.7,10,12,15,8,2,20,0.444,"集計: last 90 days","SELECT ...",2026-03-28T10:00:00Z,admin

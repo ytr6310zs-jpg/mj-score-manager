@@ -1,0 +1,169 @@
+DATABASE_URL=postgres://test:test@localhost:55432/testdb
+
+> mj-score-manager@0.1.0 migrate:up
+> node -e "const {spawnSync} = require('child_process'); const url = process.env.DATABASE_URL; if(!url){console.error('DATABASE_URL not set'); process.exit(2);} const env = Object.assign({}, process.env, {DATABASE_URL: url}); const r = spawnSync('node-pg-migrate',['up'],{stdio:'inherit', env}); process.exit(r.status||0);"
+
+Can't determine timestamp for 0001
+> Migrating files:
+> - 0001_init
+### MIGRATION 0001_init (UP) ###
+-- 0001_init.sql
+-- Initial schema migrated from ddl/*.sql
+
+-- players
+CREATE TABLE public.players (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_players_name ON public.players (name);
+
+-- games
+CREATE TABLE public.games (
+  id BIGSERIAL PRIMARY KEY,
+  date DATE,
+  game_type VARCHAR(2) NOT NULL CHECK (game_type IN ('3p','4p')),
+  player_count SMALLINT NOT NULL DEFAULT 4,
+  player1 TEXT,
+  player2 TEXT,
+  player3 TEXT,
+  player4 TEXT,
+  score1 INTEGER,
+  score2 INTEGER,
+  score3 INTEGER,
+  score4 INTEGER,
+  rank1 SMALLINT,
+  rank2 SMALLINT,
+  rank3 SMALLINT,
+  rank4 SMALLINT,
+  is_tobi1 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_tobi2 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_tobi3 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_tobi4 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_tobashi1 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_tobashi2 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_tobashi3 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_tobashi4 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_yakitori1 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_yakitori2 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_yakitori3 BOOLEAN NOT NULL DEFAULT FALSE,
+  is_yakitori4 BOOLEAN NOT NULL DEFAULT FALSE,
+  score_total INTEGER,
+  top_player TEXT,
+  last_player TEXT,
+  tobi_player TEXT,
+  tobashi_player TEXT,
+  yakitori_players TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_games_date_created_at ON public.games (date DESC, created_at DESC);
+;
+INSERT INTO "public"."pgmigrations" (name, run_on) VALUES ('0001_init', NOW());
+
+
+Migrations complete!
+
+> mj-score-manager@0.1.0 test
+> node --test
+
+TAP version 13
+# (node:697241) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/pezja/mj-score-manager/test/games-export.e2e.test.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /home/pezja/mj-score-manager/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: games export handler (integration-like)
+    # Subtest: returns csv payload and headers
+    ok 1 - returns csv payload and headers
+      ---
+      duration_ms: 0.761815
+      ...
+    1..1
+ok 1 - games export handler (integration-like)
+  ---
+  duration_ms: 1.560396
+  type: 'suite'
+  ...
+# (node:697242) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/pezja/mj-score-manager/test/games-export.test.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /home/pezja/mj-score-manager/package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: games CSV builder
+    # Subtest: builds CSV with header and rows
+    ok 1 - builds CSV with header and rows
+      ---
+      duration_ms: 0.822453
+      ...
+    1..1
+ok 2 - games CSV builder
+  ---
+  duration_ms: 1.639857
+  type: 'suite'
+  ...
+1..2
+# tests 2
+# suites 2
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 126.543028
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.utf8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... Etc/UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /var/lib/postgresql/data -l logfile start
+
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+waiting for server to start....2026-03-31 04:03:13.247 UTC [48] LOG:  starting PostgreSQL 15.17 (Debian 15.17-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-03-31 04:03:13.249 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-03-31 04:03:13.254 UTC [51] LOG:  database system was shut down at 2026-03-31 04:03:13 UTC
+2026-03-31 04:03:13.258 UTC [48] LOG:  database system is ready to accept connections
+ done
+server started
+CREATE DATABASE
+
+
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+waiting for server to shut down....2026-03-31 04:03:13.402 UTC [48] LOG:  received fast shutdown request
+2026-03-31 04:03:13.404 UTC [48] LOG:  aborting any active transactions
+2026-03-31 04:03:13.405 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+2026-03-31 04:03:13.405 UTC [49] LOG:  shutting down
+2026-03-31 04:03:13.406 UTC [49] LOG:  checkpoint starting: shutdown immediate
+2026-03-31 04:03:13.464 UTC [49] LOG:  checkpoint complete: wrote 922 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.012 s, sync=0.042 s, total=0.059 s; sync files=301, longest=0.002 s, average=0.001 s; distance=4239 kB, estimate=4239 kB
+2026-03-31 04:03:13.468 UTC [48] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+2026-03-31 04:03:13.517 UTC [1] LOG:  starting PostgreSQL 15.17 (Debian 15.17-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-03-31 04:03:13.517 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-03-31 04:03:13.517 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-03-31 04:03:13.519 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-03-31 04:03:13.524 UTC [64] LOG:  database system was shut down at 2026-03-31 04:03:13 UTC
+2026-03-31 04:03:13.528 UTC [1] LOG:  database system is ready to accept connections
