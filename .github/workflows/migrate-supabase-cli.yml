@@ -24,6 +24,11 @@ jobs:
       PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
       STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      SSH_BASTION_HOST: ${{ secrets.SSH_BASTION_HOST }}
+      SSH_BASTION_USER: ${{ secrets.SSH_BASTION_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_BASTION_PORT: ${{ secrets.SSH_BASTION_PORT }}
+      SSH_TUNNEL_LOCAL_PORT: ${{ secrets.SSH_TUNNEL_LOCAL_PORT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,20 +66,79 @@ jobs:
         env:
           DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
 
-      - name: Run migrations via supabase CLI
+      - name: Optional: Start SSH tunnel for Postgres
+        if: ${{ github.event.inputs.use_ssh_tunnel == 'true' }}
         env:
-          DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DBURL: ${{ steps.resolve.outputs.DATABASE_URL }}
         run: |
           set -euo pipefail
+
+          if [ -z "${SSH_BASTION_HOST:-}" ] || [ -z "${SSH_BASTION_USER:-}" ] || [ -z "${SSH_PRIVATE_KEY:-}" ]; then
+            echo "SSH tunnel requested but required secrets are missing (SSH_BASTION_HOST, SSH_BASTION_USER, SSH_PRIVATE_KEY)." >&2
+            exit 1
+          fi
+
+          LOCAL_PORT="${SSH_TUNNEL_LOCAL_PORT:-15432}"
+          BASTION_PORT="${SSH_BASTION_PORT:-22}"
+
+          PARSED=$(node -e "const u=new URL(process.argv[1]); const db=u.pathname.replace(/^\\//,''); console.log('DB_HOST='+u.hostname); console.log('DB_PORT='+(u.port||'5432')); console.log('DB_USER='+decodeURIComponent(u.username)); console.log('DB_PASS='+decodeURIComponent(u.password)); console.log('DB_NAME='+db);" "$DBURL")
+          echo "$PARSED" >> "$GITHUB_ENV"
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/gha_bastion_key
+          chmod 600 ~/.ssh/gha_bastion_key
+
+          # Open a local tunnel to the remote Postgres endpoint via bastion.
+          ssh -i ~/.ssh/gha_bastion_key \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=accept-new \
+            -o ExitOnForwardFailure=yes \
+            -N -f \
+            -L "${LOCAL_PORT}:${DB_HOST}:${DB_PORT}" \
+            -p "${BASTION_PORT}" \
+            "${SSH_BASTION_USER}@${SSH_BASTION_HOST}"
+
+          for i in $(seq 1 15); do
+            if (echo > /dev/tcp/127.0.0.1/"${LOCAL_PORT}") >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          if ! (echo > /dev/tcp/127.0.0.1/"${LOCAL_PORT}") >/dev/null 2>&1; then
+            echo "SSH tunnel did not become ready on 127.0.0.1:${LOCAL_PORT}" >&2
+            exit 1
+          fi
+
+          FINAL_DB_URL=$(node -e "const enc=encodeURIComponent; const u=process.argv[1]; const lp=process.argv[2]; const host='127.0.0.1'; const url=new URL(u); const db=url.pathname.replace(/^\\//,''); const sp=url.searchParams; if(!sp.get('sslmode')) sp.set('sslmode','require'); console.log('postgres://'+enc(decodeURIComponent(url.username))+':'+enc(decodeURIComponent(url.password))+'@'+host+':'+lp+'/'+db+'?'+sp.toString());" "$DBURL" "$LOCAL_PORT")
+          echo "FINAL_DATABASE_URL=${FINAL_DB_URL}" >> "$GITHUB_ENV"
+
+      - name: Prepare final DATABASE_URL
+        if: ${{ github.event.inputs.use_ssh_tunnel != 'true' }}
+        run: |
+          set -euo pipefail
+          echo "FINAL_DATABASE_URL=${{ steps.resolve.outputs.DATABASE_URL }}" >> "$GITHUB_ENV"
+
+      - name: Run migrations via supabase CLI
+        run: |
+          set -euo pipefail
+          DATABASE_URL="${FINAL_DATABASE_URL:-}"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is empty after resolution" >&2
+            exit 1
+          fi
           echo "Using DATABASE_URL=${DATABASE_URL}"
           if [ -f /tmp/db-ca.pem ]; then
             export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
             echo "NODE_EXTRA_CA_CERTS set to $NODE_EXTRA_CA_CERTS"
           fi
           # register remote and run migration/push. Adjust commands to your migration flow.
           supabase db remote set "$DATABASE_URL"
-          supabase db push || true
+          supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
   migrate-selfhosted:
     if: ${{ github.event.inputs.use_self_hosted == 'true' }}
@@ -83,6 +147,11 @@ jobs:
       PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
       STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      SSH_BASTION_HOST: ${{ secrets.SSH_BASTION_HOST }}
+      SSH_BASTION_USER: ${{ secrets.SSH_BASTION_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_BASTION_PORT: ${{ secrets.SSH_BASTION_PORT }}
+      SSH_TUNNEL_LOCAL_PORT: ${{ secrets.SSH_TUNNEL_LOCAL_PORT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -120,12 +189,74 @@ jobs:
         env:
           DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
 
-      - name: Run migrations via supabase CLI
+      - name: Optional: Start SSH tunnel for Postgres
+        if: ${{ github.event.inputs.use_ssh_tunnel == 'true' }}
         env:
-          DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DBURL: ${{ steps.resolve.outputs.DATABASE_URL }}
         run: |
           set -euo pipefail
+
+          if [ -z "${SSH_BASTION_HOST:-}" ] || [ -z "${SSH_BASTION_USER:-}" ] || [ -z "${SSH_PRIVATE_KEY:-}" ]; then
+            echo "SSH tunnel requested but required secrets are missing (SSH_BASTION_HOST, SSH_BASTION_USER, SSH_PRIVATE_KEY)." >&2
+            exit 1
+          fi
+
+          LOCAL_PORT="${SSH_TUNNEL_LOCAL_PORT:-15432}"
+          BASTION_PORT="${SSH_BASTION_PORT:-22}"
+
+          PARSED=$(node -e "const u=new URL(process.argv[1]); const db=u.pathname.replace(/^\\//,''); console.log('DB_HOST='+u.hostname); console.log('DB_PORT='+(u.port||'5432')); console.log('DB_USER='+decodeURIComponent(u.username)); console.log('DB_PASS='+decodeURIComponent(u.password)); console.log('DB_NAME='+db);" "$DBURL")
+          echo "$PARSED" >> "$GITHUB_ENV"
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/gha_bastion_key
+          chmod 600 ~/.ssh/gha_bastion_key
+
+          ssh -i ~/.ssh/gha_bastion_key \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=accept-new \
+            -o ExitOnForwardFailure=yes \
+            -N -f \
+            -L "${LOCAL_PORT}:${DB_HOST}:${DB_PORT}" \
+            -p "${BASTION_PORT}" \
+            "${SSH_BASTION_USER}@${SSH_BASTION_HOST}"
+
+          for i in $(seq 1 15); do
+            if (echo > /dev/tcp/127.0.0.1/"${LOCAL_PORT}") >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          if ! (echo > /dev/tcp/127.0.0.1/"${LOCAL_PORT}") >/dev/null 2>&1; then
+            echo "SSH tunnel did not become ready on 127.0.0.1:${LOCAL_PORT}" >&2
+            exit 1
+          fi
+
+          FINAL_DB_URL=$(node -e "const enc=encodeURIComponent; const u=process.argv[1]; const lp=process.argv[2]; const host='127.0.0.1'; const url=new URL(u); const db=url.pathname.replace(/^\\//,''); const sp=url.searchParams; if(!sp.get('sslmode')) sp.set('sslmode','require'); console.log('postgres://'+enc(decodeURIComponent(url.username))+':'+enc(decodeURIComponent(url.password))+'@'+host+':'+lp+'/'+db+'?'+sp.toString());" "$DBURL" "$LOCAL_PORT")
+          echo "FINAL_DATABASE_URL=${FINAL_DB_URL}" >> "$GITHUB_ENV"
+
+      - name: Prepare final DATABASE_URL
+        if: ${{ github.event.inputs.use_ssh_tunnel != 'true' }}
+        run: |
+          set -euo pipefail
+          echo "FINAL_DATABASE_URL=${{ steps.resolve.outputs.DATABASE_URL }}" >> "$GITHUB_ENV"
+
+      - name: Run migrations via supabase CLI
+        run: |
+          set -euo pipefail
+          DATABASE_URL="${FINAL_DATABASE_URL:-}"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is empty after resolution" >&2
+            exit 1
+          fi
           echo "Using DATABASE_URL=${DATABASE_URL}"
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
+            echo "NODE_EXTRA_CA_CERTS set to $NODE_EXTRA_CA_CERTS"
+          fi
           supabase db remote set "$DATABASE_URL"
-          supabase db push || true
+          supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
