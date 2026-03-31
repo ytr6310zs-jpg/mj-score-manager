@@ -9,7 +9,10 @@
     "lint": "next lint",
     "seeds": "node scripts/seed-sample-data.mjs"
     ,
-    "test": "node --test"
+    "test": "node --test",
+    "migrate:up": "node-pg-migrate up -d \"$DATABASE_URL\"",
+    "migrate:down": "node-pg-migrate down -d \"$DATABASE_URL\"",
+    "migrate:create": "node-pg-migrate create"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.0",
@@ -36,7 +39,8 @@
     "eslint-config-next": "15.5.14",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "node-pg-migrate": "^8.0.0"
   },
   "engines": {
     "node": ">=20.19.0 <21",
