@@ -139,11 +139,11 @@ jobs:
             echo "SUPABASE_DB_URL is empty, cannot verify" >&2
             exit 1
           fi
-          # collect table names from ddl/*.sql (CREATE TABLE public.<name>)
+          # collect table names from ddl/*.sql and supabase/migrations/*.sql (CREATE TABLE public.<name>)
           mkdir -p /tmp/migcheck
-          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/tables.txt || true
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/tables.txt || true
           if [ ! -s /tmp/migcheck/tables.txt ]; then
-            echo "No tables found in ddl/*.sql to verify; skipping verification.";
+            echo "No tables found in ddl/*.sql or supabase/migrations/*.sql to verify; skipping verification.";
             exit 0
           fi
           while read -r tbl; do
