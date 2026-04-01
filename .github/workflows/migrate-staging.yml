@@ -7,6 +7,12 @@ on:
         description: 'Target environment (preview | staging | prod)'
         required: false
         default: 'staging'
+  push:
+    branches: [ main ]
+    paths:
+      - 'ddl/**'
+      - '.github/workflows/**'
+      - 'supabase/**'
 
 jobs:
   migrate-staging:
@@ -123,6 +129,31 @@ jobs:
             export PGSSLROOTCERT=/tmp/db-ca.pem
           fi
           npx -y supabase@latest db push --db-url "$SUPABASE_DB_URL"
+
+      - name: Verify applied migrations (fail if expected tables missing)
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          DBURL="${SUPABASE_DB_URL:-}"
+          if [ -z "$DBURL" ]; then
+            echo "SUPABASE_DB_URL is empty, cannot verify" >&2
+            exit 1
+          fi
+          # collect table names from ddl/*.sql (CREATE TABLE public.<name>)
+          mkdir -p /tmp/migcheck
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/tables.txt || true
+          if [ ! -s /tmp/migcheck/tables.txt ]; then
+            echo "No tables found in ddl/*.sql to verify; skipping verification.";
+            exit 0
+          fi
+          while read -r tbl; do
+            echo "Checking table: $tbl"
+            if ! psql "$DBURL" -tAc "SELECT to_regclass('public.$tbl')" | grep -q "$tbl"; then
+              echo "Table $tbl not found in target database" >&2
+              exit 1
+            fi
+          done </tmp/migcheck/tables.txt
+          echo "Migration verification succeeded: all expected tables present."
 
       - name: Post-migration healthcheck
         run: |
