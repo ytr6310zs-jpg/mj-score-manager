@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlayerSelect } from "@/components/ui/player-select";
 import type { MatchResult } from "@/lib/matches";
+import YAKUMANS from "@/lib/yakumans";
+import { deleteYakumanAction } from "@/app/yakuman-actions";
 
 const initialState: EditMatchState = {
   success: false,
@@ -29,13 +31,24 @@ type PlayerSelection = {
   4: string;
 };
 
+interface YakumanOccurrence {
+  id: number;
+  player_id: number;
+  player_name: string;
+  yakuman_code: string;
+  yakuman_name: string;
+  points: number | null;
+  created_at: string | null;
+}
+
 interface MatchEditFormProps {
   match: MatchResult;
   players: string[];
   createdAt: string;
+  yakumans?: YakumanOccurrence[];
 }
 
-export function MatchEditForm({ match, players: playerList, createdAt }: MatchEditFormProps) {
+export function MatchEditForm({ match, players: playerList, createdAt, yakumans }: MatchEditFormProps) {
   const router = useRouter();
   const [state, formAction] = useActionState(editMatchAction, initialState);
   const [pending, startTransition] = useTransition();
@@ -64,28 +77,11 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
     4: match.players[3]?.isYakitori ?? false,
   });
   const [notes, setNotes] = useState(match.notes);
-  const [yakumanCodeBySlot, setYakumanCodeBySlot] = useState<Record<number, string>>({
-    1: "",
-    2: "",
-    3: "",
-    4: "",
-  });
-  const [yakumanNameBySlot, setYakumanNameBySlot] = useState<Record<number, string>>({
-    1: "",
-    2: "",
-    3: "",
-    4: "",
-  });
-  const [yakumanPointsBySlot, setYakumanPointsBySlot] = useState<Record<number, string>>({
-    1: "",
-    2: "",
-    3: "",
-    4: "",
-  });
-  const [yakumanState, yakumanAction] = useActionState(addYakumanAction, {
-    success: false,
-    message: "",
-  } as YakumanActionState);
+  const [yakumanCodeBySlot, setYakumanCodeBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
+  const [yakumanNameBySlot, setYakumanNameBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
+  const [yakumanPointsBySlot, setYakumanPointsBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
+  const [yakumanState, yakumanAction] = useActionState(addYakumanAction, { success: false, message: "" } as YakumanActionState);
+  const [, deleteAction] = useActionState(deleteYakumanAction, { success: false, message: "" } as YakumanActionState);
 
   const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
 
@@ -327,21 +323,26 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
             <div className="mt-3 space-y-2">
               <h4 className="text-sm font-medium">役満を追加</h4>
               <div className="grid gap-2 sm:grid-cols-3">
-                <Input
-                  placeholder="コード (例: DA)"
-                  value={yakumanCodeBySlot[slot] ?? ""}
-                  onChange={(e) => setYakumanCodeBySlot((p) => ({ ...p, [slot]: e.target.value }))}
-                />
-                <Input
-                  placeholder="名称 (例: 大三元)"
-                  value={yakumanNameBySlot[slot] ?? ""}
-                  onChange={(e) => setYakumanNameBySlot((p) => ({ ...p, [slot]: e.target.value }))}
-                />
-                <Input
-                  placeholder="点数 (例: 32000)"
-                  value={yakumanPointsBySlot[slot] ?? ""}
-                  onChange={(e) => setYakumanPointsBySlot((p) => ({ ...p, [slot]: e.target.value }))}
-                />
+                <Select value={yakumanCodeBySlot[slot] ?? ""} onValueChange={(v) => {
+                  setYakumanCodeBySlot((p) => ({ ...p, [slot]: v }));
+                  const found = YAKUMANS.find((y) => y.code === v);
+                  setYakumanNameBySlot((p) => ({ ...p, [slot]: found?.name ?? "" }));
+                  setYakumanPointsBySlot((p) => ({ ...p, [slot]: String(found?.points ?? "") }));
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="役満を選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">選択しない</SelectItem>
+                    {YAKUMANS.map((y) => (
+                      <SelectItem key={y.code} value={y.code}>
+                        {y.name} ({y.points ?? ""})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input placeholder="名称" value={yakumanNameBySlot[slot] ?? ""} onChange={() => {}} readOnly />
+                <Input placeholder="点数" value={yakumanPointsBySlot[slot] ?? ""} onChange={() => {}} readOnly />
               </div>
               <div className="pt-2">
                 <Button
@@ -369,11 +370,31 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
                 >
                   役満を追加
                 </Button>
-                {yakumanState?.message ? (
-                  <div className="mt-2 text-sm text-emerald-800">{yakumanState.message}</div>
-                ) : null}
+                {yakumanState?.message ? <div className="mt-2 text-sm text-emerald-800">{yakumanState.message}</div> : null}
               </div>
             </div>
+            {/* existing yakumans for this match (if any) */}
+            {yakumans && yakumans.length > 0 ? (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium">登録済みの役満</h4>
+                <div className="space-y-2">
+                  {yakumans.map((y) => (
+                    <div key={y.id} className="flex items-center justify-between rounded border px-3 py-2">
+                      <div>
+                        <div className="text-sm font-medium">{y.player_name}</div>
+                        <div className="text-sm text-muted-foreground">{y.yakuman_name} ({y.yakuman_code}) {y.points ?? ""}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <form action={deleteAction}>
+                          <input type="hidden" name="id" value={String(y.id)} />
+                          <Button type="submit" size="sm" variant="destructive">削除</Button>
+                        </form>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
