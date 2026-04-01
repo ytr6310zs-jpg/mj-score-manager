@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+.
+set -e
+
+# Check required repository file
+if [ ! -f .github/copilot-instructions.md ]; then
+  echo ".github/copilot-instructions.md が存在しません。コミットを中止します。"
+  exit 1
+fi
+
+# Optionally run the npm check script if available
+if command -v npm >/dev/null 2>&1; then
+  npm run check:required-files --silent || exit 1
+fi
+
+exit 0
