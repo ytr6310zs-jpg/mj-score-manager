@@ -30,12 +30,13 @@ jobs:
     services:
       postgres:
         image: postgres:15
+        ports:
+          - 5432:5432
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
           POSTGRES_DB: testdb
-        # Do not bind container port to the runner host (avoids port conflicts).
-        # The service is reachable from the job at the service hostname (`postgres`).
+        # For non-container jobs, expose service port and connect from the runner via localhost.
         options: >-
           --health-cmd="pg_isready -h localhost -p 5432 -U test -d testdb"
           --health-interval 10s
@@ -43,7 +44,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgres://test:test@postgres:5432/testdb
+      DATABASE_URL: postgres://test:test@localhost:5432/testdb
 
     steps:
       - uses: actions/checkout@v4
@@ -62,9 +63,7 @@ jobs:
           echo "Waiting for Postgres to accept connections..."
           # Wait up to 180 seconds for Postgres to accept connections
           for i in $(seq 1 180); do
-            # Try service hostname, then localhost, then pg_isready as a fallback.
-            if psql -h postgres -U test -d testdb -c '\q' > /dev/null 2>&1 || \
-               psql -h localhost -U test -d testdb -c '\q' > /dev/null 2>&1 || \
+            if psql -h localhost -U test -d testdb -c '\q' > /dev/null 2>&1 || \
                pg_isready -h localhost -p 5432 -U test -d testdb > /dev/null 2>&1; then
               echo "Postgres is ready"
               exit 0
