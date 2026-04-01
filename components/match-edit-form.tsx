@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState, useTransition } from "rea
 import { useRouter } from "next/navigation";
 
 import { editMatchAction, type EditMatchState } from "@/app/match-actions";
+import { addYakumanAction, type YakumanActionState } from "@/app/yakuman-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,28 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
     4: match.players[3]?.isYakitori ?? false,
   });
   const [notes, setNotes] = useState(match.notes);
+  const [yakumanCodeBySlot, setYakumanCodeBySlot] = useState<Record<number, string>>({
+    1: "",
+    2: "",
+    3: "",
+    4: "",
+  });
+  const [yakumanNameBySlot, setYakumanNameBySlot] = useState<Record<number, string>>({
+    1: "",
+    2: "",
+    3: "",
+    4: "",
+  });
+  const [yakumanPointsBySlot, setYakumanPointsBySlot] = useState<Record<number, string>>({
+    1: "",
+    2: "",
+    3: "",
+    4: "",
+  });
+  const [yakumanState, yakumanAction] = useActionState(addYakumanAction, {
+    success: false,
+    message: "",
+  } as YakumanActionState);
 
   const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
 
@@ -301,6 +324,56 @@ export function MatchEditForm({ match, players: playerList, createdAt }: MatchEd
               />
               <span className="text-sm font-medium text-emerald-900">焼き鳥</span>
             </label>
+            <div className="mt-3 space-y-2">
+              <h4 className="text-sm font-medium">役満を追加</h4>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Input
+                  placeholder="コード (例: DA)"
+                  value={yakumanCodeBySlot[slot] ?? ""}
+                  onChange={(e) => setYakumanCodeBySlot((p) => ({ ...p, [slot]: e.target.value }))}
+                />
+                <Input
+                  placeholder="名称 (例: 大三元)"
+                  value={yakumanNameBySlot[slot] ?? ""}
+                  onChange={(e) => setYakumanNameBySlot((p) => ({ ...p, [slot]: e.target.value }))}
+                />
+                <Input
+                  placeholder="点数 (例: 32000)"
+                  value={yakumanPointsBySlot[slot] ?? ""}
+                  onChange={(e) => setYakumanPointsBySlot((p) => ({ ...p, [slot]: e.target.value }))}
+                />
+              </div>
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setClientError(null);
+                    const playerName = players[slot as keyof PlayerSelection];
+                    if (!playerName) {
+                      setClientError("プレイヤーを選択してください。役満を追加できません。");
+                      return;
+                    }
+                    const form = new FormData();
+                    form.append("createdAt", createdAt);
+                    form.append("playerName", playerName);
+                    form.append("yakumanCode", yakumanCodeBySlot[slot] ?? "");
+                    form.append("yakumanName", yakumanNameBySlot[slot] ?? "");
+                    form.append("points", yakumanPointsBySlot[slot] ?? "");
+                    startTransition(() => {
+                      // call server action to add yakuman
+                      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                      // @ts-ignore
+                      yakumanAction(form);
+                    });
+                  }}
+                >
+                  役満を追加
+                </Button>
+                {yakumanState?.message ? (
+                  <div className="mt-2 text-sm text-emerald-800">{yakumanState.message}</div>
+                ) : null}
+              </div>
+            </div>
           </div>
         ))}
       </div>
