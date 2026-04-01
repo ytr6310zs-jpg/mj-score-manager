@@ -49,14 +49,15 @@ jobs:
               apt-get update && apt-get install -y jq curl
               DEPLOY_URL=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&meta-gitBranch=$BRANCH" | jq -r '.deployments[0].url // empty') || true
               if [ -n "$DEPLOY_URL" ]; then
-                echo "DATABASE_URL=$PREVIEW_DATABASE_URL" >> $GITHUB_OUTPUT
+                # Treat Vercel preview as staging: use STAGING_DATABASE_URL
+                echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
                 echo "APP_URL=https://$DEPLOY_URL" >> $GITHUB_OUTPUT
                 exit 0
               fi
             fi
-            # fallback
-            echo "DATABASE_URL=$PREVIEW_DATABASE_URL" >> $GITHUB_OUTPUT
-            echo "APP_URL=$PREVIEW_APP_URL" >> $GITHUB_OUTPUT
+            # fallback - map preview to staging
+            echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
+            echo "APP_URL=$STAGING_APP_URL" >> $GITHUB_OUTPUT
             exit 0
           fi
           if [ "$TARGET" = "staging" ]; then
