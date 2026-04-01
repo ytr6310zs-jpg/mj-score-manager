@@ -40,3 +40,9 @@ Test-NetConnection -ComputerName $u.Host -Port $u.Port -InformationLevel Detaile
 - SSL エラー: ワークフローで `DB_CA_BUNDLE_BASE64` を設定し、`NODE_EXTRA_CA_CERTS` を使って検証ルートを与える。
 
 必要なら、Actions の完全雛形（Secrets 登録手順付き）を追加で作成します。
+
+補足 — Vercel Preview の扱い
+ - 本リポジトリのワークフローでは、Vercel の preview（プルリクやブランチのプレビュー）を staging 環境として扱います。
+ - そのため、preview 実行時は `PREVIEW_DATABASE_URL` ではなく `STAGING_DATABASE_URL` を使用してマイグレーションを実行します。
+ - 期待する動作を変更したい場合は `.github/workflows/migrate-staging.yml` を編集してください（`PREVIEW_DATABASE_URL` を参照するよう戻すなど）。
+ - 必要な Secret: `STAGING_DATABASE_URL` と `STAGING_APP_URL` をリポジトリに設定してください。
