@@ -56,11 +56,20 @@ jobs:
       - name: Install psql client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - name: Wait for Postgres
+        env:
+          PGPASSWORD: test
         run: |
-          until pg_isready -h localhost -p 5432 -U test -d testdb; do
-            echo 'waiting for postgres...'
+          echo "Waiting for Postgres to accept connections..."
+          for i in $(seq 1 60); do
+            if psql -h localhost -U test -d testdb -c '\q' > /dev/null 2>&1; then
+              echo "Postgres is ready"
+              exit 0
+            fi
+            echo "waiting for postgres... ($i)"
             sleep 1
           done
+          echo "Postgres did not become ready in time" >&2
+          exit 1
       - name: Run migrations
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
