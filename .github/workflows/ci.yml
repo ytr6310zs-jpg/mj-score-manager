@@ -34,13 +34,13 @@ jobs:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
           POSTGRES_DB: testdb
-        ports:
-          - 5432:5432
-          options: >-
-            --health-cmd="pg_isready -U test -d testdb"
-            --health-interval 10s
-            --health-timeout 5s
-            --health-retries 5
+        # Do not bind container port to the runner host (avoids port conflicts).
+        # The service is reachable from the job at localhost:5432 without host port mapping.
+        options: >-
+          --health-cmd="pg_isready -h localhost -p 5432 -U test -d testdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       DATABASE_URL: postgres://test:test@localhost:5432/testdb
