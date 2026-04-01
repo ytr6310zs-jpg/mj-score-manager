@@ -10,6 +10,7 @@ on:
 
 jobs:
   migrate-prod:
+    if: ${{ github.event.inputs.use_self_hosted != 'true' }}
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -19,17 +20,47 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check supabase CLI availability
+        run: npx -y supabase@latest --version
 
       - name: Backup prod (artifact)
         if: always()
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
         run: |
           set -euo pipefail
-          DBURL="$PROD_DATABASE_URL"
-          echo "Using DATABASE_URL=$DBURL"
+          DBURL="$DATABASE_URL"
           apt-get update && apt-get install -y postgresql-client
           pg_dump --dbname="$DBURL" -Fc -f prod-backup.dump || true
+
+      - name: "Optional: write CA bundle (base64) to file"
+        run: |
+          set -euo pipefail
+          if [ -z "${DB_CA_BUNDLE_BASE64:-}" ]; then
+            echo "DB_CA_BUNDLE_BASE64 is empty, skipping."
+            exit 0
+          fi
+          echo "$DB_CA_BUNDLE_BASE64" | base64 -d > /tmp/db-ca.pem
+        env:
+          DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
+
+      - name: Prepare DB URL for Supabase CLI
+        env:
+          DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is empty" >&2
+            exit 1
+          fi
+          SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
+          echo "SUPABASE_DB_URL=$SUPABASE_DB_URL" >> "$GITHUB_ENV"
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
@@ -38,11 +69,28 @@ jobs:
           path: prod-backup.dump
 
       - name: Run migrations (hosted)
-        if: ${{ github.event.inputs.use_self_hosted != 'true' }}
         env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          npm run migrate:up
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty after preparation" >&2
+            exit 1
+          fi
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
+          fi
+          npx -y supabase@latest db push --db-url "$SUPABASE_DB_URL"
+
+      - name: Post-migration healthcheck
+        run: |
+          set -euo pipefail
+          if [ -n "$PROD_APP_URL" ]; then
+            curl -fsS "$PROD_APP_URL" >/dev/null || { echo "Healthcheck failed"; exit 2; }
+          else
+            echo "PROD_APP_URL not set, skipping healthcheck"
+          fi
 
   migrate-prod-selfhosted:
     if: ${{ github.event.inputs.use_self_hosted == 'true' }}
@@ -55,8 +103,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check supabase CLI availability
+        run: npx -y supabase@latest --version
 
       - name: Dump backup (artifact)
         if: always()
@@ -66,9 +119,31 @@ jobs:
         run: |
           set -euo pipefail
           DBURL="$DATABASE_URL"
-          echo "Using DATABASE_URL (masked)..."
           apt-get update && apt-get install -y postgresql-client
           pg_dump --dbname="$DBURL" -Fc -f prod-backup.dump || true
+
+      - name: "Optional: write CA bundle (base64) to file"
+        run: |
+          set -euo pipefail
+          if [ -z "${DB_CA_BUNDLE_BASE64:-}" ]; then
+            echo "DB_CA_BUNDLE_BASE64 is empty, skipping."
+            exit 0
+          fi
+          echo "$DB_CA_BUNDLE_BASE64" | base64 -d > /tmp/db-ca.pem
+        env:
+          DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
+
+      - name: Prepare DB URL for Supabase CLI
+        env:
+          DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is empty" >&2
+            exit 1
+          fi
+          SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
+          echo "SUPABASE_DB_URL=$SUPABASE_DB_URL" >> "$GITHUB_ENV"
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
@@ -78,6 +153,24 @@ jobs:
 
       - name: Run migrations (self-hosted)
         env:
-          DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          npm run migrate:up
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty after preparation" >&2
+            exit 1
+          fi
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
+          fi
+          npx -y supabase@latest db push --db-url "$SUPABASE_DB_URL"
+
+      - name: Post-migration healthcheck
+        run: |
+          set -euo pipefail
+          if [ -n "$PROD_APP_URL" ]; then
+            curl -fsS "$PROD_APP_URL" >/dev/null || { echo "Healthcheck failed"; exit 2; }
+          else
+            echo "PROD_APP_URL not set, skipping healthcheck"
+          fi
