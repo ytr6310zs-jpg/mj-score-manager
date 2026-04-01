@@ -29,12 +29,7 @@ jobs:
           DBURL="$PROD_DATABASE_URL"
           echo "Using DATABASE_URL=$DBURL"
           apt-get update && apt-get install -y postgresql-client
-          export PGPASSWORD=$(echo "$DBURL" | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
-          HOST=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\1#')
-          PORT=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\2#')
-          DB=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\3#')
-          USER=$(echo "$DBURL" | sed -E 's#.*://([^:]+):.*#\1#')
-          pg_dump -h "$HOST" -p "$PORT" -U "$USER" -Fc "$DB" -f prod-backup.dump || true
+          pg_dump --dbname="$DBURL" -Fc -f prod-backup.dump || true
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
@@ -73,12 +68,7 @@ jobs:
           DBURL="$DATABASE_URL"
           echo "Using DATABASE_URL (masked)..."
           apt-get update && apt-get install -y postgresql-client
-          export PGPASSWORD=$(echo "$DBURL" | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
-          HOST=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\1#')
-          PORT=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\2#')
-          DB=$(echo "$DBURL" | sed -E 's#.*://[^@]+@([^:/]+):([0-9]+)/([^?]+).*#\3#')
-          USER=$(echo "$DBURL" | sed -E 's#.*://([^:]+):.*#\1#')
-          pg_dump -h "$HOST" -p "$PORT" -U "$USER" -Fc "$DB" -f prod-backup.dump || true
+          pg_dump --dbname="$DBURL" -Fc -f prod-backup.dump || true
 
       - name: Upload backup artifact
         uses: actions/upload-artifact@v4
