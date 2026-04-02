@@ -10,10 +10,11 @@
 現状: `ddl/` にスキーマ用 SQL が置かれている。今後の運用ではスキーマ変更を安全に行い、CI で検証できる形に整備する必要がある。
 
 ## 決定
-1. 実際に実行可能なマイグレーションは `migrations/` ディレクトリで管理する（連番またはタイムスタンプ付ファイル）。
-2. `ddl/` は初期スナップショット（`ddl/initial.sql`）や参考用に残すが、日常の変更は全てマイグレーションで行う。
-3. `design/` は設計ドキュメント（ER 図、ADR、マイグレーション方針、手順）を格納する場所とする。
-4. マイグレーションツールは Node 環境に馴染む `node-pg-migrate` を第一候補とする。将来的に別ツールへ移行することを妨げない。
+1. 実際に実行可能なマイグレーションは `supabase/migrations/` ディレクトリで管理する（タイムスタンプ付ファイル、Supabase CLI を用いて適用する正本）。
+2. `ddl/` は初期スナップショットや参照用 SQL として read-only 扱いとし、日常の変更や CI の適用ソースにはしない。
+3. 既存の `migrations/` はレガシー経路（deprecated）とし、段階的に `supabase/migrations/` へ移行・アーカイブする。
+4. マイグレーション適用手段は `npx -y supabase@latest db push --db-url <DB_URL>` を標準とする。必要に応じて `psql` による個別適用や補助手段を CI に組み込む。
+5. CI は `supabase/migrations/` を正本と見なし、重複定義検出・適用後の検証ステップを必須とする。
 
 ## 理由
 - マイグレーションランナーによる順次適用は本番での安全な変更を保証する。ダウン/ロールバックを定義可能にすることで障害対応が容易になる。
@@ -21,22 +22,26 @@
 - `node-pg-migrate` は既存の Node/Next.js ワークフローに馴染みやすく、導入コストが低い。
 
 ## 運用ワークフロー（概要）
-1. 新しいスキーマ変更は `npx node-pg-migrate create <desc> --migrations-dir migrations` で雛形を作成。
-2. マイグレーションを実装（`up` と可能なら `down` を記述）。
-3. PR を作成し、変更理由を ADR・PR 本文に記載。レビューを受ける。
-4. CI ではテスト用 DB を立てて `migrate up` を実行し、その後テストを走らせる。
-5. マージ後、デプロイ環境でマイグレーションを順次実行する。
+1. 新しいスキーマ変更は `supabase/migrations/` にタイムスタンプ付き SQL ファイルとして作成する（例: `20260402000000_create_...sql`）。
+2. マイグレーション SQL を実装（可能なら idempotent に記述）。
+3. PR を作成し、変更理由を ADR・PR 本文に記載してレビューを受ける。
+4. CI ではバックアップ → `npx supabase db push --db-url "$DATABASE_URL"` を実行し、その後テーブル存在などを検証するステップを走らせる。
+5. マージ後、main の push トリガーまたは手動 workflow_dispatch により同様の手順で本番/ステージングへ適用する。
 
 ## CI 統合（推奨）
-- GitHub Actions で Postgres サービスコンテナを用意し、マイグレーションを適用してからテスト実行。失敗時は PR ブロッカーとする。
+- GitHub Actions でバックアップ作成（`pg_dump`） → `npx supabase db push` により `supabase/migrations/` を適用 → 適用結果を `psql` 等で検証するワークフローを必須とする。失敗時は PR ブロッカーとする。
+- ワークフローは `supabase/migrations/` を正本として扱い、`ddl/` や旧 `migrations/` に同一テーブル定義がある場合は検出して警告／失敗させるルールを入れる。
 
 ## コマンド例
 ```bash
-# マイグレーション作成
-npx node-pg-migrate create add-players-table --migrations-dir migrations
+# マイグレーション作成（手作業で SQL を追加する運用を想定）
+# 例: supabase/migrations/20260402000000_create_yakuman_occurrences.sql を追加
 
 # 適用（環境変数 DATABASE_URL を設定）
-DATABASE_URL=postgres://user:pass@localhost:5432/db npm run migrate:up
+npx -y supabase@latest db push --db-url "$DATABASE_URL"
+
+# 適用後の検証例
+psql "$DATABASE_URL" -tAc "SELECT to_regclass('public.yakuman_occurrences');"
 ```
 
 ## 代替案と拒否理由
@@ -44,6 +49,7 @@ DATABASE_URL=postgres://user:pass@localhost:5432/db npm run migrate:up
 - Flyway/Liquibase: 安定だが Java エコシステム依存で導入コストが増える。
 
 ## 次のアクション
-1. `migrations/` ディレクトリを作成し、既存 `ddl/` を初期マイグレーションへ移行する。 
-2. `node-pg-migrate` を devDependency として導入し、`package.json` にスクリプトを追加する。 
-3. CI ワークフローにマイグレーション検証ステップを追加する PR を作成する。
+1. 既存の `ddl/` のうち適用対象を `supabase/migrations/` に移行する（タイムスタンプ付ファイルを作成）。
+2. 旧 `migrations/` は deprecated として `migrations/DEPRECATED.md` を置き、段階的に削除する計画を立てる。
+3. CI ワークフロー（`.github/workflows/migrate-*.yml`）を `supabase/migrations/` が正本であることを前提に更新し、重複検知と適用検証を追加する。
+4. ドキュメント（この ADR と `.github/MIGRATIONS.md`）を整合させる。

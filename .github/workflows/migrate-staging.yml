@@ -115,6 +115,23 @@ jobs:
           name: staging-backup
           path: staging-backup.dump
 
+      - name: Enforce canonical migration source
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/migcheck
+          # tables defined in ddl/*.sql
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
+          # tables defined in supabase/migrations/*.sql
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
+          # show tables that exist in ddl but not in supabase/migrations
+          comm -23 /tmp/migcheck/ddl_tables.txt /tmp/migcheck/sup_tables.txt >/tmp/migcheck/only_in_ddl.txt || true
+          if [ -s /tmp/migcheck/only_in_ddl.txt ]; then
+            echo "Found table definitions present in ddl/ but missing in supabase/migrations/:" >&2
+            cat /tmp/migcheck/only_in_ddl.txt >&2
+            echo "Please migrate these definitions into supabase/migrations/ before running this workflow." >&2
+            exit 1
+          fi
+
       - name: Run migrations against target via Supabase CLI
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

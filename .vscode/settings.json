@@ -1,0 +1,10 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "true": true,
+        "gh": true,
+        "/^bash -lc 'RUN_ID=23875911430; for i in \\{1\\.\\.24\\}; do st=\\$\\(gh run view \\$RUN_ID --json status --jq \\.status 2>/dev/null \\|\\| true\\); echo \"poll#\\$i status=\\$st\"; if \\[ \"\\$st\" != \"in_progress\" \\] && \\[ -n \"\\$st\" \\]; then break; fi; sleep 5; done; gh run view \\$RUN_ID --log'$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

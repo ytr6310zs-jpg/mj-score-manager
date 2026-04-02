@@ -1,0 +1,43 @@
+name: Check Migrations
+
+on:
+  pull_request:
+    paths:
+      - 'ddl/**'
+      - 'supabase/migrations/**'
+      - 'migrations/**'
+      - '.github/MIGRATIONS.md'
+
+jobs:
+  check-duplicates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Duplicate table definitions check
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/migcheck
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/mig_tables.txt || true
+
+          comm -12 /tmp/migcheck/sup_tables.txt /tmp/migcheck/ddl_tables.txt >/tmp/migcheck/dup_sup_ddl.txt || true
+          comm -12 /tmp/migcheck/sup_tables.txt /tmp/migcheck/mig_tables.txt >/tmp/migcheck/dup_sup_mig.txt || true
+
+          if [ -s /tmp/migcheck/dup_sup_ddl.txt ] || [ -s /tmp/migcheck/dup_sup_mig.txt ]; then
+            echo "Duplicate table definitions detected across canonical and other dirs:" >&2
+            if [ -s /tmp/migcheck/dup_sup_ddl.txt ]; then
+              echo "In ddl and supabase/migrations:" >&2
+              cat /tmp/migcheck/dup_sup_ddl.txt >&2
+            fi
+            if [ -s /tmp/migcheck/dup_sup_mig.txt ]; then
+              echo "In migrations and supabase/migrations:" >&2
+              cat /tmp/migcheck/dup_sup_mig.txt >&2
+            fi
+            echo "Please migrate definitions into supabase/migrations/ and remove duplicates." >&2
+            exit 1
+          fi
+
+          echo "No duplicate table definitions detected."
