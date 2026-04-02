@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 const NONE_VALUE = "__none__";
 const SCORE_TOLERANCE = 1;
 
@@ -230,10 +231,83 @@ export async function saveScoreAction(
       row.is_yakitori4 = false;
     }
 
-    const { error } = await supabase.from("games").insert([row]);
-    if (error) {
-      console.error("Save score error:", error);
+    const { data: insertedGames, error: insertErr } = await supabase.from("games").insert([row]).select("id");
+    if (insertErr || !insertedGames || (Array.isArray(insertedGames) && insertedGames.length === 0)) {
+      console.error("Save score insert error:", insertErr);
       return { success: false, message: "データ保存に失敗しました。" };
+    }
+
+    const insertedArr = insertedGames as Array<Record<string, unknown>>;
+    const newGameId = Number(insertedArr[0]?.id ?? 0);
+
+    // handle yakuman occurrences submitted as a JSON list
+    const yakRows: Array<Record<string, unknown>> = [];
+    const yakumanSelectionsRaw = parseString(formData.get("yakumanSelections"));
+    let yakumanSelections: Array<{ playerName: string; yakumanCode: string; yakumanName: string }> = [];
+
+    if (yakumanSelectionsRaw) {
+      try {
+        const parsed = JSON.parse(yakumanSelectionsRaw) as unknown;
+        if (Array.isArray(parsed)) {
+          yakumanSelections = parsed
+            .map((entry) => {
+              const e = entry as Record<string, unknown>;
+              return {
+                playerName: String(e.playerName ?? "").trim(),
+                yakumanCode: String(e.yakumanCode ?? "").trim(),
+                yakumanName: String(e.yakumanName ?? "").trim(),
+              };
+            })
+            .filter((entry) => entry.playerName && entry.yakumanCode && entry.yakumanName);
+        }
+      } catch {
+        yakumanSelections = [];
+      }
+    }
+
+    if (yakumanSelections.length > 0) {
+      const namesToResolve = new Set(yakumanSelections.map((entry) => entry.playerName));
+      const namesArr = Array.from(namesToResolve);
+      const { data: playersRows, error: playersErr } = await supabase.from("players").select("id,name").in("name", namesArr);
+      if (!playersErr && playersRows && Array.isArray(playersRows)) {
+        const nameToId = new Map<string, number>();
+        for (const r of playersRows) {
+          const nm = String(r["name"] ?? "");
+          const id = Number((r as Record<string, unknown>)["id"] ?? 0);
+          if (nm) nameToId.set(nm, id);
+        }
+
+        for (const entry of yakumanSelections) {
+          const pid = nameToId.get(entry.playerName);
+          if (!pid) {
+            console.warn("player id not found for yakuman insertion:", entry.playerName);
+            continue;
+          }
+          yakRows.push({
+            game_id: newGameId,
+            player_id: pid,
+            yakuman_code: entry.yakumanCode,
+            yakuman_name: entry.yakumanName,
+            points: null,
+            meta: null,
+          });
+        }
+      }
+
+      if (yakRows.length > 0) {
+        const { error: yakInsertErr } = await supabase.from("yakuman_occurrences").insert(yakRows);
+        if (yakInsertErr) {
+          console.error("yakuman insert error:", yakInsertErr);
+          // non-fatal: still return success for game insert, but log
+        }
+      }
+    }
+
+    // revalidate list page
+    try {
+      revalidatePath("/matches");
+    } catch {
+      // ignore
     }
 
     return { success: true, message: "スコアを保存しました。" };

@@ -1,5 +1,10 @@
-import { JWT } from "google-auth-library";
-import { GoogleSpreadsheet } from "google-spreadsheet";
+import { createClient } from "@supabase/supabase-js";
+
+export type YakumanOccurrence = {
+  code: string;
+  name: string;
+  points: number | null;
+};
 
 export type MatchPlayer = {
   slot: number;
@@ -9,17 +14,19 @@ export type MatchPlayer = {
   isTobi: boolean;
   isTobashi: boolean;
   isYakitori: boolean;
+  yakumans?: YakumanOccurrence[];
 };
 
 export type MatchResult = {
+  id?: number;
   date: string;
   gameType: "3p" | "4p";
   playerCount: number;
   scoreTotal: number;
   topPlayer: string;
   lastPlayer: string;
-  tobiPlayer: string;
-  tobashiPlayer: string;
+  tobiPlayer: string | null;
+  tobashiPlayer: string | null;
   yakitoriPlayers: string[];
   notes: string;
   createdAt: string;
@@ -58,87 +65,128 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
   matches: MatchResult[];
   error: string | null;
 }> {
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
-  const sheetTitle = process.env.GOOGLE_SHEET_TITLE;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
 
-  if (!spreadsheetId || !serviceAccountEmail || !privateKeyRaw) {
+  if (!supabaseUrl || !supabaseKey) {
     return {
       matches: [],
-      error: "Google Sheets 連携用の環境変数が不足しています。",
+      error: "Supabase 連携用の環境変数が不足しています。",
     };
   }
 
-  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const auth = new JWT({
-      email: serviceAccountEmail,
-      key: privateKey,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
+    const selection = `id,date,game_type,player_count,player1,player2,player3,player4,score1,score2,score3,score4,rank1,rank2,rank3,rank4,is_tobi1,is_tobi2,is_tobi3,is_tobi4,is_tobashi1,is_tobashi2,is_tobashi3,is_tobashi4,is_yakitori1,is_yakitori2,is_yakitori3,is_yakitori4,score_total,top_player,last_player,tobi_player,tobashi_player,yakitori_players,notes,created_at`;
 
-    const doc = new GoogleSpreadsheet(spreadsheetId, auth);
-    await doc.loadInfo();
+    let qb = supabase.from("games").select(selection);
+    if (startDate) qb = qb.gte("date", startDate);
+    if (endDate) qb = qb.lte("date", endDate);
+    qb = qb.order("date", { ascending: false }).order("created_at", { ascending: false });
 
-    const sheet = sheetTitle ? doc.sheetsByTitle[sheetTitle] : doc.sheetsByIndex[0];
-
-    if (!sheet) {
-      return { matches: [], error: "指定されたシートが見つかりません。" };
+    const { data, error } = await qb;
+    if (error || !data) {
+      console.error("fetchMatchResults supabase error:", error);
+      return { matches: [], error: "対局履歴の取得に失敗しました。Supabase の設定を確認してください。" };
     }
 
-    const rows = await sheet.getRows();
-    const matches: MatchResult[] = rows.map((row) => {
-      const playerCount = toInt(row.get("playerCount")) || 3;
+    const rows = data as Array<Record<string, unknown>>;
+
+    // build match objects and keep id for yakuman lookup
+    const games = rows.map((row) => {
+      const playerCount = toInt(row["player_count"] ?? row["playerCount"]) || 3;
       const slots = playerCount >= 4 ? [1, 2, 3, 4] : [1, 2, 3];
 
-      const players = slots
+      const players: MatchPlayer[] = slots
         .map((slot) => {
-          const name = toString(row.get(`player${slot}`));
+          const name = toString(row[`player${slot}`]);
           if (!name) return null;
-
           return {
             slot,
             name,
-            score: toInt(row.get(`score${slot}`)),
-            rank: toInt(row.get(`rank${slot}`)) || slots.length,
-            isTobi: toBool(row.get(`isTobi${slot}`)),
-            isTobashi: toBool(row.get(`isTobashi${slot}`)),
-            isYakitori: toBool(row.get(`isYakitori${slot}`)),
-          } satisfies MatchPlayer;
+            score: toInt(row[`score${slot}`]),
+            rank: toInt(row[`rank${slot}`]) || slots.length,
+            isTobi: toBool(row[`is_tobi${slot}`]),
+            isTobashi: toBool(row[`is_tobashi${slot}`]),
+            isYakitori: toBool(row[`is_yakitori${slot}`]),
+            yakumans: [],
+          } as MatchPlayer;
         })
-        .filter((player): player is MatchPlayer => player !== null)
-        .sort((left, right) => left.rank - right.rank || left.slot - right.slot);
+        .filter((p): p is MatchPlayer => p !== null)
+        .sort((a, b) => a.rank - b.rank || a.slot - b.slot);
+
+      const createdAtRaw = row["created_at"] ?? row["createdAt"] ?? null;
+      const createdAt = createdAtRaw ? new Date(String(createdAtRaw)).toISOString() : "";
 
       return {
-        date: toString(row.get("date")),
-        gameType: toString(row.get("gameType")) === "4p" ? "4p" : "3p",
+        id: Number(row["id"] ?? 0),
+        date: toString(row["date"]),
+        gameType: String(row["game_type"] ?? "") === "4p" ? ("4p" as const) : ("3p" as const),
         playerCount,
-        scoreTotal: toInt(row.get("scoreTotal")),
-        topPlayer: toString(row.get("topPlayer")),
-        lastPlayer: toString(row.get("lastPlayer")),
-        tobiPlayer: toString(row.get("tobiPlayer")),
-        tobashiPlayer: toString(row.get("tobashiPlayer")),
-        yakitoriPlayers: toString(row.get("yakitoriPlayers"))
+        scoreTotal: toInt(row["score_total"]),
+        topPlayer: toString(row["top_player"]),
+        lastPlayer: toString(row["last_player"]),
+        tobiPlayer: row["tobi_player"] ? String(row["tobi_player"]) : null,
+        tobashiPlayer: row["tobashi_player"] ? String(row["tobashi_player"]) : null,
+        yakitoriPlayers: String(row["yakitori_players"] ?? "")
           .split(",")
-          .map((name) => name.trim())
+          .map((s) => s.trim())
           .filter(Boolean),
-        notes: toString(row.get("notes")),
-        createdAt: toString(row.get("createdAt")),
+        notes: toString(row["notes"]),
+        createdAt,
         players,
-      };
+      } as MatchResult;
     });
 
-    matches.sort((left, right) => {
-      const byDate = left.date.localeCompare(right.date);
-      if (byDate !== 0) return -byDate;
+    // fetch yakuman occurrences for these games
+    const gameIds = games.map((g) => g.id).filter(Boolean);
+    if (gameIds.length > 0) {
+      const { data: yakData, error: yakErr } = await supabase
+        .from("yakuman_occurrences")
+        .select("id,game_id,player_id,yakuman_code,yakuman_name,points,created_at,players(id,name)")
+        .in("game_id", gameIds)
+        .order("created_at", { ascending: true });
 
+      if (!yakErr && yakData && Array.isArray(yakData)) {
+        const yakRows = yakData as Array<Record<string, unknown>>;
+        const yakByGame = new Map<number, Array<Record<string, unknown>>>();
+        for (const r of yakRows) {
+          const gid = Number(r["game_id"] ?? 0);
+          if (!yakByGame.has(gid)) yakByGame.set(gid, []);
+          yakByGame.get(gid)!.push(r);
+        }
+
+        for (const g of games) {
+          const rowsForGame = yakByGame.get(g.id ?? 0) ?? [];
+          for (const r of rowsForGame) {
+              const playersObj = (r["players"] ?? null) as Record<string, unknown> | null;
+              const playerName = playersObj && typeof playersObj["name"] === "string" ? String(playersObj["name"]) : "";
+            const yak = {
+              code: String(r["yakuman_code"] ?? ""),
+              name: String(r["yakuman_name"] ?? ""),
+              points: r["points"] === null || r["points"] === undefined ? null : Number(r["points"]),
+            } as YakumanOccurrence;
+
+            const p = g.players.find((pl) => pl.name === playerName);
+            if (p) {
+              p.yakumans = p.yakumans ?? [];
+              p.yakumans.push(yak);
+            }
+          }
+        }
+      }
+    }
+
+    // sort (fallback) by date desc then created_at desc
+    games.sort((left, right) => {
+      const byDate = String(left.date ?? "").localeCompare(String(right.date ?? ""));
+      if (byDate !== 0) return -byDate;
       const byCreatedAt = parseEpoch(left.createdAt) - parseEpoch(right.createdAt);
       return -byCreatedAt;
     });
 
-    // If start/end filters provided, apply by comparing date-only values (YYYY-MM-DD)
+    // apply start/end filters by date only (YYYY-MM-DD)
     function toLocalYMD(dt: Date) {
       const y = dt.getFullYear();
       const m = String(dt.getMonth() + 1).padStart(2, "0");
@@ -146,7 +194,7 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
       return `${y}-${m}-${d}`;
     }
 
-    const filtered = matches.filter((m) => {
+    const filtered = games.filter((m) => {
       if (!m.date) return false;
       try {
         const d = new Date(m.date);
@@ -178,10 +226,11 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
       matches: filtered,
       error: null,
     };
-  } catch {
+  } catch (err) {
+    console.error("fetchMatchResults error:", err);
     return {
       matches: [],
-      error: "対局履歴の取得に失敗しました。環境変数・権限・シート名を確認してください。",
+      error: "対局履歴の取得に失敗しました。Supabase の設定を確認してください。",
     };
   }
 }

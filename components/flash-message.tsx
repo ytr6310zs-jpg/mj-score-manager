@@ -7,6 +7,7 @@ const MESSAGES: Record<string, string> = {
   deleted: "対局を削除しました。",
   updated: "対局を編集しました。",
   invalidDate: "日付範囲が不正だったため、該当フィールドをクリアしました。",
+  yakumanDeleted: "役満を削除しました。",
 };
 
 const AUTO_DISMISS_MS = 5000;

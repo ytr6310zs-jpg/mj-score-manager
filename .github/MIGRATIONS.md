@@ -3,28 +3,33 @@
 このドキュメントは CI / runner でマイグレーションを安全に実行するためのまとめです。
 
 必須 Secrets（リポジトリ／環境に登録）
-- `PREVIEW_DATABASE_URL`, `STAGING_DATABASE_URL`, `PROD_DATABASE_URL` — 各環境の Postgres 接続文字列（postgres://user:pass@host:5432/db）
+- `STAGING_DATABASE_URL`, `PROD_DATABASE_URL` — 各環境の Postgres 接続文字列（postgres://user:pass@host:5432/db）
 - `DB_CA_BUNDLE_BASE64` —（任意）自前 CA を利用する場合、CA PEM を base64 エンコードして登録
-- `SUPABASE_ACCESS_TOKEN` —（supabase CLI を使う場合）必要に応じて登録
+- `SUPABASE_ACCESS_TOKEN` —（必要な場合）supabase CLI の認証に使用
+
+運用上の注意
+- リポジトリのマイグレーション適用の正本は `supabase/migrations/` です。
+- `ddl/` は参照用スナップショット（read-only）として扱い、`migrations/` はレガシー（deprecated）です。直接 CI の適用ソースにしないでください。
 
 ワークフロー
-- `.github/workflows/migrate-node-pg-migrate.yml` — 既存の `node-pg-migrate` を使うジョブ。`DB_CA_BUNDLE_BASE64` を使って Node に CA を渡せます。
-- `.github/workflows/migrate-supabase-cli.yml` — `supabase` CLI を使うジョブ（必要に応じて利用）
+- `.github/workflows/migrate-staging.yml` / `.github/workflows/migrate-prod.yml` は `supabase/migrations/` を用いて `npx supabase db push` を実行し、適用後に `psql` 等で検証する構成になっています。
 
 実行手順（要点）
 1. Secrets をリポジトリに設定する（Settings -> Secrets and variables -> Actions）。
-2. ワークフローを `Run workflow` で手動実行。`target` と `use_self_hosted` を必要に応じて選択。
+2. PR を作成し、`supabase/migrations/` に SQL ファイルを追加して CI を通す。
+3. CI はバックアップ（`pg_dump`）→ `npx supabase db push --db-url "$DATABASE_URL"` → 検証 の順で実行します。
 
 ローカル検証コマンド（到達性チェック）
-- Linux/macOS:
 ```bash
-host=db.gownwwvdhjerzrcoivhq.supabase.co
+# Linux/macOS
+host=your-db-host
 port=5432
 nc -vz $host $port
 ```
-- Windows PowerShell:
+
 ```powershell
-$u = [uri]'postgresql://postgres:PASS@db.gownwwvdhjerzrcoivhq.supabase.co:5432/postgres'
+# Windows PowerShell
+$u = [uri]'postgresql://postgres:PASS@db.example.supabase.co:5432/postgres'
 $u.Host; $u.Port
 Resolve-DnsName $u.Host | Select-Object Name,IPAddress
 Test-NetConnection -ComputerName $u.Host -Port $u.Port -InformationLevel Detailed
@@ -39,4 +44,7 @@ Test-NetConnection -ComputerName $u.Host -Port $u.Port -InformationLevel Detaile
 - 接続タイムアウト: まず `nc` / `Test-NetConnection` で TCP 到達性を確認。runner から接続できない場合はネットワーク/ファイアウォールの問題。
 - SSL エラー: ワークフローで `DB_CA_BUNDLE_BASE64` を設定し、`NODE_EXTRA_CA_CERTS` を使って検証ルートを与える。
 
-必要なら、Actions の完全雛形（Secrets 登録手順付き）を追加で作成します。
+補足 — Vercel Preview の扱い
+- 本リポジトリのワークフローでは、Vercel の preview（プルリクやブランチのプレビュー）を staging 環境として扱います。
+- そのため、preview 実行時は `PREVIEW_DATABASE_URL` ではなく `STAGING_DATABASE_URL` を使用してマイグレーションを実行する運用が設定されています。
+

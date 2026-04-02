@@ -7,6 +7,12 @@ on:
         description: 'Target environment (preview | staging | prod)'
         required: false
         default: 'staging'
+  push:
+    branches: [ main ]
+    paths:
+      - 'ddl/**'
+      - '.github/workflows/**'
+      - 'supabase/**'
 
 jobs:
   migrate-staging:
@@ -49,14 +55,15 @@ jobs:
               apt-get update && apt-get install -y jq curl
               DEPLOY_URL=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&meta-gitBranch=$BRANCH" | jq -r '.deployments[0].url // empty') || true
               if [ -n "$DEPLOY_URL" ]; then
-                echo "DATABASE_URL=$PREVIEW_DATABASE_URL" >> $GITHUB_OUTPUT
+                # Treat Vercel preview as staging: use STAGING_DATABASE_URL
+                echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
                 echo "APP_URL=https://$DEPLOY_URL" >> $GITHUB_OUTPUT
                 exit 0
               fi
             fi
-            # fallback
-            echo "DATABASE_URL=$PREVIEW_DATABASE_URL" >> $GITHUB_OUTPUT
-            echo "APP_URL=$PREVIEW_APP_URL" >> $GITHUB_OUTPUT
+            # fallback - map preview to staging
+            echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
+            echo "APP_URL=$STAGING_APP_URL" >> $GITHUB_OUTPUT
             exit 0
           fi
           if [ "$TARGET" = "staging" ]; then
@@ -108,6 +115,23 @@ jobs:
           name: staging-backup
           path: staging-backup.dump
 
+      - name: Enforce canonical migration source
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/migcheck
+          # tables defined in ddl/*.sql
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
+          # tables defined in supabase/migrations/*.sql
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
+          # show tables that exist in ddl but not in supabase/migrations
+          comm -23 /tmp/migcheck/ddl_tables.txt /tmp/migcheck/sup_tables.txt >/tmp/migcheck/only_in_ddl.txt || true
+          if [ -s /tmp/migcheck/only_in_ddl.txt ]; then
+            echo "Found table definitions present in ddl/ but missing in supabase/migrations/:" >&2
+            cat /tmp/migcheck/only_in_ddl.txt >&2
+            echo "Please migrate these definitions into supabase/migrations/ before running this workflow." >&2
+            exit 1
+          fi
+
       - name: Run migrations against target via Supabase CLI
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -122,6 +146,31 @@ jobs:
             export PGSSLROOTCERT=/tmp/db-ca.pem
           fi
           npx -y supabase@latest db push --db-url "$SUPABASE_DB_URL"
+
+      - name: Verify applied migrations (fail if expected tables missing)
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          DBURL="${SUPABASE_DB_URL:-}"
+          if [ -z "$DBURL" ]; then
+            echo "SUPABASE_DB_URL is empty, cannot verify" >&2
+            exit 1
+          fi
+          # collect table names from ddl/*.sql and supabase/migrations/*.sql (CREATE TABLE public.<name>)
+          mkdir -p /tmp/migcheck
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/tables.txt || true
+          if [ ! -s /tmp/migcheck/tables.txt ]; then
+            echo "No tables found in ddl/*.sql or supabase/migrations/*.sql to verify; skipping verification.";
+            exit 0
+          fi
+          while read -r tbl; do
+            echo "Checking table: $tbl"
+            if ! psql "$DBURL" -tAc "SELECT to_regclass('public.$tbl')" | grep -q "$tbl"; then
+              echo "Table $tbl not found in target database" >&2
+              exit 1
+            fi
+          done </tmp/migcheck/tables.txt
+          echo "Migration verification succeeded: all expected tables present."
 
       - name: Post-migration healthcheck
         run: |

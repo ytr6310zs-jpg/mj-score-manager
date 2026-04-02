@@ -1,4 +1,4 @@
--- 003_create_yakuman_occurrences.sql
+-- 20260402000000_create_yakuman_occurrences.sql
 -- Stores occurrences of yakuman (kazoe/role) in games
 CREATE TABLE public.yakuman_occurrences (
   id BIGSERIAL PRIMARY KEY,

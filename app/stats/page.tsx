@@ -132,6 +132,10 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                             <dd>{player.yakitoriCount}</dd>
                           </div>
                           <div>
+                            <dt className="font-semibold">役満</dt>
+                            <dd>{player.yakumanCount}</dd>
+                          </div>
+                          <div>
                             <dt className="font-semibold">接待率</dt>
                             <dd>{pct(player.setaiRate)}</dd>
                           </div>
@@ -176,6 +180,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                       <th className="px-3 py-2.5 text-right">飛ばし</th>
                       <th className="px-3 py-2.5 text-right">飛び</th>
                       <th className="px-3 py-2.5 text-right">焼き鳥</th>
+                      <th className="px-3 py-2.5 text-right">役満</th>
                       <th className="px-3 py-2.5 text-right">飛ばし率</th>
                       <th className="px-3 py-2.5 text-right">
                         飛び
@@ -225,6 +230,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                           <td className="px-3 py-2 text-right tabular-nums">{player.tobashiCount}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{player.tobiCount}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{player.yakitoriCount}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{player.yakumanCount}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobashiRate)}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobiAvoidanceRate)}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{pct(player.yakitoriAvoidanceRate)}</td>

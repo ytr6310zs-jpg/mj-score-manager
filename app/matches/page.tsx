@@ -130,6 +130,13 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                               {badge ? (
                                 <p className="mt-2 text-xs font-semibold text-amber-900">{badge}</p>
                               ) : null}
+                              {player.yakumans && player.yakumans.length > 0 ? (
+                                <p className="mt-2">
+                                  <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                    役満: {player.yakumans.map((y) => y.name).join("、")}
+                                  </span>
+                                </p>
+                              ) : null}
                             </li>
                           );
                         })}
@@ -203,6 +210,11 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                   {badge ? (
                                     <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
                                       {badge}
+                                    </span>
+                                  ) : null}
+                                  {player.yakumans && player.yakumans.length > 0 ? (
+                                    <span className="ml-2 rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-900">
+                                      役満: {player.yakumans.map((y) => y.name).join("、")}
                                     </span>
                                   ) : null}
                                 </li>
