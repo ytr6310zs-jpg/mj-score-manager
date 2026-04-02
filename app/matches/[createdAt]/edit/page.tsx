@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/components/app-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FlashMessage } from "@/components/flash-message";
 import { fetchMatchResults } from "@/lib/matches";
 import { fetchPlayerNames } from "@/lib/players-sheet";
 import { MatchEditForm } from "@/components/match-edit-form";
@@ -97,6 +98,7 @@ export default async function MatchEditPage({ params }: EditPageProps) {
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
         <AppHeader current="matches" />
+        <FlashMessage />
 
         <Card className="border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <CardHeader className="p-4 sm:p-6">

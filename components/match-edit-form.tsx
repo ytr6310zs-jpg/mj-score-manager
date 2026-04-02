@@ -82,7 +82,11 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   const [yakumanNameBySlot, setYakumanNameBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
   const [yakumanPointsBySlot, setYakumanPointsBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
   const [yakumanState, yakumanAction] = useActionState(addYakumanAction, { success: false, message: "" } as YakumanActionState);
-  const [, deleteAction] = useActionState(deleteYakumanAction, { success: false, message: "" } as YakumanActionState);
+  const [deleteState, deleteAction] = useActionState(deleteYakumanAction, { success: false, message: "" } as YakumanActionState);
+  const [displayYakumans, setDisplayYakumans] = useState<YakumanOccurrence[]>(yakumans ?? []);
+  const [lastAddedYakuman, setLastAddedYakuman] = useState<YakumanOccurrence | null>(null);
+  const [yakumanMessageSlot, setYakumanMessageSlot] = useState<number | null>(null);
+  const [deletingYakumanId, setDeletingYakumanId] = useState<number | null>(null);
 
   const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
 
@@ -138,6 +142,39 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
       router.push("/matches?flash=updated");
     }
   }, [state.success, router]);
+
+  useEffect(() => {
+    setDisplayYakumans(yakumans ?? []);
+  }, [yakumans]);
+
+  useEffect(() => {
+    if (yakumanState.success && lastAddedYakuman) {
+      setDisplayYakumans((current) => [...current, lastAddedYakuman]);
+      setLastAddedYakuman(null);
+      router.refresh();
+    }
+  }, [yakumanState.success, lastAddedYakuman, router]);
+
+  useEffect(() => {
+    if (!yakumanState.success && yakumanState.message) {
+      setLastAddedYakuman(null);
+    }
+  }, [yakumanState.success, yakumanState.message]);
+
+  useEffect(() => {
+    if (deleteState.success && deletingYakumanId !== null) {
+      setDisplayYakumans((current) => current.filter((y) => y.id !== deletingYakumanId));
+      setDeletingYakumanId(null);
+      router.refresh();
+      window.dispatchEvent(new CustomEvent("app:flash", { detail: { type: "yakumanDeleted" } }));
+    }
+  }, [deleteState.success, deletingYakumanId, router]);
+
+  useEffect(() => {
+    if (!deleteState.success && deleteState.message) {
+      setDeletingYakumanId(null);
+    }
+  }, [deleteState.success, deleteState.message]);
 
   useEffect(() => {
     const scoreCount = gameType === "4p" ? 4 : 3;
@@ -323,7 +360,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
             </label>
             <div className="mt-3 space-y-2">
               <h4 className="text-sm font-medium">役満を追加</h4>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-1">
                 <Select value={yakumanCodeBySlot[slot] || YAKUMAN_NONE_VALUE} onValueChange={(v) => {
                   const nextCode = v === YAKUMAN_NONE_VALUE ? "" : v;
                   setYakumanCodeBySlot((p) => ({ ...p, [slot]: nextCode }));
@@ -338,13 +375,11 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                     <SelectItem value={YAKUMAN_NONE_VALUE}>選択しない</SelectItem>
                     {YAKUMANS.map((y) => (
                       <SelectItem key={y.code} value={y.code}>
-                        {y.name} ({y.points ?? ""})
+                        {y.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Input placeholder="名称" value={yakumanNameBySlot[slot] ?? ""} onChange={() => {}} readOnly />
-                <Input placeholder="点数" value={yakumanPointsBySlot[slot] ?? ""} onChange={() => {}} readOnly />
               </div>
               <div className="pt-2">
                 <Button
@@ -362,6 +397,16 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                     form.append("yakumanCode", yakumanCodeBySlot[slot] ?? "");
                     form.append("yakumanName", yakumanNameBySlot[slot] ?? "");
                     form.append("points", yakumanPointsBySlot[slot] ?? "");
+                    setYakumanMessageSlot(slot);
+                    setLastAddedYakuman({
+                      id: -Date.now(),
+                      player_id: 0,
+                      player_name: playerName,
+                      yakuman_code: yakumanCodeBySlot[slot] ?? "",
+                      yakuman_name: yakumanNameBySlot[slot] ?? "",
+                      points: yakumanPointsBySlot[slot] ? Number(yakumanPointsBySlot[slot]) : null,
+                      created_at: new Date().toISOString(),
+                    });
                     startTransition(() => {
                       // call server action to add yakuman
                       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -372,30 +417,52 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                 >
                   役満を追加
                 </Button>
-                {yakumanState?.message ? <div className="mt-2 text-sm text-emerald-800">{yakumanState.message}</div> : null}
+                {yakumanState?.message && yakumanMessageSlot === slot ? (
+                  <div className="mt-2 text-sm text-emerald-800">{yakumanState.message}</div>
+                ) : null}
               </div>
             </div>
-            {/* existing yakumans for this match (if any) */}
-            {yakumans && yakumans.length > 0 ? (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium">登録済みの役満</h4>
-                <div className="space-y-2">
-                  {yakumans.map((y) => (
-                    <div key={y.id} className="flex items-center justify-between rounded border px-3 py-2">
-                      <div>
-                        <div className="text-sm font-medium">{y.player_name}</div>
-                        <div className="text-sm text-muted-foreground">{y.yakuman_name} ({y.yakuman_code}) {y.points ?? ""}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <form action={deleteAction}>
-                          <input type="hidden" name="id" value={String(y.id)} />
-                          <Button type="submit" size="sm" variant="destructive">削除</Button>
-                        </form>
-                      </div>
+            {/* existing yakumans for this match (if any) - show only those for this slot, display code only */}
+            {displayYakumans.length > 0 ? (
+              (() => {
+                const slotPlayerName = players[slot as keyof PlayerSelection];
+                const registered = displayYakumans.filter((y) => y.player_name === slotPlayerName);
+                if (registered.length === 0) return null;
+
+                return (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium">登録済みの役満</h4>
+                    <div className="space-y-2">
+                      {registered.map((y) => (
+                        <div key={y.id} className="flex items-center justify-between rounded border px-3 py-2">
+                          <div>
+                            <div className="text-sm text-muted-foreground">{y.yakuman_name}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setDeletingYakumanId(y.id);
+                                const form = new FormData();
+                                form.append("id", String(y.id));
+                                startTransition(() => {
+                                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                  // @ts-ignore
+                                  deleteAction(form);
+                                });
+                              }}
+                            >
+                              削除
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                );
+              })()
             ) : null}
           </div>
         ))}
