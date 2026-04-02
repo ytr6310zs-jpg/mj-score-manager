@@ -77,6 +77,43 @@ function parseScore(value: FormDataEntryValue | null) {
   return parsed;
 }
 
+type YakumanSelection = {
+  playerName: string;
+  yakumanCode: string;
+  yakumanName: string;
+  points: number | null;
+};
+
+function parseYakumanSelections(value: FormDataEntryValue | null): YakumanSelection[] {
+  const raw = String(value ?? "").trim();
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => {
+        const row = item as Record<string, unknown>;
+        const playerName = String(row.playerName ?? "").trim();
+        const yakumanCode = String(row.yakumanCode ?? "").trim();
+        const yakumanName = String(row.yakumanName ?? "").trim();
+        const pointsRaw = row.points;
+
+        let points: number | null = null;
+        if (pointsRaw !== null && pointsRaw !== undefined && String(pointsRaw).trim() !== "") {
+          const parsedPoints = Number(pointsRaw);
+          points = Number.isFinite(parsedPoints) ? parsedPoints : null;
+        }
+
+        return { playerName, yakumanCode, yakumanName, points };
+      })
+      .filter((item) => item.playerName && item.yakumanCode && item.yakumanName);
+  } catch {
+    return [];
+  }
+}
+
 function validatePlayer(name: string, label: string) {
   if (!name) {
     return `${label}を選択してください`;
@@ -219,6 +256,7 @@ export async function editMatchAction(
   const lastPlayer = rankedEntries[rankedEntries.length - 1]?.player ?? "";
 
   const notes = parseString(formData.get("notes"));
+  const yakumanSelections = parseYakumanSelections(formData.get("yakumanSelections"));
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -267,6 +305,62 @@ export async function editMatchAction(
     if (error) {
       console.error("Edit match error:", error);
       return { success: false, message: "対局の編集に失敗しました。" };
+    }
+
+    const { data: gameRows, error: gameIdError } = await supabase
+      .from("games")
+      .select("id")
+      .eq("created_at", createdAt)
+      .limit(1);
+
+    if (gameIdError) {
+      console.error("Edit match yakuman game lookup error:", gameIdError);
+      return { success: false, message: "役満情報の保存に失敗しました。" };
+    }
+
+    const gameId = gameRows && gameRows.length > 0 ? Number(gameRows[0].id) : null;
+    if (!gameId) {
+      return { success: false, message: "役満情報の保存に失敗しました。" };
+    }
+
+    const playerRows = await supabase.from("players").select("id,name").in("name", players);
+    if (playerRows.error || !playerRows.data) {
+      console.error("Edit match yakuman player lookup error:", playerRows.error);
+      return { success: false, message: "役満情報の保存に失敗しました。" };
+    }
+
+    const playerIdByName = new Map(
+      playerRows.data.map((row) => [String(row.name), Number(row.id)])
+    );
+
+    const deleteYakumanRes = await supabase.from("yakuman_occurrences").delete().eq("game_id", gameId);
+    if (deleteYakumanRes.error) {
+      console.error("Edit match yakuman delete error:", deleteYakumanRes.error);
+      return { success: false, message: "役満情報の保存に失敗しました。" };
+    }
+
+    if (yakumanSelections.length > 0) {
+      const insertRows = yakumanSelections
+        .map((selection) => {
+          const playerId = playerIdByName.get(selection.playerName);
+          if (!playerId) return null;
+          return {
+            game_id: gameId,
+            player_id: playerId,
+            yakuman_code: selection.yakumanCode,
+            yakuman_name: selection.yakumanName,
+            points: selection.points,
+          };
+        })
+        .filter((row): row is { game_id: number; player_id: number; yakuman_code: string; yakuman_name: string; points: number | null } => row !== null);
+
+      if (insertRows.length > 0) {
+        const insertYakumanRes = await supabase.from("yakuman_occurrences").insert(insertRows);
+        if (insertYakumanRes.error) {
+          console.error("Edit match yakuman insert error:", insertYakumanRes.error);
+          return { success: false, message: "役満情報の保存に失敗しました。" };
+        }
+      }
     }
 
     return { success: true, message: "対局を編集しました。" };
