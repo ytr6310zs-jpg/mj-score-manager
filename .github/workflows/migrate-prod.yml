@@ -76,8 +76,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/migcheck
-          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
-          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
           comm -23 /tmp/migcheck/ddl_tables.txt /tmp/migcheck/sup_tables.txt >/tmp/migcheck/only_in_ddl.txt || true
           if [ -s /tmp/migcheck/only_in_ddl.txt ]; then
             echo "Found table definitions present in ddl/ but missing in supabase/migrations/:" >&2
