@@ -126,6 +126,19 @@ jobs:
           name: staging-backup
           path: staging-backup.dump
 
+      - name: Show remote migration history (diagnostic)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty, skipping remote migration history check"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          echo "Listing recent rows from supabase_migrations (if present)"
+          psql "$SUPABASE_DB_URL" -c "SELECT id, name, status, created_at FROM supabase_migrations ORDER BY id DESC LIMIT 50;" || true
+
       - name: Enforce canonical migration source
         run: |
           set -euo pipefail
