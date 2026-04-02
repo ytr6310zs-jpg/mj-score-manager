@@ -102,8 +102,19 @@ jobs:
           DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
         run: |
           set -euo pipefail
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is empty after resolution" >&2
+          if [ -n "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL resolved from previous step"
+          else
+            if [ -n "${STAGING_DATABASE_URL:-}" ]; then
+              export DATABASE_URL="${STAGING_DATABASE_URL}"
+              echo "Falling back to STAGING_DATABASE_URL from secrets"
+            elif [ -n "${PROD_DATABASE_URL:-}" ]; then
+              export DATABASE_URL="${PROD_DATABASE_URL}"
+              echo "Falling back to PROD_DATABASE_URL from secrets"
+            fi
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL is empty after resolution; ensure STAGING/PROD secrets are set" >&2
             exit 1
           fi
           SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
@@ -115,14 +126,62 @@ jobs:
           name: staging-backup
           path: staging-backup.dump
 
+      - name: Show remote migration history (diagnostic)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty, skipping remote migration history check"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          echo "Listing recent rows from supabase_migrations.schema_migrations (if present)"
+          psql "$SUPABASE_DB_URL" -c "SELECT version FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 50;" || true
+          echo "Checking required tables existence"
+          psql "$SUPABASE_DB_URL" -c "SELECT 'players' AS table, to_regclass('public.players') IS NOT NULL AS exists UNION ALL SELECT 'games', to_regclass('public.games') IS NOT NULL UNION ALL SELECT 'yakuman_occurrences', to_regclass('public.yakuman_occurrences') IS NOT NULL;" || true
+
+      - name: Reconcile baseline migration history (safe repair)
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty, skipping repair"
+            exit 0
+          fi
+
+          apply_if_missing() {
+            local version="$1"
+            local table_name="$2"
+
+            local has_version
+            has_version=$(psql "$SUPABASE_DB_URL" -tAc "SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='${version}' LIMIT 1;" || true)
+            if [ "$has_version" = "1" ]; then
+              echo "Migration version ${version} already recorded"
+              return 0
+            fi
+
+            local has_table
+            has_table=$(psql "$SUPABASE_DB_URL" -tAc "SELECT CASE WHEN to_regclass('public.${table_name}') IS NOT NULL THEN 1 ELSE 0 END;" || true)
+            if [ "$has_table" != "1" ]; then
+              echo "Table public.${table_name} does not exist yet; skip repair for ${version}"
+              return 0
+            fi
+
+            echo "Repairing missing migration version ${version} as applied"
+            npx -y supabase@latest migration repair --db-url "$SUPABASE_DB_URL" --status applied "$version"
+          }
+
+          apply_if_missing "20260401000000" "players"
+          apply_if_missing "20260401000001" "games"
+
       - name: Enforce canonical migration source
         run: |
           set -euo pipefail
           mkdir -p /tmp/migcheck
           # tables defined in ddl/*.sql
-          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
           # tables defined in supabase/migrations/*.sql
-          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
           # show tables that exist in ddl but not in supabase/migrations
           comm -23 /tmp/migcheck/ddl_tables.txt /tmp/migcheck/sup_tables.txt >/tmp/migcheck/only_in_ddl.txt || true
           if [ -s /tmp/migcheck/only_in_ddl.txt ]; then

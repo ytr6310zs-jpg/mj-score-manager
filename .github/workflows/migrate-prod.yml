@@ -12,7 +12,7 @@ jobs:
   migrate-prod:
     if: ${{ github.event.inputs.use_self_hosted != 'true' }}
     runs-on: ubuntu-latest
-    environment: production
+    environment: "Production – mj-score-manager-tfvp"
     env:
       PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
       PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           DBURL="$DATABASE_URL"
-          apt-get update && apt-get install -y postgresql-client
+          sudo apt-get update && sudo apt-get install -y postgresql-client
           pg_dump --dbname="$DBURL" -Fc -f prod-backup.dump || true
 
       - name: "Optional: write CA bundle (base64) to file"
@@ -55,8 +55,12 @@ jobs:
           DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
         run: |
           set -euo pipefail
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is empty" >&2
+          if [ -n "${PROD_DATABASE_URL:-}" ]; then
+            export DATABASE_URL="${PROD_DATABASE_URL}"
+            echo "Using PROD_DATABASE_URL from secrets"
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "Missing DATABASE_URL (set PROD_DATABASE_URL or DATABASE_URL). Check repository secrets." >&2
             exit 1
           fi
           SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
@@ -72,8 +76,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/migcheck
-          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
-          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
           comm -23 /tmp/migcheck/ddl_tables.txt /tmp/migcheck/sup_tables.txt >/tmp/migcheck/only_in_ddl.txt || true
           if [ -s /tmp/migcheck/only_in_ddl.txt ]; then
             echo "Found table definitions present in ddl/ but missing in supabase/migrations/:" >&2
@@ -109,7 +113,7 @@ jobs:
   migrate-prod-selfhosted:
     if: ${{ github.event.inputs.use_self_hosted == 'true' }}
     runs-on: [self-hosted, linux, mj-db-runner]
-    environment: production
+    environment: "Production – mj-score-manager-tfvp"
     env:
       PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
       PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
@@ -133,7 +137,7 @@ jobs:
         run: |
           set -euo pipefail
           DBURL="$DATABASE_URL"
-          apt-get update && apt-get install -y postgresql-client
+          sudo apt-get update && sudo apt-get install -y postgresql-client
           pg_dump --dbname="$DBURL" -Fc -f prod-backup.dump || true
 
       - name: "Optional: write CA bundle (base64) to file"
@@ -152,8 +156,12 @@ jobs:
           DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
         run: |
           set -euo pipefail
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is empty" >&2
+          if [ -n "${PROD_DATABASE_URL:-}" ]; then
+            export DATABASE_URL="${PROD_DATABASE_URL}"
+            echo "Using PROD_DATABASE_URL from secrets"
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "Missing DATABASE_URL (set PROD_DATABASE_URL or DATABASE_URL). Check repository secrets." >&2
             exit 1
           fi
           SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
