@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           DBURL="$DATABASE_URL"
-          apt-get update && apt-get install -y postgresql-client
+          sudo apt-get update && sudo apt-get install -y postgresql-client
           pg_dump --dbname="$DBURL" -Fc -f prod-backup.dump || true
 
       - name: "Optional: write CA bundle (base64) to file"
@@ -137,7 +137,7 @@ jobs:
         run: |
           set -euo pipefail
           DBURL="$DATABASE_URL"
-          apt-get update && apt-get install -y postgresql-client
+          sudo apt-get update && sudo apt-get install -y postgresql-client
           pg_dump --dbname="$DBURL" -Fc -f prod-backup.dump || true
 
       - name: "Optional: write CA bundle (base64) to file"
