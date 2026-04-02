@@ -137,9 +137,42 @@ jobs:
           fi
           sudo apt-get update && sudo apt-get install -y postgresql-client
           echo "Listing recent rows from supabase_migrations.schema_migrations (if present)"
-          psql "$SUPABASE_DB_URL" -c "SELECT version, inserted_at FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 50;" || true
+          psql "$SUPABASE_DB_URL" -c "SELECT version FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 50;" || true
           echo "Checking required tables existence"
           psql "$SUPABASE_DB_URL" -c "SELECT 'players' AS table, to_regclass('public.players') IS NOT NULL AS exists UNION ALL SELECT 'games', to_regclass('public.games') IS NOT NULL UNION ALL SELECT 'yakuman_occurrences', to_regclass('public.yakuman_occurrences') IS NOT NULL;" || true
+
+      - name: Reconcile baseline migration history (safe repair)
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty, skipping repair"
+            exit 0
+          fi
+
+          apply_if_missing() {
+            local version="$1"
+            local table_name="$2"
+
+            local has_version
+            has_version=$(psql "$SUPABASE_DB_URL" -tAc "SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='${version}' LIMIT 1;" || true)
+            if [ "$has_version" = "1" ]; then
+              echo "Migration version ${version} already recorded"
+              return 0
+            fi
+
+            local has_table
+            has_table=$(psql "$SUPABASE_DB_URL" -tAc "SELECT CASE WHEN to_regclass('public.${table_name}') IS NOT NULL THEN 1 ELSE 0 END;" || true)
+            if [ "$has_table" != "1" ]; then
+              echo "Table public.${table_name} does not exist yet; skip repair for ${version}"
+              return 0
+            fi
+
+            echo "Repairing missing migration version ${version} as applied"
+            npx -y supabase@latest migration repair --db-url "$SUPABASE_DB_URL" --status applied "$version"
+          }
+
+          apply_if_missing "20260401000000" "players"
+          apply_if_missing "20260401000001" "games"
 
       - name: Enforce canonical migration source
         run: |
