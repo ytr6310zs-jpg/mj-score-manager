@@ -50,6 +50,6 @@ psql "$DATABASE_URL" -tAc "SELECT to_regclass('public.yakuman_occurrences');"
 
 ## 次のアクション
 1. 既存の `ddl/` のうち適用対象を `supabase/migrations/` に移行する（タイムスタンプ付ファイルを作成）。
-2. 旧 `migrations/` は deprecated として `migrations/DEPRECATED.md` を置き、段階的に削除する計画を立てる。
+2. 旧 `migrations/` は deprecated として `docs/migrations-deprecated.md` に運用方針を明記し、段階的に削除する計画を立てる。
 3. CI ワークフロー（`.github/workflows/migrate-*.yml`）を `supabase/migrations/` が正本であることを前提に更新し、重複検知と適用検証を追加する。
 4. ドキュメント（この ADR と `.github/MIGRATIONS.md`）を整合させる。
