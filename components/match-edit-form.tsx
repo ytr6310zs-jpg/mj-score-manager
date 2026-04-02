@@ -21,6 +21,7 @@ const initialState: EditMatchState = {
 };
 
 const NONE_VALUE = "__none__";
+const YAKUMAN_NONE_VALUE = "__yakuman_none__";
 
 type GameType = "3p" | "4p";
 
@@ -323,9 +324,10 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
             <div className="mt-3 space-y-2">
               <h4 className="text-sm font-medium">役満を追加</h4>
               <div className="grid gap-2 sm:grid-cols-3">
-                <Select value={yakumanCodeBySlot[slot] ?? ""} onValueChange={(v) => {
-                  setYakumanCodeBySlot((p) => ({ ...p, [slot]: v }));
-                  const found = YAKUMANS.find((y) => y.code === v);
+                <Select value={yakumanCodeBySlot[slot] || YAKUMAN_NONE_VALUE} onValueChange={(v) => {
+                  const nextCode = v === YAKUMAN_NONE_VALUE ? "" : v;
+                  setYakumanCodeBySlot((p) => ({ ...p, [slot]: nextCode }));
+                  const found = YAKUMANS.find((y) => y.code === nextCode);
                   setYakumanNameBySlot((p) => ({ ...p, [slot]: found?.name ?? "" }));
                   setYakumanPointsBySlot((p) => ({ ...p, [slot]: String(found?.points ?? "") }));
                 }}>
@@ -333,7 +335,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                     <SelectValue placeholder="役満を選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">選択しない</SelectItem>
+                    <SelectItem value={YAKUMAN_NONE_VALUE}>選択しない</SelectItem>
                     {YAKUMANS.map((y) => (
                       <SelectItem key={y.code} value={y.code}>
                         {y.name} ({y.points ?? ""})
