@@ -141,6 +141,18 @@ jobs:
           echo "Checking required tables existence"
           psql "$SUPABASE_DB_URL" -c "SELECT 'players' AS table, to_regclass('public.players') IS NOT NULL AS exists UNION ALL SELECT 'games', to_regclass('public.games') IS NOT NULL UNION ALL SELECT 'yakuman_occurrences', to_regclass('public.yakuman_occurrences') IS NOT NULL;" || true
 
+      - name: "Temp: remove duplicate migration records (one-time cleanup)"
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL not set; skipping cleanup"
+            exit 0
+          fi
+          sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+          psql "$SUPABASE_DB_URL" -c "DELETE FROM supabase_migrations.schema_migrations WHERE version IN ('20260403000000', '20260403000001');" || true
+          echo "Cleanup complete"
+
       - name: Reconcile baseline migration history (safe repair)
         run: |
           set -euo pipefail
