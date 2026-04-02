@@ -12,7 +12,7 @@ jobs:
   migrate-prod:
     if: ${{ github.event.inputs.use_self_hosted != 'true' }}
     runs-on: ubuntu-latest
-    environment: production
+    environment: "Production – mj-score-manager-tfvp"
     env:
       PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
       PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
@@ -113,7 +113,7 @@ jobs:
   migrate-prod-selfhosted:
     if: ${{ github.event.inputs.use_self_hosted == 'true' }}
     runs-on: [self-hosted, linux, mj-db-runner]
-    environment: production
+    environment: "Production – mj-score-manager-tfvp"
     env:
       PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
       PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
