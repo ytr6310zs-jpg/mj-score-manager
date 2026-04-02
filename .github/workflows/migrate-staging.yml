@@ -102,8 +102,19 @@ jobs:
           DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
         run: |
           set -euo pipefail
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is empty after resolution" >&2
+          if [ -n "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL resolved from previous step"
+          else
+            if [ -n "${STAGING_DATABASE_URL:-}" ]; then
+              export DATABASE_URL="${STAGING_DATABASE_URL}"
+              echo "Falling back to STAGING_DATABASE_URL from secrets"
+            elif [ -n "${PROD_DATABASE_URL:-}" ]; then
+              export DATABASE_URL="${PROD_DATABASE_URL}"
+              echo "Falling back to PROD_DATABASE_URL from secrets"
+            fi
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL is empty after resolution; ensure STAGING/PROD secrets are set" >&2
             exit 1
           fi
           SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")

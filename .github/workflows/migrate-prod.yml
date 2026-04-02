@@ -55,8 +55,12 @@ jobs:
           DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
         run: |
           set -euo pipefail
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is empty" >&2
+          if [ -n "${PROD_DATABASE_URL:-}" ]; then
+            export DATABASE_URL="${PROD_DATABASE_URL}"
+            echo "Using PROD_DATABASE_URL from secrets"
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "Missing DATABASE_URL (set PROD_DATABASE_URL or DATABASE_URL). Check repository secrets." >&2
             exit 1
           fi
           SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
@@ -152,8 +156,12 @@ jobs:
           DATABASE_URL: ${{ env.PROD_DATABASE_URL }}
         run: |
           set -euo pipefail
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is empty" >&2
+          if [ -n "${PROD_DATABASE_URL:-}" ]; then
+            export DATABASE_URL="${PROD_DATABASE_URL}"
+            echo "Using PROD_DATABASE_URL from secrets"
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "Missing DATABASE_URL (set PROD_DATABASE_URL or DATABASE_URL). Check repository secrets." >&2
             exit 1
           fi
           SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
