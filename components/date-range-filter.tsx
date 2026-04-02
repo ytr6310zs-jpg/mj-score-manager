@@ -43,6 +43,9 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
   }
 
   function handleStartChange(value: string) {
+    if (todayChecked) {
+      setTodayChecked(false);
+    }
     setStart(value);
     if (end && value && value > end) {
       // invalid: start after end -> clear start and show flash
@@ -52,6 +55,9 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
   }
 
   function handleEndChange(value: string) {
+    if (todayChecked) {
+      setTodayChecked(false);
+    }
     setEnd(value);
     if (start && value && start > value) {
       // invalid: end before start -> clear end and show flash

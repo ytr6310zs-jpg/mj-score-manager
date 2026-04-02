@@ -4,7 +4,6 @@ import { useActionState, useEffect, useMemo, useState, useTransition } from "rea
 import { useRouter } from "next/navigation";
 
 import { editMatchAction, type EditMatchState } from "@/app/match-actions";
-import { addYakumanAction, type YakumanActionState } from "@/app/yakuman-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlayerSelect } from "@/components/ui/player-select";
 import type { MatchResult } from "@/lib/matches";
 import YAKUMANS from "@/lib/yakumans";
-import { deleteYakumanAction } from "@/app/yakuman-actions";
 
 const initialState: EditMatchState = {
   success: false,
@@ -81,12 +79,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   const [yakumanCodeBySlot, setYakumanCodeBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
   const [yakumanNameBySlot, setYakumanNameBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
   const [yakumanPointsBySlot, setYakumanPointsBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
-  const [yakumanState, yakumanAction] = useActionState(addYakumanAction, { success: false, message: "" } as YakumanActionState);
-  const [deleteState, deleteAction] = useActionState(deleteYakumanAction, { success: false, message: "" } as YakumanActionState);
   const [displayYakumans, setDisplayYakumans] = useState<YakumanOccurrence[]>(yakumans ?? []);
-  const [lastAddedYakuman, setLastAddedYakuman] = useState<YakumanOccurrence | null>(null);
-  const [yakumanMessageSlot, setYakumanMessageSlot] = useState<number | null>(null);
-  const [deletingYakumanId, setDeletingYakumanId] = useState<number | null>(null);
 
   const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
 
@@ -148,35 +141,6 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   }, [yakumans]);
 
   useEffect(() => {
-    if (yakumanState.success && lastAddedYakuman) {
-      setDisplayYakumans((current) => [...current, lastAddedYakuman]);
-      setLastAddedYakuman(null);
-      router.refresh();
-    }
-  }, [yakumanState.success, lastAddedYakuman, router]);
-
-  useEffect(() => {
-    if (!yakumanState.success && yakumanState.message) {
-      setLastAddedYakuman(null);
-    }
-  }, [yakumanState.success, yakumanState.message]);
-
-  useEffect(() => {
-    if (deleteState.success && deletingYakumanId !== null) {
-      setDisplayYakumans((current) => current.filter((y) => y.id !== deletingYakumanId));
-      setDeletingYakumanId(null);
-      router.refresh();
-      window.dispatchEvent(new CustomEvent("app:flash", { detail: { type: "yakumanDeleted" } }));
-    }
-  }, [deleteState.success, deletingYakumanId, router]);
-
-  useEffect(() => {
-    if (!deleteState.success && deleteState.message) {
-      setDeletingYakumanId(null);
-    }
-  }, [deleteState.success, deleteState.message]);
-
-  useEffect(() => {
     const scoreCount = gameType === "4p" ? 4 : 3;
     const playerScores: Record<string, string> = Object.fromEntries(
       new Array(scoreCount)
@@ -232,6 +196,19 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
     form.append("tobiPlayer", tobiPlayer === NONE_VALUE ? "" : tobiPlayer);
     form.append("tobashiPlayer", tobashiPlayer === NONE_VALUE ? "" : tobashiPlayer);
     form.append("notes", notes);
+
+    const activePlayerNames = new Set(
+      activeSlots.map((slot) => players[slot as keyof PlayerSelection]).filter(Boolean)
+    );
+    const yakumanSelections = displayYakumans
+      .filter((y) => activePlayerNames.has(y.player_name))
+      .map((y) => ({
+        playerName: y.player_name,
+        yakumanCode: y.yakuman_code,
+        yakumanName: y.yakuman_name,
+        points: y.points,
+      }));
+    form.append("yakumanSelections", JSON.stringify(yakumanSelections));
     return form;
   };
 
@@ -391,35 +368,31 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                       setClientError("プレイヤーを選択してください。役満を追加できません。");
                       return;
                     }
-                    const form = new FormData();
-                    form.append("createdAt", createdAt);
-                    form.append("playerName", playerName);
-                    form.append("yakumanCode", yakumanCodeBySlot[slot] ?? "");
-                    form.append("yakumanName", yakumanNameBySlot[slot] ?? "");
-                    form.append("points", yakumanPointsBySlot[slot] ?? "");
-                    setYakumanMessageSlot(slot);
-                    setLastAddedYakuman({
+                    const yakumanCode = yakumanCodeBySlot[slot] ?? "";
+                    const yakumanName = yakumanNameBySlot[slot] ?? "";
+                    if (!yakumanCode || !yakumanName) {
+                      setClientError("役満を選択してください。");
+                      return;
+                    }
+
+                    setDisplayYakumans((current) => [...current, {
                       id: -Date.now(),
                       player_id: 0,
                       player_name: playerName,
-                      yakuman_code: yakumanCodeBySlot[slot] ?? "",
-                      yakuman_name: yakumanNameBySlot[slot] ?? "",
+                      yakuman_code: yakumanCode,
+                      yakuman_name: yakumanName,
                       points: yakumanPointsBySlot[slot] ? Number(yakumanPointsBySlot[slot]) : null,
                       created_at: new Date().toISOString(),
-                    });
-                    startTransition(() => {
-                      // call server action to add yakuman
-                      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                      // @ts-ignore
-                      yakumanAction(form);
-                    });
+                    }]);
+
+                    setYakumanCodeBySlot((p) => ({ ...p, [slot]: "" }));
+                    setYakumanNameBySlot((p) => ({ ...p, [slot]: "" }));
+                    setYakumanPointsBySlot((p) => ({ ...p, [slot]: "" }));
                   }}
                 >
                   役満を追加
                 </Button>
-                {yakumanState?.message && yakumanMessageSlot === slot ? (
-                  <div className="mt-2 text-sm text-emerald-800">{yakumanState.message}</div>
-                ) : null}
+                <div className="mt-2 text-xs text-emerald-800">※ 役満の追加・削除は「対局を編集」で確定します。</div>
               </div>
             </div>
             {/* existing yakumans for this match (if any) - show only those for this slot, display code only */}
@@ -444,14 +417,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                               size="sm"
                               variant="destructive"
                               onClick={() => {
-                                setDeletingYakumanId(y.id);
-                                const form = new FormData();
-                                form.append("id", String(y.id));
-                                startTransition(() => {
-                                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                  // @ts-ignore
-                                  deleteAction(form);
-                                });
+                                setDisplayYakumans((current) => current.filter((row) => row.id !== y.id));
                               }}
                             >
                               削除

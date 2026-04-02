@@ -133,7 +133,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                               {player.yakumans && player.yakumans.length > 0 ? (
                                 <p className="mt-2">
                                   <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
-                                    役満: {player.yakumans.map((y) => y.name).join("、")}
+                                    {player.yakumans.map((y) => y.name).join("、")}
                                   </span>
                                 </p>
                               ) : null}
@@ -214,7 +214,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                   ) : null}
                                   {player.yakumans && player.yakumans.length > 0 ? (
                                     <span className="ml-2 rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-900">
-                                      役満: {player.yakumans.map((y) => y.name).join("、")}
+                                      {player.yakumans.map((y) => y.name).join("、")}
                                     </span>
                                   ) : null}
                                 </li>
