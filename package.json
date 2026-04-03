@@ -8,13 +8,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seeds": "node scripts/seed-sample-data.mjs"
-    ,
+    "seeds": "node scripts/seed-to-supabase.mjs",
     "test": "node --test",
     "check:required-files": "bash -c \"if [ ! -f .github/copilot-instructions.md ]; then echo '\".github/copilot-instructions.md\" が存在しません。コミットを中止します。'; exit 1; fi\"",
-    "migrate:up": "node -e \"const {spawnSync} = require('child_process'); const url = process.env.DATABASE_URL; if(!url){console.error('DATABASE_URL not set'); process.exit(2);} const env = Object.assign({}, process.env, {DATABASE_URL: url}); const r = spawnSync('node-pg-migrate',['up'],{stdio:'inherit', env}); process.exit(r.status||0);\"",
-    "migrate:down": "node -e \"const {spawnSync} = require('child_process'); const url = process.env.DATABASE_URL; if(!url){console.error('DATABASE_URL not set'); process.exit(2);} const env = Object.assign({}, process.env, {DATABASE_URL: url}); const r = spawnSync('node-pg-migrate',['down'],{stdio:'inherit', env}); process.exit(r.status||0);\"",
-    "migrate:create": "node -e \"const {spawnSync} = require('child_process'); const url = process.env.DATABASE_URL; if(!url){console.error('DATABASE_URL not set'); process.exit(2);} const name = process.argv[1] || 'migration'; const env = Object.assign({}, process.env, {DATABASE_URL: url}); const r = spawnSync('node-pg-migrate',['create',name],{stdio:'inherit', env}); process.exit(r.status||0);\""
+    "supabase:init": "npx supabase@2.84.2 init",
+    "supabase:start": "npx supabase@2.84.2 start",
+    "supabase:status": "npx supabase@2.84.2 status",
+    "supabase:reset": "npx supabase@2.84.2 db reset",
+    "supabase:db:push": "npx supabase@2.84.2 db push --db-url \"$DATABASE_URL\"",
+    "check:local-db": "node scripts/check-local-supabase.mjs",
+    "dev:local": "npm run check:local-db && next dev",
+    "check:local-pages": "node scripts/local-healthcheck.mjs",
+    "verify:local": "npm run dev:local & sleep 3; npm run check:local-pages"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.0",
@@ -33,17 +38,16 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "husky": "^8.0.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-config-next": "15.5.14",
+    "husky": "^8.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
-    "typescript": "^5.7.2",
-    "node-pg-migrate": "^8.0.0"
+    "typescript": "^5.7.2"
   },
   "engines": {
     "node": ">=20.19.0 <21",

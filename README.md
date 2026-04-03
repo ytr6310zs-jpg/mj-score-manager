@@ -32,6 +32,8 @@ cp .env.example .env.local
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY` (server-side operations)
 
+ローカル開発では staging / production の DB を参照せず、local Supabase を使うことを前提にします。`.env.local` には local Supabase の URL / key を設定してください。
+
 スプレッドシート関連（`scripts/sheets/` 配下の補助スクリプト）を使う場合は、追加で以下を設定してください（スクリプト実行時のみ必要）。
 
 - `GOOGLE_SPREADSHEET_ID`
@@ -44,6 +46,98 @@ cp .env.example .env.local
 ```bash
 npm run dev
 ```
+
+## ローカル Supabase による開発
+
+Issue #52 の方針として、local 開発で staging DB を参照しないために local Supabase を標準環境とします。
+
+前提:
+
+- Docker が利用可能であること
+- Supabase CLI が利用可能であること
+- `supabase/config.toml` が未作成なら初回に初期化が必要であること
+
+基本手順:
+
+```bash
+cp .env.example .env.local
+
+# Supabase CLI は npx 経由で固定バージョン実行（再現性のため）
+npx supabase@2.84.2 --version
+
+# 初回のみ: local Supabase 設定を生成
+# すでに supabase/config.toml がある場合は不要
+npx supabase@2.84.2 init
+
+# local Supabase を起動
+npx supabase@2.84.2 start
+
+# local の接続情報を確認
+npx supabase@2.84.2 status
+
+# local の接続情報を .env.local に設定
+# 例:
+# SUPABASE_URL=http://127.0.0.1:54321
+# SUPABASE_SERVICE_ROLE_KEY=<status に表示される service_role key>
+# SUPABASE_ANON_KEY=<status に表示される anon key>
+
+# local DB を初期化し、supabase/migrations/ を適用
+npx supabase@2.84.2 db reset
+
+# seed を投入
+npm run seeds
+
+# アプリ起動
+npm run dev
+
+# 最終確認
+npm run build
+```
+
+`.env.local` の最低例:
+
+```dotenv
+ACCESS_PASSWORD=your-shared-password
+APP_ENV=development
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_SERVICE_ROLE_KEY=<local service role key>
+SUPABASE_ANON_KEY=<local anon key>
+```
+
+確認ポイント:
+
+- `SUPABASE_URL` が `db.example.supabase.co` のような remote URL になっていないこと
+- `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_ANON_KEY` は `npx supabase@2.84.2 status` で取得した local 用の値であること
+- local 起動中に staging / production の secrets を参照しないこと
+- local 手順ではレガシー migration スクリプトを使わないこと（`supabase:reset` を使用）
+
+検証手順（起動後）:
+
+1. ブラウザで以下のページを確認して主要画面が表示されること: `/`, `/matches`, `/stats`, `/admin`。
+2. コマンドラインから自動チェックを行うには（Next.js を起動後）、次を実行します:
+
+```bash
+# 起動してから実行
+npm run check:local-pages
+```
+
+3. 最終確認としてビルドが通ることを確認します:
+
+```bash
+npm run build
+```
+
+トラブルシュート:
+
+- `npx supabase@2.84.2 start` が失敗する場合: Docker Desktop / Docker Engine が起動しているか確認する
+- `supabase/config.toml` が無い場合: `npx supabase@2.84.2 init` を先に実行する
+- 接続先が不明な場合: `npx supabase@2.84.2 status` の出力を見て `.env.local` を更新する
+
+運用ルール:
+
+- local 開発では staging / production の URL や key を `.env.local` に入れない
+- スキーマの正本は `supabase/migrations/` を使う
+- local の検証は local Supabase 上で完結させる
 
 ## スプレッドシート（補助スクリプト）について
 

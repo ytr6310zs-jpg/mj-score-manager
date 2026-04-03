@@ -1,0 +1,20 @@
+# Example supabase config for local development
+# Copy this file to supabase/config.toml or run `npx supabase init`.
+
+[local]
+project_id = "mj-score-manager-local"
+project_ref = "localref"
+port = 54321
+
+[db]
+name = "postgres"
+user = "postgres"
+password = "postgres"
+port = 54321
+
+[studio]
+port = 54322
+
+# Notes:
+# - This file is an example and should NOT contain secrets for staging/production.
+# - If you prefer, run `npx supabase init` which will create a `supabase/config.toml` for you.
