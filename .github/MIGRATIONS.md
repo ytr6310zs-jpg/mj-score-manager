@@ -2,6 +2,8 @@
 
 このドキュメントは CI / runner でマイグレーションを安全に実行するためのまとめです。
 
+local 開発については、staging DB を参照しないことを前提に local Supabase を利用します。
+
 必須 Secrets（リポジトリ／環境に登録）
 - `STAGING_DATABASE_URL`, `PROD_DATABASE_URL` — 各環境の Postgres 接続文字列（postgres://user:pass@host:5432/db）
 - `DB_CA_BUNDLE_BASE64` —（任意）自前 CA を利用する場合、CA PEM を base64 エンコードして登録
@@ -10,6 +12,12 @@
 運用上の注意
 - リポジトリのマイグレーション適用の正本は `supabase/migrations/` です。
 - `ddl/` は参照用スナップショット（read-only）として扱い、`migrations/` はレガシー（deprecated）です。直接 CI の適用ソースにしないでください。
+- local 開発では staging / production 用の `DATABASE_URL` や Supabase secrets を使用しないでください。
+
+local 開発の基本方針
+- local 開発の標準DBは local Supabase とします。
+- local の URL / key は `.env.local` に設定し、staging / production 用の値とは分離します。
+- local 検証は local Supabase 上で完結させ、staging は shared 検証環境としてのみ扱います。
 
 ワークフロー
 - `.github/workflows/migrate-staging.yml` / `.github/workflows/migrate-prod.yml` は `supabase/migrations/` を用いて `npx supabase db push` を実行し、適用後に `psql` 等で検証する構成になっています。
