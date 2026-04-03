@@ -44,14 +44,23 @@
 4. local seed の投入方法を整理し、staging 参照が不要であることを確認する。
 5. local 起動、主要画面表示、`npm run build` を検証項目として固定する。
 
-## 実装タスクリスト
-- [ ] `supabase/config.toml` をリポジトリ管理するか、初回 `npx supabase init` 前提にするかを決める。
-- [ ] local Supabase 起動手順を README のセットアップ章に統合する。
-- [ ] `.env.example` と `.env.local` の期待値を local 向けに整理する。
-- [ ] local 用 migration 適用手順を `.github/MIGRATIONS.md` へ具体化する。
-- [ ] local seed の投入元と実行手順を定義する。
-- [ ] staging / production 用の接続情報を local 手順から完全に排除する。
-- [ ] local Supabase 起動後の疎通確認手順（`/`, `/matches`, `/stats`, `/admin`）を定義する。
-- [ ] `npm run build` を最終確認項目として固定する。
+## 実装タスクリスト（引き継ぎ用）
+
+完了済み:
+- [x] `supabase/config.toml` 方針を決定（`npx supabase init` 前提 + `supabase/config.toml.example` を補助として追加）。
+- [x] local Supabase 起動手順を README に統合。
+- [x] `.env.example` / `.env.local` の local 向け期待値を整理。
+- [x] staging / production 用の接続情報を local 手順から排除する方針をドキュメントへ反映。
+- [x] local Supabase 起動後の疎通確認手順（`/`, `/matches`, `/stats`, `/admin`）を定義（`scripts/local-healthcheck.mjs`, `npm run check:local-pages`）。
+- [x] `npm run build` を最終確認項目として README に固定。
+
+残作業（実装担当）:
+- [ ] `.github/MIGRATIONS.md` に local 向けの具体コマンド手順を追加する（例: local apply / rollback / 確認手順）。
+- [ ] local seed の投入手順を README で明示的に固定する（実行順序・入力データ・確認方法を1セットで記載）。
+
+受け渡しメモ:
+- 追加済みスクリプト: `check:local-db`, `dev:local`, `check:local-pages`。
+- local DB ガード: `scripts/check-local-supabase.mjs`。
+- 疎通確認: `scripts/local-healthcheck.mjs`。
 
 *** End ADR

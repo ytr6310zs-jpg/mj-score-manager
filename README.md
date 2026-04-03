@@ -105,6 +105,22 @@ SUPABASE_ANON_KEY=<local anon key>
 - `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_ANON_KEY` は `npx supabase status` で取得した local 用の値であること
 - local 起動中に staging / production の secrets を参照しないこと
 
+検証手順（起動後）:
+
+1. ブラウザで以下のページを確認して主要画面が表示されること: `/`, `/matches`, `/stats`, `/admin`。
+2. コマンドラインから自動チェックを行うには（Next.js を起動後）、次を実行します:
+
+```bash
+# 起動してから実行
+npm run check:local-pages
+```
+
+3. 最終確認としてビルドが通ることを確認します:
+
+```bash
+npm run build
+```
+
 トラブルシュート:
 
 - `npx supabase start` が失敗する場合: Docker Desktop / Docker Engine が起動しているか確認する
