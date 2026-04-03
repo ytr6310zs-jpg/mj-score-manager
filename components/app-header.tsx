@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { logoutAction } from "@/app/login/actions";
@@ -9,7 +12,14 @@ type AppHeaderProps = {
 
 export function AppHeader({ current }: AppHeaderProps) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900/70 sm:text-sm">
+          Mahjong Score Manager
+        </p>
+        <Menu current={current} />
+      </div>
+
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
         <Link
           href="/"
@@ -41,22 +51,76 @@ export function AppHeader({ current }: AppHeaderProps) {
         >
           成績集計
         </Link>
-        <Link
-          href="/admin"
-          className={buttonVariants({
-            variant: current === "admin" ? "default" : "outline",
-            size: "sm",
-            className: "w-full sm:w-auto",
-          })}
-        >
-          管理
-        </Link>
       </div>
-      <form action={logoutAction} className="w-full sm:w-auto">
-        <Button type="submit" variant="outline" size="sm" className="w-full sm:w-auto">
-          ログアウト
-        </Button>
-      </form>
+    </div>
+  );
+}
+
+function Menu({ current }: { current: "input" | "matches" | "stats" | "admin" }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      if (!isOpen) return;
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsOpen(false);
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative inline-block">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md"
+        onClick={() => setIsOpen((v) => !v)}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+          <path
+            fillRule="evenodd"
+            d="M3 5h14a1 1 0 100-2H3a1 1 0 000 2zm14 6H3a1 1 0 100 2h14a1 1 0 100-2zm0 6H3a1 1 0 100 2h14a1 1 0 100-2z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </Button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-40 min-w-[8rem] rounded-md border bg-card p-2 shadow-sm" role="menu">
+          <Link
+            href="/admin"
+            className={buttonVariants({
+              variant: current === "admin" ? "default" : "ghost",
+              size: "sm",
+              className: "w-full text-left",
+            })}
+            onClick={() => setIsOpen(false)}
+            role="menuitem"
+          >
+            管理
+          </Link>
+          <form action={logoutAction} className="mt-2">
+            <Button type="submit" variant="ghost" size="sm" className="w-full text-left" role="menuitem">
+              ログアウト
+            </Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
