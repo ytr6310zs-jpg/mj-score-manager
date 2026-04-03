@@ -1,0 +1,184 @@
+name: Reusable migrate workflow
+
+on:
+  workflow_call:
+    inputs:
+      allow_repair:
+        required: false
+        type: boolean
+        default: false
+      supabase_cli_version:
+        required: false
+        type: string
+        default: '2.84.2'
+      app_url:
+        required: false
+        type: string
+      db_url:
+        required: false
+        type: string
+    secrets:
+      DATABASE_URL:
+        required: false
+      APP_URL:
+        required: false
+      SUPABASE_ACCESS_TOKEN:
+        required: false
+      DB_CA_BUNDLE_BASE64:
+        required: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL || inputs.db_url }}
+      APP_URL: ${{ secrets.APP_URL || inputs.app_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check supabase CLI availability
+        run: npx supabase@${{ inputs.supabase_cli_version }} --version
+
+      - name: Dump backup (artifact)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL not set, skipping backup"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          pg_dump --dbname="$DATABASE_URL" -Fc -f migration-backup.dump || true
+
+      - name: "Optional: write CA bundle (base64) to file"
+        run: |
+          set -euo pipefail
+          if [ -z "${DB_CA_BUNDLE_BASE64:-}" ]; then
+            echo "DB_CA_BUNDLE_BASE64 is empty, skipping."
+            exit 0
+          fi
+          echo "$DB_CA_BUNDLE_BASE64" | base64 -d > /tmp/db-ca.pem
+        env:
+          DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
+
+      - name: Prepare SUPABASE_DB_URL
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL is empty; aborting" >&2
+            exit 1
+          fi
+          SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
+          echo "SUPABASE_DB_URL=$SUPABASE_DB_URL" >> "$GITHUB_ENV"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-backup
+          path: migration-backup.dump
+
+      - name: Enforce canonical migration source
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/migcheck
+          grep -hPoi "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+public\.\K[[:alnum:]_]+" ddl/*.sql 2>/dev/null | sort -u >/tmp/migcheck/ddl_tables.txt || true
+          grep -hPoi "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+public\.\K[[:alnum:]_]+" supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/sup_tables.txt || true
+          comm -23 /tmp/migcheck/ddl_tables.txt /tmp/migcheck/sup_tables.txt >/tmp/migcheck/only_in_ddl.txt || true
+          if [ -s /tmp/migcheck/only_in_ddl.txt ]; then
+            echo "Found table definitions present in ddl/ but missing in supabase/migrations/:" >&2
+            cat /tmp/migcheck/only_in_ddl.txt >&2
+            echo "Please migrate these definitions into supabase/migrations/ before running this workflow." >&2
+            exit 1
+          fi
+
+      - name: Optional: Reconcile baseline migration history (safe repair)
+        if: ${{ inputs.allow_repair == true }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty, skipping repair"
+            exit 0
+          fi
+
+          apply_if_missing() {
+            local version="$1"
+            local table_name="$2"
+
+            local has_version
+            has_version=$(psql "$SUPABASE_DB_URL" -tAc "SELECT 1 FROM supabase_migrations.schema_migrations WHERE version='${version}' LIMIT 1;" || true)
+            if [ "$has_version" = "1" ]; then
+              echo "Migration version ${version} already recorded"
+              return 0
+            fi
+
+            local has_table
+            has_table=$(psql "$SUPABASE_DB_URL" -tAc "SELECT CASE WHEN to_regclass('public.${table_name}') IS NOT NULL THEN 1 ELSE 0 END;" || true)
+            if [ "$has_table" != "1" ]; then
+              echo "Table public.${table_name} does not exist yet; skip repair for ${version}"
+              return 0
+            fi
+
+            echo "Repairing missing migration version ${version} as applied"
+            npx supabase@${{ inputs.supabase_cli_version }} migration repair --db-url "$SUPABASE_DB_URL" --status applied "$version"
+          }
+
+          apply_if_missing "20260401000000" "players"
+          apply_if_missing "20260401000001" "games"
+
+      - name: Run migrations via Supabase CLI
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "SUPABASE_DB_URL is empty after preparation" >&2
+            exit 1
+          fi
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
+          fi
+          npx supabase@${{ inputs.supabase_cli_version }} db push --db-url "$SUPABASE_DB_URL"
+
+      - name: Verify applied migrations (fail if expected tables missing)
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          DBURL="${SUPABASE_DB_URL:-}"
+          if [ -z "$DBURL" ]; then
+            echo "SUPABASE_DB_URL is empty, cannot verify" >&2
+            exit 1
+          fi
+          mkdir -p /tmp/migcheck
+          grep -hPoi "CREATE\s+TABLE\s+public\.\K[[:alnum:]_]+" ddl/*.sql supabase/migrations/*.sql 2>/dev/null | sort -u >/tmp/migcheck/tables.txt || true
+          if [ ! -s /tmp/migcheck/tables.txt ]; then
+            echo "No tables found in ddl/*.sql or supabase/migrations/*.sql to verify; skipping verification.";
+            exit 0
+          fi
+          while read -r tbl; do
+            echo "Checking table: $tbl"
+            if ! psql "$DBURL" -tAc "SELECT to_regclass('public.$tbl')" | grep -q "$tbl"; then
+              echo "Table $tbl not found in target database" >&2
+              exit 1
+            fi
+          done </tmp/migcheck/tables.txt
+          echo "Migration verification succeeded: all expected tables present."
+
+      - name: Post-migration healthcheck
+        run: |
+          APP_URL="${APP_URL:-}"
+          if [ -z "$APP_URL" ]; then echo "No APP_URL set, skipping healthcheck"; exit 0; fi
+          for i in $(seq 1 10); do
+            if curl -fsS "$APP_URL/health" >/dev/null 2>&1; then
+              echo "Health OK"; exit 0
+            fi
+            sleep 5
+          done
+          echo "Healthcheck failed"; exit 2
