@@ -268,6 +268,26 @@ export async function editMatchAction(
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
+    // プレイヤー名から players.id を一括解決する
+    const allNames = Array.from(new Set([
+      ...players,
+      ...(tobiPlayer ? [tobiPlayer] : []),
+      ...(tobashiPlayer ? [tobashiPlayer] : []),
+      ...[...yakitoriPlayers],
+    ]));
+    const { data: playerRows, error: playerResolveErr } = await supabase
+      .from("players")
+      .select("id,name")
+      .in("name", allNames);
+    if (playerResolveErr) {
+      console.error("Player resolve error:", playerResolveErr);
+      return { success: false, message: "プレイヤー情報の取得に失敗しました。" };
+    }
+    const nameToId = new Map<string, number>();
+    for (const r of (playerRows ?? []) as Array<{ id: number; name: string }>) {
+      nameToId.set(r.name, r.id);
+    }
+
     type RowValue = string | number | boolean | null;
 
     const updatePayload: Record<string, RowValue> = {
@@ -276,15 +296,23 @@ export async function editMatchAction(
       player_count: players.length,
       score_total: total,
       top_player: topPlayer,
+      top_player_id: nameToId.get(topPlayer) ?? null,
       last_player: lastPlayer,
+      last_player_id: nameToId.get(lastPlayer) ?? null,
       tobi_player: tobiPlayer ?? null,
+      tobi_player_id: tobiPlayer ? (nameToId.get(tobiPlayer) ?? null) : null,
       tobashi_player: tobashiPlayer ?? null,
+      tobashi_player_id: tobashiPlayer ? (nameToId.get(tobashiPlayer) ?? null) : null,
       yakitori_players: [...yakitoriPlayers].join(","),
+      yakitori_player_ids: JSON.stringify(
+        [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined)
+      ),
       notes,
     };
 
     for (const entry of entries) {
       updatePayload[`player${entry.slot}`] = entry.player;
+      updatePayload[`player${entry.slot}_id`] = nameToId.get(entry.player) ?? null;
       updatePayload[`score${entry.slot}`] = entry.score;
       updatePayload[`rank${entry.slot}`] = entry.rank;
       updatePayload[`is_tobi${entry.slot}`] = entry.isTobi;
@@ -294,6 +322,7 @@ export async function editMatchAction(
 
     if (gameType === "3p") {
       updatePayload.player4 = null;
+      updatePayload.player4_id = null;
       updatePayload.score4 = null;
       updatePayload.rank4 = null;
       updatePayload.is_tobi4 = false;
@@ -323,14 +352,14 @@ export async function editMatchAction(
       return { success: false, message: "役満情報の保存に失敗しました。" };
     }
 
-    const playerRows = await supabase.from("players").select("id,name").in("name", players);
-    if (playerRows.error || !playerRows.data) {
-      console.error("Edit match yakuman player lookup error:", playerRows.error);
+    const yakumanPlayerRows = await supabase.from("players").select("id,name").in("name", players);
+    if (yakumanPlayerRows.error || !yakumanPlayerRows.data) {
+      console.error("Edit match yakuman player lookup error:", yakumanPlayerRows.error);
       return { success: false, message: "役満情報の保存に失敗しました。" };
     }
 
     const playerIdByName = new Map(
-      playerRows.data.map((row) => [String(row.name), Number(row.id)])
+      yakumanPlayerRows.data.map((row) => [String(row.name), Number(row.id)])
     );
 
     const deleteYakumanRes = await supabase.from("yakuman_occurrences").delete().eq("game_id", gameId);
