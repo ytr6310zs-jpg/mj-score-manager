@@ -22,10 +22,22 @@ local 開発の基本方針
 ワークフロー
 - `.github/workflows/migrate-staging.yml` / `.github/workflows/migrate-prod.yml` は `supabase/migrations/` を用いて `npx supabase db push` を実行し、適用後に `psql` 等で検証する構成になっています。
 
+推奨 CLI 実行方式
+- Supabase CLI は `npx supabase@2.84.2 ...` の固定バージョン実行を推奨します（ローカル差分を避けるため）。
+
 実行手順（要点）
 1. Secrets をリポジトリに設定する（Settings -> Secrets and variables -> Actions）。
 2. PR を作成し、`supabase/migrations/` に SQL ファイルを追加して CI を通す。
 3. CI はバックアップ（`pg_dump`）→ `npx supabase db push --db-url "$DATABASE_URL"` → 検証 の順で実行します。
+
+local 標準手順
+1. `npx supabase@2.84.2 start`
+2. `npx supabase@2.84.2 db reset`
+3. `npm run seeds`
+
+非推奨
+- local 手順で legacy migration スクリプト/ツールを使うこと
+- `migrations/` を適用ソースに使うこと
 
 ローカル検証コマンド（到達性チェック）
 ```bash

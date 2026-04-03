@@ -13,7 +13,9 @@
 - local 開発の標準DBは local Supabase とする。
 - local 開発時は local Supabase の URL / key のみを利用し、staging / production の接続情報は使わない。
 - スキーマの正本は引き続き `supabase/migrations/` とする。
-- local 開発手順として、local Supabase の起動、環境変数設定、migration 適用、seed 投入、アプリ起動を定義する。
+- local 開発手順として、local Supabase の起動、環境変数設定、`npx supabase@2.84.2 db reset` による migration 適用、seed 投入、アプリ起動を定義する。
+- Supabase CLI は `npx supabase@2.84.2 ...` の固定バージョンで実行する。
+- local 手順では `node-pg-migrate` 経路（`npm run migrate:up` 等）を利用しない。
 - direct PostgreSQL への全面移行は今回のスコープ外とし、必要になれば別 Issue で再評価する。
 
 ## 理由
@@ -44,6 +46,12 @@
 4. local seed の投入方法を整理し、staging 参照が不要であることを確認する。
 5. local 起動、主要画面表示、`npm run build` を検証項目として固定する。
 
+## 実装担当向け cleanup チェックリスト
+1. CI の migration 実行経路を `supabase db push` に統一する。
+2. local 手順から `node-pg-migrate` 前提を除外する。
+3. 暫定回避用スクリプト（`scripts/reset-local-db.mjs`, `scripts/seed-to-db.mjs`）を削除する。
+4. `migrations/` の参照が残っていないことを確認してからアーカイブ/削除を判断する。
+
 ## 実装タスクリスト（引き継ぎ用）
 
 完了済み:
@@ -55,8 +63,12 @@
 - [x] `npm run build` を最終確認項目として README に固定。
 
 残作業（実装担当）:
-- [ ] `.github/MIGRATIONS.md` に local 向けの具体コマンド手順を追加する（例: local apply / rollback / 確認手順）。
-- [ ] local seed の投入手順を README で明示的に固定する（実行順序・入力データ・確認方法を1セットで記載）。
+- [x] `.github/MIGRATIONS.md` に local 向けの具体コマンド手順を追加（ローカル向け手順を `.github/MIGRATIONS.md` に追加済み）。
+- [x] local seed の投入手順を README で明示的に固定（`npm run seeds` を `scripts/seed-to-supabase.mjs` に紐付け、README に手順を追加済み）。
+
+実装状況:
+- 実装は `feature/issue-52` ブランチ上で完了しています（主要コミット: `9847b35`, 現在の HEAD: `d05b9f1`）。
+- `README.md`, `.github/MIGRATIONS.md`, `package.json`, `scripts/check-local-supabase.mjs`, `scripts/local-healthcheck.mjs`, `supabase/config.toml.example` を含む変更を反映済み。
 
 受け渡しメモ:
 - 追加済みスクリプト: `check:local-db`, `dev:local`, `check:local-pages`。

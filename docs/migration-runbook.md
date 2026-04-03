@@ -23,7 +23,8 @@ sudo ./scripts/bootstrap-runner.sh https://github.com/<org>/<repo> <REGISTRATION
 
 検証・ロールバック
 - マイグレーション前に自動で `pg_dump` によるバックアップを取得するワークフローが含まれている。
-- ロールバック手順: まずステージングで `npm run migrate:down` を検証。重大な場合は手動 SQL による復旧手順を準備する。
+- ロールバック方針: 原則はロールフォワード（追加 migration で修正）を採用する。
+- 重大障害時は `pg_dump` バックアップからの復旧手順を優先し、復旧リハーサルを事前に実施する。
 
 運用チェックリスト
 - ランナーが GitHub に正常に接続していること（Actions → Runners）

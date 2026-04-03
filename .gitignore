@@ -33,3 +33,10 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# exclude data-output
+/data-output
+
+# supabase local cli state
+/supabase/.branches/
+/supabase/.temp/

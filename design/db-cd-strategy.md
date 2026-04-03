@@ -4,7 +4,7 @@
 - 本番環境で安全かつ可観測にスキーマ変更を適用するための手順と責任範囲を定義する。
 
 前提条件
-- マイグレーションは `node-pg-migrate` でバージョン管理する。
+- マイグレーション正本は `supabase/migrations/` とし、適用は Supabase CLI で実行する。
 - すべてのマイグレーションはステージングで検証済みであること。
 - 本番は定期的なバックアップ（ポイントインタイム／スナップショット）が取得可能であること。
 - ロールバック戦略はマイグレーションの内容によって手順が異なる（後述）。
@@ -23,9 +23,9 @@
    - 実行者は事前にチェックリストを確認し、Slack/Teams等で通知する。
 
 4. マイグレーション適用
-   - 推奨: `node-pg-migrate up` を実行する。CIによる自動実行はリスクが高いので手動トリガー推奨（ただし自動化許可ポリシーを整備した場合は別）。
+- 推奨: `npx supabase@2.84.2 db push --db-url "$DATABASE_URL"` を実行する。CIによる自動実行はリスクが高いので手動トリガー推奨（ただし自動化許可ポリシーを整備した場合は別）。
    - 実行コマンド（例）:
-     - `DATABASE_URL="$(cat /run/secrets/DB_URL)" node-pg-migrate up`
+  - `DATABASE_URL="$(cat /run/secrets/DB_URL)" npx supabase@2.84.2 db push --db-url "$DATABASE_URL"`
 
 5. 検証（ポストマイグレーション）
    - サービスのヘルスチェックを実行（例: /health エンドポイント）。
@@ -40,7 +40,7 @@
 - ロールバック困難な変更: 列削除・データ変換・構造的変更は基本的にロールフォワード（追加のマイグレーションで修正）を推奨。
 - ロールバック手順（破壊的でない場合の例）:
   1. 事前バックアップを復元して検証環境で復旧リハーサルを行う。
-  2. `node-pg-migrate down` を用いて戻す（ただし down スクリプトが安全であることを事前確認すること）。
+  2. `supabase/migrations/` に修正 migration を追加してロールフォワード、またはバックアップ復旧で戻す。
 
 監視とアラート
 - マイグレーション直後 30 分はエラーレートとレイテンシを厳しく監視。
@@ -69,7 +69,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
         run: |
-          node -e "const {spawnSync} = require('child_process'); const env = Object.assign({}, process.env); const r = spawnSync('node-pg-migrate',['up'],{stdio:'inherit', env}); process.exit(r.status||0);"
+          npx supabase@2.84.2 db push --db-url "$DATABASE_URL"
 ```
 
 備考・制約
