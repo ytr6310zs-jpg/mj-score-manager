@@ -84,7 +84,7 @@ jobs:
       - name: Run migrations
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
-        run: npx supabase@2.84.2 db push --db-url "$DATABASE_URL"
+        run: npx supabase@2.84.2 db push --db-url "${DATABASE_URL}?sslmode=disable"
       - name: Run tests
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
