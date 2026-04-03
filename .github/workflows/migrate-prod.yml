@@ -5,29 +5,11 @@ on:
     inputs: {}
 
 jobs:
-  resolve:
-    runs-on: ubuntu-latest
-    environment: "Production – mj-score-manager-tfvp"
-    outputs:
-      DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
-      APP_URL: ${{ steps.resolve.outputs.APP_URL }}
-    steps:
-      - name: Resolve production URLs from environment secrets
-        id: resolve
-        run: |
-          set -euo pipefail
-          echo "DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}" >> "$GITHUB_OUTPUT"
-          echo "APP_URL=${{ secrets.PROD_APP_URL }}" >> "$GITHUB_OUTPUT"
-
   migrate:
-    needs: resolve
     uses: ./.github/workflows/migrate-common.yml
     with:
+      target: 'prod'
+      environment_name: "Production – mj-score-manager-tfvp"
       allow_repair: false
       supabase_cli_version: '2.84.2'
-      app_url: ${{ needs.resolve.outputs.APP_URL }}
-    secrets:
-      DATABASE_URL: ${{ needs.resolve.outputs.DATABASE_URL }}
-      APP_URL: ${{ needs.resolve.outputs.APP_URL }}
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
+    secrets: inherit

@@ -3,6 +3,13 @@ name: Reusable migrate workflow
 on:
   workflow_call:
     inputs:
+      target:
+        required: false
+        type: string
+        default: 'staging'
+      environment_name:
+        required: false
+        type: string
       allow_repair:
         required: false
         type: boolean
@@ -30,9 +37,7 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL || inputs.db_url }}
-      APP_URL: ${{ secrets.APP_URL || inputs.app_url }}
+    environment: ${{ inputs.environment_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,6 +49,66 @@ jobs:
 
       - name: Check supabase CLI availability
         run: npx supabase@${{ inputs.supabase_cli_version }} --version
+
+      - name: Resolve DATABASE_URL and APP_URL
+        env:
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_DB_URL: ${{ inputs.db_url }}
+          INPUT_APP_URL: ${{ inputs.app_url }}
+          SECRET_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_APP_URL: ${{ secrets.APP_URL }}
+          PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          PREVIEW_APP_URL: ${{ secrets.PREVIEW_APP_URL }}
+          STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
+          PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
+        run: |
+          set -euo pipefail
+          TARGET="${INPUT_TARGET:-staging}"
+
+          DB_URL="${INPUT_DB_URL:-}"
+          APP_URL_VAL="${INPUT_APP_URL:-}"
+
+          if [ -z "$DB_URL" ] && [ -n "${SECRET_DATABASE_URL:-}" ]; then
+            DB_URL="$SECRET_DATABASE_URL"
+          fi
+          if [ -z "$APP_URL_VAL" ] && [ -n "${SECRET_APP_URL:-}" ]; then
+            APP_URL_VAL="$SECRET_APP_URL"
+          fi
+
+          if [ -z "$DB_URL" ]; then
+            case "$TARGET" in
+              preview|staging)
+                DB_URL="${STAGING_DATABASE_URL:-${PREVIEW_DATABASE_URL:-}}"
+                ;;
+              prod)
+                DB_URL="${PROD_DATABASE_URL:-}"
+                ;;
+            esac
+          fi
+
+          if [ -z "$APP_URL_VAL" ]; then
+            case "$TARGET" in
+              preview)
+                APP_URL_VAL="${PREVIEW_APP_URL:-${STAGING_APP_URL:-}}"
+                ;;
+              staging)
+                APP_URL_VAL="${STAGING_APP_URL:-}"
+                ;;
+              prod)
+                APP_URL_VAL="${PROD_APP_URL:-}"
+                ;;
+            esac
+          fi
+
+          echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"
+          echo "APP_URL=$APP_URL_VAL" >> "$GITHUB_ENV"
+
+          if [ -z "$DB_URL" ]; then
+            echo "DATABASE_URL is empty after resolve (target=$TARGET)" >&2
+            exit 1
+          fi
 
       - name: Dump backup (artifact)
         if: always()

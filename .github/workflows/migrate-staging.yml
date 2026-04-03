@@ -15,74 +15,11 @@ on:
       - 'supabase/**'
 
 jobs:
-  resolve:
-    runs-on: ubuntu-latest
-    environment: "Preview – mj-score-manager-tfvp"
-    outputs:
-      DATABASE_URL: ${{ steps.resolve.outputs.DATABASE_URL }}
-      APP_URL: ${{ steps.resolve.outputs.APP_URL }}
-    env:
-      PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
-      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-      PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-      PREVIEW_APP_URL: ${{ secrets.PREVIEW_APP_URL }}
-      STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Check supabase CLI availability
-        run: npx supabase@2.84.2 --version
-
-      - name: Resolve DATABASE_URL from target
-        id: resolve
-        run: |
-          set -euo pipefail
-          TARGET=${{ github.event.inputs.target || 'staging' }}
-          BRANCH_INPUT=${{ github.event.inputs.branch || '' }}
-          echo "Selected target: $TARGET"
-          if [ "$TARGET" = "preview" ]; then
-            echo "Using preview database"
-            if [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
-              BRANCH=${BRANCH_INPUT:-${GITHUB_REF_NAME:-main}}
-              echo "Resolving Vercel deployment for branch: $BRANCH"
-              apt-get update && apt-get install -y jq curl
-              DEPLOY_URL=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&meta-gitBranch=$BRANCH" | jq -r '.deployments[0].url // empty') || true
-              if [ -n "$DEPLOY_URL" ]; then
-                echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
-                echo "APP_URL=https://$DEPLOY_URL" >> $GITHUB_OUTPUT
-                exit 0
-              fi
-            fi
-            echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
-            echo "APP_URL=$STAGING_APP_URL" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          if [ "$TARGET" = "staging" ]; then
-            echo "DATABASE_URL=$STAGING_DATABASE_URL" >> $GITHUB_OUTPUT
-            echo "APP_URL=$STAGING_APP_URL" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          echo "DATABASE_URL=$PROD_DATABASE_URL" >> $GITHUB_OUTPUT
-          echo "APP_URL=$STAGING_APP_URL" >> $GITHUB_OUTPUT
-
   migrate:
-    needs: resolve
     uses: ./.github/workflows/migrate-common.yml
     with:
+      target: ${{ github.event.inputs.target || 'staging' }}
+      environment_name: "Preview – mj-score-manager-tfvp"
       allow_repair: true
       supabase_cli_version: '2.84.2'
-      app_url: ${{ needs.resolve.outputs.APP_URL }}
-    secrets:
-      DATABASE_URL: ${{ needs.resolve.outputs.DATABASE_URL }}
-      APP_URL: ${{ needs.resolve.outputs.APP_URL }}
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
+    secrets: inherit
