@@ -5,12 +5,9 @@ import { AppHeader } from "@/components/app-header";
 
 export default function AdminIndexPage() {
   return (
-    <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-6">
-      <div className="w-full space-y-4">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-900/70">Mahjong Score Manager</p>
-          <AppHeader current="admin" />
-        </div>
+    <main className="mx-auto min-h-screen w-full px-4 py-10">
+      <div className="mx-auto max-w-screen-2xl space-y-6">
+        <AppHeader current="admin" />
 
         <div className="max-w-3xl mx-auto py-2">
           <Card>
