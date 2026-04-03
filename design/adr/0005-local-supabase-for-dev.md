@@ -55,8 +55,13 @@
 - [x] `npm run build` を最終確認項目として README に固定。
 
 残作業（実装担当）:
-- [ ] `.github/MIGRATIONS.md` に local 向けの具体コマンド手順を追加する（例: local apply / rollback / 確認手順）。
-- [ ] local seed の投入手順を README で明示的に固定する（実行順序・入力データ・確認方法を1セットで記載）。
+残作業（実装担当）:
+- [x] `.github/MIGRATIONS.md` に local 向けの具体コマンド手順を追加（ローカル向け手順を `.github/MIGRATIONS.md` に追加済み）。
+- [x] local seed の投入手順を README で明示的に固定（`npm run seeds` を `scripts/seed-to-supabase.mjs` に紐付け、README に手順を追加済み）。
+
+実装状況:
+- 実装は `feature/issue-52` ブランチ上で完了しています（主要コミット: `9847b35`, 現在の HEAD: `d05b9f1`）。
+- `README.md`, `.github/MIGRATIONS.md`, `package.json`, `scripts/check-local-supabase.mjs`, `scripts/local-healthcheck.mjs`, `supabase/config.toml.example` を含む変更を反映済み。
 
 受け渡しメモ:
 - 追加済みスクリプト: `check:local-db`, `dev:local`, `check:local-pages`。
