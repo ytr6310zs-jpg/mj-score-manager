@@ -79,8 +79,12 @@ export function buildGamesCsv(matches, opts = {}) {
     }
 
     const metadata = {
-      source: "sheets",
-      sheet: process.env.GOOGLE_SHEET_TITLE ?? null,
+      source: "supabase",
+      top_player_id: m.topPlayerId ?? null,
+      last_player_id: m.lastPlayerId ?? null,
+      tobi_player_id: m.tobiPlayerId ?? null,
+      tobashi_player_id: m.tobashiPlayerId ?? null,
+      yakitori_player_ids: m.yakitoriPlayerIds ?? [],
     };
 
     const tail = [escapeCsv(m.notes ?? ""), escapeCsv(JSON.stringify(metadata)), escapeCsv("v1")];
