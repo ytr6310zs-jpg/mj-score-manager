@@ -98,7 +98,7 @@ jobs:
             exit 1
           fi
 
-      - name: Optional: Reconcile baseline migration history (safe repair)
+      - name: "Optional: Reconcile baseline migration history (safe repair)"
         if: ${{ inputs.allow_repair == true }}
         run: |
           set -euo pipefail
