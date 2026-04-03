@@ -37,7 +37,7 @@ jobs:
           node-version: '20'
 
       - name: Check supabase CLI availability
-        run: npx -y supabase@latest --version
+        run: npx supabase@2.84.2 --version
 
       - name: Resolve DATABASE_URL from target
         id: resolve
@@ -168,7 +168,7 @@ jobs:
             fi
 
             echo "Repairing missing migration version ${version} as applied"
-            npx -y supabase@latest migration repair --db-url "$SUPABASE_DB_URL" --status applied "$version"
+            npx supabase@2.84.2 migration repair --db-url "$SUPABASE_DB_URL" --status applied "$version"
           }
 
           apply_if_missing "20260401000000" "players"
@@ -204,7 +204,7 @@ jobs:
             export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
             export PGSSLROOTCERT=/tmp/db-ca.pem
           fi
-          npx -y supabase@latest db push --db-url "$SUPABASE_DB_URL"
+          npx supabase@2.84.2 db push --db-url "$SUPABASE_DB_URL"
 
       - name: Verify applied migrations (fail if expected tables missing)
         run: |

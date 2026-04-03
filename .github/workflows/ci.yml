@@ -84,7 +84,7 @@ jobs:
       - name: Run migrations
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
-        run: npm run migrate:up
+        run: npx supabase@2.84.2 db push --db-url "$DATABASE_URL"
       - name: Run tests
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
