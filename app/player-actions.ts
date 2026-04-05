@@ -47,7 +47,8 @@ export async function addPlayerAction(
       return { success: false, message: `「${name}」はすでに登録されています。` };
     }
 
-    const { error: insErr } = await supabase.from("players").insert([{ name, display_name: name }]);
+    // Insert only `name` to avoid errors if `display_name` column is absent in DB
+    const { error: insErr } = await supabase.from("players").insert([{ name }]);
     if (insErr) {
       console.error(insErr);
       // Handle unique constraint (duplicate) more gracefully
