@@ -47,15 +47,9 @@ export async function addPlayerAction(
       return { success: false, message: `「${name}」はすでに登録されています。` };
     }
 
-    // Insert only `name` to avoid errors if `display_name` column is absent in DB
     const { error: insErr } = await supabase.from("players").insert([{ name }]);
     if (insErr) {
       console.error(insErr);
-      // Handle unique constraint (duplicate) more gracefully
-      // Postgres unique_violation error code is '23505'
-      if (insErr.code === "23505" || String(insErr.message ?? "").toLowerCase().includes("duplicate")) {
-        return { success: false, message: `「${name}」はすでに登録されています。` };
-      }
       return { success: false, message: "プレイヤーの追加に失敗しました。" };
     }
 
