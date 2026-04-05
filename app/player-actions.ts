@@ -32,11 +32,11 @@ export async function addPlayerAction(
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    // check existing by lower(name) to match unique index behavior
+    // check existing by exact name
     const { data: existing, error: selErr } = await supabase
       .from("players")
       .select("name")
-      .ilike("name", name);
+      .eq("name", name);
     if (selErr) {
       console.error(selErr);
       return { success: false, message: "プレイヤーの確認に失敗しました。" };
@@ -47,7 +47,7 @@ export async function addPlayerAction(
       return { success: false, message: `「${name}」はすでに登録されています。` };
     }
 
-    const { error: insErr } = await supabase.from("players").insert([{ name, display_name: name }]);
+    const { error: insErr } = await supabase.from("players").insert([{ name }]);
     if (insErr) {
       console.error(insErr);
       return { success: false, message: "プレイヤーの追加に失敗しました。" };

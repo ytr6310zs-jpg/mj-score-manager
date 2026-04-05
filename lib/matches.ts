@@ -8,6 +8,7 @@ export type YakumanOccurrence = {
 
 export type MatchPlayer = {
   slot: number;
+  id: number | null;
   name: string;
   score: number;
   rank: number;
@@ -24,10 +25,15 @@ export type MatchResult = {
   playerCount: number;
   scoreTotal: number;
   topPlayer: string;
+  topPlayerId: number | null;
   lastPlayer: string;
+  lastPlayerId: number | null;
   tobiPlayer: string | null;
+  tobiPlayerId: number | null;
   tobashiPlayer: string | null;
+  tobashiPlayerId: number | null;
   yakitoriPlayers: string[];
+  yakitoriPlayerIds: number[];
   notes: string;
   createdAt: string;
   players: MatchPlayer[];
@@ -78,7 +84,7 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const selection = `id,date,game_type,player_count,player1,player2,player3,player4,score1,score2,score3,score4,rank1,rank2,rank3,rank4,is_tobi1,is_tobi2,is_tobi3,is_tobi4,is_tobashi1,is_tobashi2,is_tobashi3,is_tobashi4,is_yakitori1,is_yakitori2,is_yakitori3,is_yakitori4,score_total,top_player,last_player,tobi_player,tobashi_player,yakitori_players,notes,created_at`;
+    const selection = `id,date,game_type,player_count,player1,player2,player3,player4,player1_id,player2_id,player3_id,player4_id,score1,score2,score3,score4,rank1,rank2,rank3,rank4,is_tobi1,is_tobi2,is_tobi3,is_tobi4,is_tobashi1,is_tobashi2,is_tobashi3,is_tobashi4,is_yakitori1,is_yakitori2,is_yakitori3,is_yakitori4,score_total,top_player,top_player_id,last_player,last_player_id,tobi_player,tobi_player_id,tobashi_player,tobashi_player_id,yakitori_players,yakitori_player_ids,notes,created_at`;
 
     let qb = supabase.from("games").select(selection);
     if (startDate) qb = qb.gte("date", startDate);
@@ -102,8 +108,10 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
         .map((slot) => {
           const name = toString(row[`player${slot}`]);
           if (!name) return null;
+          const rawId = row[`player${slot}_id`];
           return {
             slot,
+            id: rawId !== null && rawId !== undefined ? Number(rawId) : null,
             name,
             score: toInt(row[`score${slot}`]),
             rank: toInt(row[`rank${slot}`]) || slots.length,
@@ -119,6 +127,12 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
       const createdAtRaw = row["created_at"] ?? row["createdAt"] ?? null;
       const createdAt = createdAtRaw ? new Date(String(createdAtRaw)).toISOString() : "";
 
+      const toNullableId = (v: unknown) => (v !== null && v !== undefined ? Number(v) : null);
+      const rawYakitoriIds = row["yakitori_player_ids"];
+      const yakitoriPlayerIds: number[] = Array.isArray(rawYakitoriIds)
+        ? (rawYakitoriIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
+        : [];
+
       return {
         id: Number(row["id"] ?? 0),
         date: toString(row["date"]),
@@ -126,13 +140,18 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
         playerCount,
         scoreTotal: toInt(row["score_total"]),
         topPlayer: toString(row["top_player"]),
+        topPlayerId: toNullableId(row["top_player_id"]),
         lastPlayer: toString(row["last_player"]),
+        lastPlayerId: toNullableId(row["last_player_id"]),
         tobiPlayer: row["tobi_player"] ? String(row["tobi_player"]) : null,
+        tobiPlayerId: toNullableId(row["tobi_player_id"]),
         tobashiPlayer: row["tobashi_player"] ? String(row["tobashi_player"]) : null,
+        tobashiPlayerId: toNullableId(row["tobashi_player_id"]),
         yakitoriPlayers: String(row["yakitori_players"] ?? "")
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
+        yakitoriPlayerIds,
         notes: toString(row["notes"]),
         createdAt,
         players,

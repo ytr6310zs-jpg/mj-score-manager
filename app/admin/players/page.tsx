@@ -22,7 +22,7 @@ async function fetchPlayers(): Promise<PlayerRow[]> {
   if (!supabaseUrl || !supabaseKey) return [];
 
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
-  const { data, error } = await supabase.from("players").select("id,name,created_at").order("name", { ascending: true });
+  const { data, error } = await supabase.from("players").select("id,name,created_at").order("id", { ascending: true });
   if (error || !data) return [];
 
   const rows = data as Array<{ id: number; name: string; created_at: string | null }>;
