@@ -23,7 +23,7 @@ export async function fetchPlayerNames(): Promise<string[]> {
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const { data, error } = await supabase.from("players").select("name").order("name", { ascending: true });
+    const { data, error } = await supabase.from("players").select("name").order("id", { ascending: true });
     if (error || !data) return [...PLAYERS];
 
     const rows = data as Array<{ name?: unknown }>;
