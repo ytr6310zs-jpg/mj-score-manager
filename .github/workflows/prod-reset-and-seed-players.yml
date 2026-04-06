@@ -1,0 +1,137 @@
+name: "Prod Reset and Seed Players"
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type RESET AND SEED to confirm destructive reset'
+        required: true
+        default: ''
+      run_seed_only:
+        description: 'If true, skip reset and migrate and only run seed'
+        required: false
+        default: 'false'
+
+jobs:
+  reset_and_seed:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate confirmation
+        env:
+          CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          RUN_SEED_ONLY: ${{ github.event.inputs.run_seed_only }}
+        run: |
+          if [ "$RUN_SEED_ONLY" != "true" ] && [ "$CONFIRMATION" != "RESET AND SEED" ]; then
+            echo "Confirmation mismatch. To proceed you must set 'confirmation' input to exactly 'RESET AND SEED' or set run_seed_only=true."
+            exit 1
+          fi
+          echo "Confirmation OK"
+
+      - name: Resolve DATABASE_URL and APP_URL
+        env:
+          SECRET_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          SECRET_APP_URL: ${{ secrets.PROD_APP_URL }}
+        run: |
+          set -euo pipefail
+          DB_URL="${SECRET_DATABASE_URL:-}"
+          APP_URL="${SECRET_APP_URL:-}"
+          if [ -z "$DB_URL" ]; then
+            echo "PROD_DATABASE_URL secret is empty; aborting" >&2
+            exit 1
+          fi
+          echo "DATABASE_URL will be used from secret"
+          echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"
+          echo "APP_URL=$APP_URL" >> "$GITHUB_ENV"
+
+      - name: Dump backup (artifact)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL not set, skipping backup"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          pg_dump --dbname="$DATABASE_URL" -Fc -f migration-backup.dump || true
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-backup
+          path: migration-backup.dump
+
+      - name: Optional: write CA bundle (base64) to file
+        if: ${{ secrets.DB_CA_BUNDLE_BASE64 != '' }}
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.DB_CA_BUNDLE_BASE64 }}" | base64 -d > /tmp/db-ca.pem
+
+      - name: Prepare SUPABASE_DB_URL
+        run: |
+          set -euo pipefail
+          SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
+          echo "SUPABASE_DB_URL=$SUPABASE_DB_URL" >> "$GITHUB_ENV"
+
+      - name: Reset database (destructive)
+        if: ${{ github.event.inputs.run_seed_only != 'true' }}
+        env:
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
+          fi
+          npx supabase@2.84.2 db reset --db-url "$SUPABASE_DB_URL" --yes
+
+      - name: Run migrations via Supabase CLI
+        if: ${{ github.event.inputs.run_seed_only != 'true' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
+          fi
+          npx supabase@2.84.2 db push --db-url "$SUPABASE_DB_URL"
+
+      - name: Run seed-players script
+        env:
+          SUPABASE_URL: ${{ secrets.PROD_APP_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PROD_SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "SUPABASE_URL (PROD_APP_URL) is not set; aborting" >&2
+            exit 1
+          fi
+          node scripts/seed-players.mjs
+
+      - name: Verify players inserted
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          PSQL_URL="$DATABASE_URL"
+          echo "Checking players count and presence of specified names..."
+          COUNT=$(psql "$PSQL_URL" -tAc "SELECT count(*) FROM players;")
+          echo "players_count=${COUNT}"
+          MISSING=$(psql "$PSQL_URL" -tA -c "SELECT name FROM (VALUES ('杉原'),('沢尾望'),('沢尾徹平'),('山本有美'),('横山'),('前田'),('村上'),('田宮'),('谷口'),('加藤'),('福本'),('西村'),('山本恭大'),('長谷川彩未'),('長谷川柊太'),('太雅'),('松原'),('市川'),('徳岡'),('但田')) AS v(name) WHERE NOT EXISTS (SELECT 1 FROM players p WHERE p.name = v.name);")
+          if [ -n "$MISSING" ]; then
+            echo "Missing players:" >&2
+            echo "$MISSING" >&2
+            exit 1
+          fi
+          echo "All specified players present."
