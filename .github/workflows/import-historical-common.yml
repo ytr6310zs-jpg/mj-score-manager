@@ -169,7 +169,11 @@ jobs:
             " "$DB_URL")
           fi
 
-          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+          if [ -n "$URL" ] && [ -n "$KEY" ]; then
+            echo "Using Supabase REST mode"
+          elif [ -n "$DB_URL" ]; then
+            echo "Using direct DATABASE_URL mode"
+          else
             echo "Could not resolve SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY for target=$TARGET" >&2
             echo "Set environment secrets SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY)" >&2
             echo "or target-specific secrets (STAGING_/PREVIEW_ or PROD_ prefixes)." >&2
@@ -177,8 +181,15 @@ jobs:
             exit 1
           fi
 
-          echo "SUPABASE_URL=$URL" >> "$GITHUB_ENV"
-          echo "SUPABASE_SERVICE_ROLE_KEY=$KEY" >> "$GITHUB_ENV"
+          if [ -n "$URL" ]; then
+            echo "SUPABASE_URL=$URL" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$KEY" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY=$KEY" >> "$GITHUB_ENV"
+          fi
+          if [ -n "$DB_URL" ]; then
+            echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"
+          fi
 
       - name: Install dependencies
         run: npm ci
@@ -187,6 +198,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ env.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
         run: npm run seed:historical:dry
 
       - name: Apply historical import
@@ -194,4 +206,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ env.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
         run: npm run seed:historical
