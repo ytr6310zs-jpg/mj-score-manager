@@ -52,6 +52,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   const [state, formAction] = useActionState(editMatchAction, initialState);
   const [pending, startTransition] = useTransition();
   const [clientError, setClientError] = useState<string | null>(null);
+  const [duplicatePlayerError, setDuplicatePlayerError] = useState<string | null>(null);
   const [gameType, setGameType] = useState<GameType>(match.gameType);
   const [gameDate, setGameDate] = useState(match.date);
   const [players, setPlayers] = useState<PlayerSelection>({
@@ -170,6 +171,20 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   }, [gameType, players, scores]);
 
   useEffect(() => {
+    const selectedPlayers = activeSlots
+      .map((slot) => players[slot as keyof PlayerSelection])
+      .filter(Boolean);
+    const uniquePlayers = new Set(selectedPlayers);
+
+    if (uniquePlayers.size !== selectedPlayers.length) {
+      setDuplicatePlayerError("同じプレイヤーを重複して選択できません。");
+      return;
+    }
+
+    setDuplicatePlayerError(null);
+  }, [activeSlots, players]);
+
+  useEffect(() => {
     if (gameType === "3p") {
       setPlayers((current) => ({ ...current, 4: "" }));
       setScores((current) => ({ ...current, 4: "" }));
@@ -215,6 +230,11 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setClientError(null);
+    if (duplicatePlayerError) {
+      setClientError(duplicatePlayerError);
+      return;
+    }
+
     const form = createFormData();
     startTransition(() => {
       formAction(form);
@@ -270,6 +290,10 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                     if (value === tobashiPlayer) setTobashiPlayer(NONE_VALUE);
                   }}
                   options={playerList}
+                  exclude={activeSlots
+                    .filter((s) => s !== slot)
+                    .map((s) => players[s as keyof PlayerSelection])
+                    .filter(Boolean)}
                   required
                 />
               </div>
@@ -445,11 +469,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>なし</SelectItem>
-              {playersToCheck.map((player) => (
-                <SelectItem key={`tobi-${player}`} value={player}>
-                  {player} が飛び
-                </SelectItem>
-              ))}
+              {playersToCheck.map((player) => {
+                const isDisabled = player === tobashiPlayer && player !== tobiPlayer;
+                return (
+                  <SelectItem key={`tobi-${player}`} value={player} disabled={isDisabled}>
+                    {player} が飛び
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           <Select value={tobashiPlayer} onValueChange={setTobashiPlayer}>
@@ -458,11 +485,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>なし</SelectItem>
-              {playersToCheck.map((player) => (
-                <SelectItem key={`tobashi-${player}`} value={player}>
-                  {player} が飛ばし
-                </SelectItem>
-              ))}
+              {playersToCheck.map((player) => {
+                const isDisabled = player === tobiPlayer && player !== tobashiPlayer;
+                return (
+                  <SelectItem key={`tobashi-${player}`} value={player} disabled={isDisabled}>
+                    {player} が飛ばし
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -488,6 +518,12 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
         </Alert>
       )}
 
+      {duplicatePlayerError && !clientError ? (
+        <Alert className="border-destructive/40 bg-destructive/5 text-destructive">
+          <AlertDescription>{duplicatePlayerError}</AlertDescription>
+        </Alert>
+      ) : null}
+
       {state.message && (
         <Alert
           className={state.success ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-destructive/40 bg-destructive/5 text-destructive"}
@@ -497,7 +533,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
       )}
 
       <div className="flex flex-col gap-2 pt-4 sm:flex-row">
-        <Button type="submit" disabled={pending || clientError !== null} className="w-full flex-1">
+        <Button type="submit" disabled={pending || clientError !== null || duplicatePlayerError !== null} className="w-full flex-1">
           {pending ? "編集中..." : "対局を編集"}
         </Button>
         <Button type="button" variant="outline" onClick={() => window.history.back()} className="w-full sm:w-auto">
