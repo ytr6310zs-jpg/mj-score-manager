@@ -6,6 +6,7 @@ import DateRangeFilter from "@/components/date-range-filter";
 import { buttonVariants } from "@/components/ui/button";
 import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
 import { MatchDeleteButton } from "@/components/match-delete-button";
+import CsvExportButton from "@/components/csv-export-button";
 import { FlashMessage } from "@/components/flash-message";
 import Link from "next/link";
 
@@ -64,12 +65,12 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                 <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/matches" />
               </div>
               <div className="flex items-end mb-2">
-                <a
-                  href={`/api/export/games?start=${encodeURIComponent(start ?? "")}&end=${encodeURIComponent(end ?? "")}`}
+                <CsvExportButton
+                  apiPath="/api/export/games"
                   className="ml-0 sm:ml-2 rounded bg-emerald-600 px-3 text-sm text-white w-full sm:w-auto text-center sm:text-left h-10 flex items-center justify-center"
                 >
                   CSV 出力
-                </a>
+                </CsvExportButton>
               </div>
             </div>
             {error ? (
