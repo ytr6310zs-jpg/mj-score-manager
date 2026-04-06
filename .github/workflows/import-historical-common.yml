@@ -26,17 +26,25 @@ on:
         required: false
       SUPABASE_SERVICE_ROLE_KEY:
         required: false
+      DATABASE_URL:
+        required: false
       STAGING_SUPABASE_URL:
         required: false
       STAGING_SUPABASE_SERVICE_ROLE_KEY:
+        required: false
+      STAGING_DATABASE_URL:
         required: false
       PREVIEW_SUPABASE_URL:
         required: false
       PREVIEW_SUPABASE_SERVICE_ROLE_KEY:
         required: false
+      PREVIEW_DATABASE_URL:
+        required: false
       PROD_SUPABASE_URL:
         required: false
       PROD_SUPABASE_SERVICE_ROLE_KEY:
+        required: false
+      PROD_DATABASE_URL:
         required: false
 
 jobs:
@@ -74,32 +82,86 @@ jobs:
           TARGET: ${{ inputs.target }}
           SECRET_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SECRET_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SECRET_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
           STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
           PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
           PREVIEW_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PREVIEW_SUPABASE_SERVICE_ROLE_KEY }}
+          PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
           PROD_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
           PROD_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PROD_SUPABASE_SERVICE_ROLE_KEY }}
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
         run: |
           set -euo pipefail
 
           URL="${SECRET_SUPABASE_URL:-}"
           KEY="${SECRET_SUPABASE_SERVICE_ROLE_KEY:-}"
+          DB_URL="${SECRET_DATABASE_URL:-}"
 
-          if [ -z "$URL" ] || [ -z "$KEY" ]; then
-            if [ "$TARGET" = "staging" ]; then
+          if [ "$TARGET" = "staging" ]; then
+            if [ -z "$URL" ]; then
               URL="${STAGING_SUPABASE_URL:-${PREVIEW_SUPABASE_URL:-}}"
+            fi
+            if [ -z "$KEY" ]; then
               KEY="${STAGING_SUPABASE_SERVICE_ROLE_KEY:-${PREVIEW_SUPABASE_SERVICE_ROLE_KEY:-}}"
-            else
+            fi
+            if [ -z "$DB_URL" ]; then
+              DB_URL="${STAGING_DATABASE_URL:-${PREVIEW_DATABASE_URL:-}}"
+            fi
+          else
+            if [ -z "$URL" ]; then
               URL="${PROD_SUPABASE_URL:-}"
+            fi
+            if [ -z "$KEY" ]; then
               KEY="${PROD_SUPABASE_SERVICE_ROLE_KEY:-}"
             fi
+            if [ -z "$DB_URL" ]; then
+              DB_URL="${PROD_DATABASE_URL:-}"
+            fi
+          fi
+
+          # SUPABASE_URL が無い場合は DATABASE_URL から project ref を推定する
+          if [ -z "$URL" ] && [ -n "$DB_URL" ]; then
+            URL=$(node -e "
+              const raw = process.argv[1] || '';
+              if (!raw) process.exit(0);
+              try {
+                const u = new URL(raw);
+                const host = String(u.hostname || '');
+                let ref = '';
+
+                // db.<ref>.supabase.co
+                let m = host.match(/^db\\.([a-z0-9-]+)\\.supabase\\.co$/i);
+                if (m) ref = m[1];
+
+                // <ref>.*.supabase.co
+                if (!ref) {
+                  m = host.match(/^([a-z0-9-]+)\\.[^.]+\\.supabase\\.co$/i);
+                  if (m) ref = m[1];
+                }
+
+                // user: postgres.<ref>
+                if (!ref) {
+                  const user = String(u.username || '');
+                  m = user.match(/\\.([a-z0-9-]+)$/i);
+                  if (m) ref = m[1];
+                }
+
+                if (ref) {
+                  console.log(`https://${ref}.supabase.co`);
+                }
+              } catch (_) {
+                // no-op
+              }
+            " "$DB_URL")
           fi
 
           if [ -z "$URL" ] || [ -z "$KEY" ]; then
             echo "Could not resolve SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY for target=$TARGET" >&2
             echo "Set environment secrets SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY" >&2
             echo "or target-specific secrets (STAGING_/PREVIEW_ or PROD_ prefixes)." >&2
+            echo "DATABASE_URL 系シークレットがある場合は SUPABASE_URL を推定しますが、推定不可な形式もあります。" >&2
             exit 1
           fi
 
