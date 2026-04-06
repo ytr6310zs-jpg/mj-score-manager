@@ -213,3 +213,39 @@ npm run seed:historical
 - [x] セッションタイムアウトを1時間に設定
 - [x] 成績集計に範囲指定（開始日から終了日）を追加、当日チェックボックスを入れると開始、終了を当日にする
 - [x] 対局履歴画面に日付によるフィルタを実装（開始日-終了日を指定）
+
+## 役満定義の DB 化 と 管理
+
+このリポジトリでは `yakuman_types` を参照テーブルとして追加し、既存の `yakuman_occurrences` はスナップショット（`yakuman_name` / `points`）を保持する非破壊設計になっています。
+
+ローカルでマイグレーション・シードを適用する手順（local Supabase を利用する場合）:
+
+```bash
+# local Supabase を起動している前提
+npx supabase@2.84.2 start
+
+# マイグレーションを DB に適用（supabase CLI を利用する例）
+npx supabase@2.84.2 db reset
+
+# あるいは個別 SQL を実行する場合:
+# psql "$DATABASE_URL" -f supabase/migrations/20260406000000_create_yakuman_types.sql
+
+# 追加シードを投入（プロジェクトの seed スクリプトを利用）
+npm run seeds
+```
+
+管理用 UI:
+
+- 管理画面: `/admin/yakumans` — `yakuman_types` の一覧・追加・編集・無効化が可能です。
+
+注意点:
+
+- 管理画面の認可は未実装です。公開環境にデプロイする前に認可を追加してください。
+- `yakuman_occurrences` は過去レコードの読み替えを避けるため、`yakuman_name` / `points` をスナップショットで保持します。将来的に `yakuman_types` を編集しても既存レコードの表示は変わりません。
+
+運用フロー（推奨）:
+
+1. 新しい役満を追加する場合は `yakuman_types` を管理画面で追加するか、SQL マイグレーションを作成して seed を追記してください。
+2. 必要があれば既存の役満定義を `is_active=false` にして運用履歴を保ちつつ非表示にできます。
+3. 本番環境へ反映する際は、マイグレーションとシードを CI/デプロイパイプラインへ組み込んでください。
+

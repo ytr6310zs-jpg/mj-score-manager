@@ -1,8 +1,9 @@
 "use server";
 
+import { insertYakumanOccurrences } from "@/lib/insert-yakuman";
+import { buildRankedEntries, validateAndParseMatchForm } from "@/lib/validate-match";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
-import { validateAndParseMatchForm, buildRankedEntries } from "@/lib/validate-match";
 export type SaveScoreState = {
   success: boolean;
   message: string;
@@ -118,7 +119,6 @@ export async function saveScoreAction(
     const newGameId = Number(insertedArr[0]?.id ?? 0);
 
     // handle yakuman occurrences submitted as a JSON list
-    const yakRows: Array<Record<string, unknown>> = [];
     const yakumanSelectionsRaw = String(formData.get("yakumanSelections") ?? "").trim();
     let yakumanSelections: Array<{ playerName: string; yakumanCode: string; yakumanName: string }> = [];
 
@@ -143,40 +143,11 @@ export async function saveScoreAction(
     }
 
     if (yakumanSelections.length > 0) {
-      const namesToResolve = new Set(yakumanSelections.map((entry) => entry.playerName));
-      const namesArr = Array.from(namesToResolve);
-      const { data: playersRows, error: playersErr } = await supabase.from("players").select("id,name").in("name", namesArr);
-      if (!playersErr && playersRows && Array.isArray(playersRows)) {
-        const nameToId = new Map<string, number>();
-        for (const r of playersRows) {
-          const nm = String(r["name"] ?? "");
-          const id = Number((r as Record<string, unknown>)["id"] ?? 0);
-          if (nm) nameToId.set(nm, id);
-        }
-
-        for (const entry of yakumanSelections) {
-          const pid = nameToId.get(entry.playerName);
-          if (!pid) {
-            console.warn("player id not found for yakuman insertion:", entry.playerName);
-            continue;
-          }
-          yakRows.push({
-            game_id: newGameId,
-            player_id: pid,
-            yakuman_code: entry.yakumanCode,
-            yakuman_name: entry.yakumanName,
-            points: null,
-            meta: null,
-          });
-        }
-      }
-
-      if (yakRows.length > 0) {
-        const { error: yakInsertErr } = await supabase.from("yakuman_occurrences").insert(yakRows);
-        if (yakInsertErr) {
-          console.error("yakuman insert error:", yakInsertErr);
-          // non-fatal: still return success for game insert, but log
-        }
+      // delegate to helper (extracted for testability)
+      try {
+        await insertYakumanOccurrences(supabase, newGameId, yakumanSelectionsRaw);
+      } catch (e) {
+        console.warn('insertYakumanOccurrences failed', e);
       }
     }
 
@@ -193,3 +164,5 @@ export async function saveScoreAction(
     return { success: false, message: "データ保存に失敗しました。" };
   }
 }
+
+
