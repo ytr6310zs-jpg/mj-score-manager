@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Props = {
   initialStart?: string | null;
@@ -88,8 +88,10 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
           onChange={(e) => handleEndChange(e.target.value)}
           className="rounded border p-1 text-sm h-10"
         />
+      </div>
 
-        <label className="ml-2 flex items-center gap-2 text-sm text-emerald-800">
+      <div className="flex items-center justify-start gap-2 w-full">
+        <label className="flex items-center gap-2 text-sm text-emerald-800">
           <input
             name="today"
             type="checkbox"
@@ -99,9 +101,6 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
           />
           <span>当日</span>
         </label>
-      </div>
-
-      <div className="flex items-center justify-start gap-2 w-full">
         <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
           絞込
         </button>
