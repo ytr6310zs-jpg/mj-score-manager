@@ -3,15 +3,15 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 
 import { saveScoreAction, type SaveScoreState } from "@/app/actions";
-import YAKUMANS from "@/lib/yakumans";
 import { addPlayerAction } from "@/app/player-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlayerSelect } from "@/components/ui/player-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import useYakumans from "@/lib/useYakumans";
 
 const initialState: SaveScoreState = {
   success: false,
@@ -65,6 +65,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   const [pendingYakumans, setPendingYakumans] = useState<PendingYakumanSelection[]>([]);
 
   const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
+  const { yakumans } = useYakumans();
 
   async function handleAddPlayer(name: string): Promise<{ success: boolean; message: string }> {
     const formData = new FormData();
@@ -201,7 +202,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
       return;
     }
 
-    const found = YAKUMANS.find((y) => y.code === selectedYakumanCode);
+    const found = yakumans.find((y) => y.code === selectedYakumanCode);
     if (!found) {
       setClientError("役満名の選択が不正です。");
       return;
@@ -494,7 +495,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                       <SelectValue placeholder="役満名を選択" />
                     </SelectTrigger>
                     <SelectContent>
-                      {YAKUMANS.map((y) => (
+                      {yakumans.map((y) => (
                         <SelectItem key={`yakuman-name-${y.code}`} value={y.code}>
                           {y.name}
                         </SelectItem>
