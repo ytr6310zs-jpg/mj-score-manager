@@ -339,6 +339,10 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                       }))
                     }
                     options={playerOptions}
+                    exclude={activeSlots
+                      .filter((s) => s !== slot)
+                      .map((s) => players[s as keyof PlayerSelection])
+                      .filter(Boolean)}
                     onAddPlayer={handleAddPlayer}
                     required
                   />

@@ -290,6 +290,10 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                     if (value === tobashiPlayer) setTobashiPlayer(NONE_VALUE);
                   }}
                   options={playerList}
+                  exclude={activeSlots
+                    .filter((s) => s !== slot)
+                    .map((s) => players[s as keyof PlayerSelection])
+                    .filter(Boolean)}
                   required
                 />
               </div>
