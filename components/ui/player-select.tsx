@@ -9,6 +9,7 @@ type Props = {
   value: string;
   onValueChange: (value: string) => void;
   options: string[];
+  exclude?: string[];
   placeholder?: string;
   required?: boolean;
   onAddPlayer?: (name: string) => Promise<{ success: boolean; message: string }>;
@@ -19,6 +20,7 @@ export function PlayerSelect({
   value,
   onValueChange,
   options,
+  exclude,
   placeholder = "選択してください",
   required,
   onAddPlayer,
@@ -143,20 +145,32 @@ export function PlayerSelect({
                 「{trimmedQuery}」は見つかりません
               </li>
             ) : (
-              filtered.map((option) => (
-                <li
-                  key={option}
-                  role="option"
-                  aria-selected={option === value}
-                  onClick={() => handleSelect(option)}
-                  className={cn(
-                    "cursor-pointer px-3 py-2 text-sm hover:bg-emerald-50",
-                    option === value && "bg-emerald-100 font-semibold text-emerald-900"
-                  )}
-                >
-                  {option}
-                </li>
-              ))
+              filtered.map((option) => {
+                const excludedList = Array.isArray(exclude) ? exclude : [];
+                const isDisabled = Boolean(excludedList.includes(option) && option !== value);
+
+                return (
+                  <li
+                    key={option}
+                    role="option"
+                    aria-selected={option === value}
+                    aria-disabled={isDisabled}
+                    onClick={() => {
+                      if (isDisabled) return;
+                      handleSelect(option);
+                    }}
+                    className={cn(
+                      "px-3 py-2 text-sm",
+                      isDisabled
+                        ? "text-muted-foreground cursor-not-allowed opacity-60"
+                        : "cursor-pointer hover:bg-emerald-50",
+                      option === value && "bg-emerald-100 font-semibold text-emerald-900"
+                    )}
+                  >
+                    {option}
+                  </li>
+                );
+              })
             )}
           </ul>
 

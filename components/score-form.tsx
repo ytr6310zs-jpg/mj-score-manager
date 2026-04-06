@@ -339,6 +339,10 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                       }))
                     }
                     options={playerOptions}
+                    exclude={activeSlots
+                      .filter((s) => s !== slot)
+                      .map((s) => players[s as keyof PlayerSelection])
+                      .filter(Boolean)}
                     onAddPlayer={handleAddPlayer}
                     required
                   />
@@ -402,34 +406,40 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
 
             <div className="space-y-2">
               <Label>飛び対象</Label>
-              <Select name="tobiPlayer" value={tobiPlayer} onValueChange={setTobiPlayer}>
+                <Select name="tobiPlayer" value={tobiPlayer} onValueChange={setTobiPlayer}>
                 <SelectTrigger>
                   <SelectValue placeholder="なし" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE_VALUE}>なし</SelectItem>
-                  {activePlayers.map((player) => (
-                    <SelectItem key={`tobi-${player.name}`} value={player.name}>
-                      {player.name}
-                    </SelectItem>
-                  ))}
+                    {activePlayers.map((player) => {
+                      const isDisabled = player.name === tobashiPlayer && player.name !== tobiPlayer;
+                      return (
+                        <SelectItem key={`tobi-${player.name}`} value={player.name} disabled={isDisabled}>
+                          {player.name}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label>飛ばし者</Label>
-              <Select name="tobashiPlayer" value={tobashiPlayer} onValueChange={setTobashiPlayer}>
+                <Select name="tobashiPlayer" value={tobashiPlayer} onValueChange={setTobashiPlayer}>
                 <SelectTrigger>
                   <SelectValue placeholder="なし" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE_VALUE}>なし</SelectItem>
-                  {activePlayers.map((player) => (
-                    <SelectItem key={`tobashi-${player.name}`} value={player.name}>
-                      {player.name}
-                    </SelectItem>
-                  ))}
+                    {activePlayers.map((player) => {
+                      const isDisabled = player.name === tobiPlayer && player.name !== tobashiPlayer;
+                      return (
+                        <SelectItem key={`tobashi-${player.name}`} value={player.name} disabled={isDisabled}>
+                          {player.name}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </div>
