@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app-header";
 import DateRangeFilter from "@/components/date-range-filter";
 import { Suspense } from "react";
 import { FlashMessage } from "@/components/flash-message";
+import CsvExportButton from "@/components/csv-export-button";
 import { fetchPlayerStats } from "@/lib/stats";
 
 export const metadata: Metadata = {
@@ -67,12 +68,12 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                 <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/stats" />
               </div>
               <div className="flex items-end mb-2">
-                <a
-                  href={`/api/export/stats?start=${encodeURIComponent(start ?? "")}&end=${encodeURIComponent(end ?? "")}`}
+                <CsvExportButton
+                  apiPath="/api/export/stats"
                   className="ml-0 sm:ml-2 rounded bg-emerald-600 px-3 text-sm text-white w-full sm:w-auto text-center sm:text-left h-10 flex items-center justify-center"
                 >
                   CSV 出力
-                </a>
+                </CsvExportButton>
               </div>
             </div>
             {error ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 type Props = {
   initialStart?: string | null;
@@ -34,24 +34,21 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
   }, [initialStart, initialEnd, initialToday]);
 
   // helper to dispatch flash
-  function showInvalidDateFlash() {
+  const showInvalidDateFlash = useCallback(() => {
     try {
       window.dispatchEvent(new CustomEvent("app:flash", { detail: { type: "invalidDate" } }));
     } catch {
       // ignore
     }
-  }
+  }, []);
+
+  // no cross-component clearing — show flash only
 
   function handleStartChange(value: string) {
     if (todayChecked) {
       setTodayChecked(false);
     }
     setStart(value);
-    if (end && value && value > end) {
-      // invalid: start after end -> clear start and show flash
-      setStart("");
-      showInvalidDateFlash();
-    }
   }
 
   function handleEndChange(value: string) {
@@ -59,9 +56,12 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
       setTodayChecked(false);
     }
     setEnd(value);
-    if (start && value && start > value) {
-      // invalid: end before start -> clear end and show flash
-      setEnd("");
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (start && end && start > end) {
+      e.preventDefault();
+      // do not clear fields; notify user to correct
       showInvalidDateFlash();
     }
   }
@@ -70,6 +70,7 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
     <form
       method="get"
       action={actionPath}
+      onSubmit={handleSubmit}
       className="flex w-full flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-2"
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2 w-full">
