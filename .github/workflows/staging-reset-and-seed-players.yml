@@ -40,15 +40,24 @@ jobs:
         env:
           SECRET_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SECRET_APP_URL: ${{ secrets.APP_URL }}
+          PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          PREVIEW_APP_URL: ${{ secrets.PREVIEW_APP_URL }}
+          STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
         run: |
           set -euo pipefail
           DB_URL="${SECRET_DATABASE_URL:-}"
           APP_URL="${SECRET_APP_URL:-}"
           if [ -z "$DB_URL" ]; then
-            echo "DATABASE_URL secret is empty; aborting" >&2
+            DB_URL="${STAGING_DATABASE_URL:-${PREVIEW_DATABASE_URL:-}}"
+          fi
+          if [ -z "$APP_URL" ]; then
+            APP_URL="${STAGING_APP_URL:-${PREVIEW_APP_URL:-}}"
+          fi
+          if [ -z "$DB_URL" ]; then
+            echo "None of DATABASE_URL / STAGING_DATABASE_URL / PREVIEW_DATABASE_URL are set; aborting" >&2
             exit 1
           fi
-          echo "DATABASE_URL will be used from secret"
           echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"
           echo "APP_URL=$APP_URL" >> "$GITHUB_ENV"
 
