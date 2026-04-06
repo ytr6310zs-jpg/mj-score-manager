@@ -13,6 +13,11 @@ const YAKUMAN_CODE_RULES = [
   { keyword: "四暗", code: "SS" },
   { keyword: "数え", code: "KZ" },
 ];
+const SUMMARY_HEADER_MAP = {
+  "飛ばし回数": "tobashi",
+  "飛び回数": "tobi",
+  "焼き鳥回数": "yakitori",
+};
 
 function parseArgs(argv) {
   return {
@@ -64,6 +69,266 @@ function parseCsvLine(line) {
   }
   out.push(cur);
   return out;
+}
+
+function normalizeCellText(value) {
+  return String(value ?? "").replace(/\s+/g, "").trim();
+}
+
+function parseCountCell(raw, fileName, playerName, label) {
+  const normalized = normalizeCellText(raw);
+  if (!normalized) {
+    return 0;
+  }
+
+  const digits = normalized.endsWith("回") ? normalized.slice(0, -1) : normalized;
+  const count = Number(digits);
+  if (!Number.isInteger(count) || count < 0) {
+    throw new Error(`${fileName}: ${playerName} の ${label} が不正です: '${raw}'`);
+  }
+  return count;
+}
+
+function collectHeaderLayout(header, fileName) {
+  const gameColumns = [];
+  const summaryColumns = {
+    tobashi: -1,
+    tobi: -1,
+    yakitori: -1,
+  };
+
+  for (let col = 1; col < header.length; col += 1) {
+    const normalized = normalizeCellText(header[col]);
+    if (!normalized) {
+      continue;
+    }
+
+    if (/^\d+$/.test(normalized)) {
+      gameColumns.push({
+        columnIndex: col,
+        gameNo: normalized,
+      });
+      continue;
+    }
+
+    const summaryKey = SUMMARY_HEADER_MAP[normalized];
+    if (summaryKey) {
+      summaryColumns[summaryKey] = col;
+    }
+  }
+
+  if (gameColumns.length === 0) {
+    throw new Error(`${fileName}: no game columns found`);
+  }
+
+  return {
+    gameColumns,
+    summaryColumns,
+  };
+}
+
+function buildPlayerSummaryCounts(playerRows, summaryColumns, fileName) {
+  const counts = new Map();
+
+  for (const row of playerRows) {
+    const playerName = String(row[0] ?? "").trim();
+    counts.set(playerName, {
+      tobashi: summaryColumns.tobashi >= 0 ? parseCountCell(row[summaryColumns.tobashi], fileName, playerName, "飛ばし回数") : 0,
+      tobi: summaryColumns.tobi >= 0 ? parseCountCell(row[summaryColumns.tobi], fileName, playerName, "飛び回数") : 0,
+      yakitori: summaryColumns.yakitori >= 0 ? parseCountCell(row[summaryColumns.yakitori], fileName, playerName, "焼き鳥回数") : 0,
+    });
+  }
+
+  return counts;
+}
+
+function compareGameNo(left, right) {
+  return Number(left.gameNo) - Number(right.gameNo);
+}
+
+function assignExclusiveMetric(fileName, games, playerSummaryCounts, metric, orderCandidates) {
+  const playerDemands = Array.from(playerSummaryCounts.entries())
+    .map(([playerName, counts]) => ({
+      playerName,
+      count: Number(counts[metric] ?? 0),
+    }))
+    .filter((entry) => entry.count > 0)
+    .sort((a, b) => a.playerName.localeCompare(b.playerName, "ja"));
+
+  if (playerDemands.length === 0) {
+    return;
+  }
+
+  const totalDemand = playerDemands.reduce((sum, entry) => sum + entry.count, 0);
+  if (totalDemand > games.length) {
+    throw new Error(`${fileName}: ${metric} の合計回数 ${totalDemand} は対局数 ${games.length} を超えています`);
+  }
+
+  const source = 0;
+  const playerOffset = 1;
+  const gameOffset = playerOffset + playerDemands.length;
+  const sink = gameOffset + games.length;
+  const graph = Array.from({ length: sink + 1 }, () => []);
+
+  function addEdge(from, to, capacity) {
+    const forward = { to, rev: graph[to].length, capacity };
+    const backward = { to: from, rev: graph[from].length, capacity: 0 };
+    graph[from].push(forward);
+    graph[to].push(backward);
+  }
+
+  for (let i = 0; i < playerDemands.length; i += 1) {
+    addEdge(source, playerOffset + i, playerDemands[i].count);
+  }
+
+  for (let gameIndex = 0; gameIndex < games.length; gameIndex += 1) {
+    addEdge(gameOffset + gameIndex, sink, 1);
+  }
+
+  for (let i = 0; i < playerDemands.length; i += 1) {
+    const demand = playerDemands[i];
+    const candidates = games
+      .map((game, gameIndex) => {
+        const entry = game.entries.find((item) => item.player === demand.playerName);
+        if (!entry) {
+          return null;
+        }
+        return {
+          game,
+          gameIndex,
+          entry,
+        };
+      })
+      .filter(Boolean)
+      .sort(orderCandidates);
+
+    if (candidates.length < demand.count) {
+      throw new Error(`${fileName}: ${demand.playerName} の ${metric} 回数 ${demand.count} を割り当てる対局が不足しています`);
+    }
+
+    for (const candidate of candidates) {
+      addEdge(playerOffset + i, gameOffset + candidate.gameIndex, 1);
+    }
+  }
+
+  let flow = 0;
+  while (true) {
+    const prevNode = Array(graph.length).fill(-1);
+    const prevEdge = Array(graph.length).fill(-1);
+    const queue = [source];
+    prevNode[source] = source;
+
+    while (queue.length > 0 && prevNode[sink] === -1) {
+      const node = queue.shift();
+      for (let edgeIndex = 0; edgeIndex < graph[node].length; edgeIndex += 1) {
+        const edge = graph[node][edgeIndex];
+        if (edge.capacity <= 0 || prevNode[edge.to] !== -1) {
+          continue;
+        }
+        prevNode[edge.to] = node;
+        prevEdge[edge.to] = edgeIndex;
+        queue.push(edge.to);
+      }
+    }
+
+    if (prevNode[sink] === -1) {
+      break;
+    }
+
+    let node = sink;
+    while (node !== source) {
+      const from = prevNode[node];
+      const edgeIndex = prevEdge[node];
+      const edge = graph[from][edgeIndex];
+      edge.capacity -= 1;
+      graph[node][edge.rev].capacity += 1;
+      node = from;
+    }
+    flow += 1;
+  }
+
+  if (flow !== totalDemand) {
+    throw new Error(`${fileName}: ${metric} の回数を各対局へ割り当てできませんでした`);
+  }
+
+  for (let i = 0; i < playerDemands.length; i += 1) {
+    const playerNode = playerOffset + i;
+    for (const edge of graph[playerNode]) {
+      if (edge.to < gameOffset || edge.to >= sink || edge.capacity !== 0) {
+        continue;
+      }
+      const game = games[edge.to - gameOffset];
+      if (metric === "tobashi") {
+        game.tobashiPlayer = playerDemands[i].playerName;
+      } else {
+        game.tobiPlayer = playerDemands[i].playerName;
+      }
+    }
+  }
+}
+
+function applyYakitoriAssignments(fileName, games, playerSummaryCounts) {
+  const players = Array.from(playerSummaryCounts.entries())
+    .map(([playerName, counts]) => ({
+      playerName,
+      count: Number(counts.yakitori ?? 0),
+    }))
+    .filter((entry) => entry.count > 0)
+    .sort((a, b) => a.playerName.localeCompare(b.playerName, "ja"));
+
+  for (const player of players) {
+    const candidates = games
+      .map((game) => {
+        const entry = game.entries.find((item) => item.player === player.playerName);
+        if (!entry) {
+          return null;
+        }
+        return {
+          game,
+          entry,
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => left.entry.score - right.entry.score || right.entry.rank - left.entry.rank || compareGameNo(left.game, right.game));
+
+    if (candidates.length < player.count) {
+      throw new Error(`${fileName}: ${player.playerName} の焼き鳥回数 ${player.count} を割り当てる対局が不足しています`);
+    }
+
+    for (let i = 0; i < player.count; i += 1) {
+      candidates[i].game.yakitoriPlayers.add(player.playerName);
+    }
+  }
+}
+
+function applyDailySummaryFlags(fileName, games, playerSummaryCounts) {
+  for (const game of games) {
+    game.tobiPlayer = null;
+    game.tobashiPlayer = null;
+    game.yakitoriPlayers = new Set();
+  }
+
+  assignExclusiveMetric(
+    fileName,
+    games,
+    playerSummaryCounts,
+    "tobashi",
+    (left, right) => right.entry.score - left.entry.score || left.entry.rank - right.entry.rank || compareGameNo(left.game, right.game)
+  );
+
+  assignExclusiveMetric(
+    fileName,
+    games,
+    playerSummaryCounts,
+    "tobi",
+    (left, right) => {
+      const leftPaired = left.game.tobashiPlayer ? 0 : 1;
+      const rightPaired = right.game.tobashiPlayer ? 0 : 1;
+      return leftPaired - rightPaired || left.entry.score - right.entry.score || right.entry.rank - left.entry.rank || compareGameNo(left.game, right.game);
+    }
+  );
+
+  applyYakitoriAssignments(fileName, games, playerSummaryCounts);
 }
 
 function buildDateFromFilename(fileName) {
@@ -199,16 +464,19 @@ function parseCsvToGames(fileName, content) {
   if ((header[0] ?? "").trim() !== "player") {
     throw new Error(`${fileName}: header first column must be 'player'`);
   }
+  const { gameColumns, summaryColumns } = collectHeaderLayout(header, fileName);
 
   const playerRows = rows.slice(1).filter((row) => {
     const name = String(row[0] ?? "").trim();
     return name && name !== "役満発生";
   });
   const yakumanRow = rows.find((row) => String(row[0] ?? "").trim() === "役満発生");
+  const playerSummaryCounts = buildPlayerSummaryCounts(playerRows, summaryColumns, fileName);
 
   const games = [];
-  for (let col = 1; col < header.length; col += 1) {
-    const gameNo = String(header[col] ?? "").trim() || String(col);
+  for (const gameColumn of gameColumns) {
+    const col = gameColumn.columnIndex;
+    const gameNo = gameColumn.gameNo;
     const participants = [];
 
     for (const row of playerRows) {
@@ -267,8 +535,13 @@ function parseCsvToGames(fileName, content) {
       },
       entries: rankedEntries,
       yakumans: yakumanCell.occurrences,
+        tobiPlayer: null,
+        tobashiPlayer: null,
+        yakitoriPlayers: new Set(),
     });
   }
+
+  applyDailySummaryFlags(fileName, games, playerSummaryCounts);
 
   return games;
 }
@@ -347,6 +620,13 @@ async function createDataStore({ supabaseUrl, supabaseKey, databaseUrl }) {
         if (error) throw new Error(`insert error: ${JSON.stringify(error)}`);
         return data ?? [];
       },
+        async updateGames(rows) {
+          for (const row of rows) {
+            const { id, ...payload } = row;
+            const { error } = await supabase.from("games").update(payload).eq("id", id);
+            if (error) throw new Error(`update error: ${JSON.stringify(error)}`);
+          }
+        },
       async fetchYakumansByGameIds(gameIds) {
         if (gameIds.length === 0) return [];
         const { data, error } = await supabase
@@ -401,6 +681,22 @@ async function createDataStore({ supabaseUrl, supabaseKey, databaseUrl }) {
         const res = await client.query(built.text, built.values);
         return res.rows;
       },
+        async updateGames(rows) {
+          for (const row of rows) {
+            const id = Number(row.id);
+            const payload = { ...row };
+            delete payload.id;
+            const cols = Object.keys(payload);
+            if (cols.length === 0) continue;
+            const assignments = cols.map((col, index) => `"${String(col).replaceAll('"', '""')}" = $${index + 1}`).join(",");
+            const values = cols.map((col) => {
+              const raw = payload[col] ?? null;
+              return raw && typeof raw === "object" ? JSON.stringify(raw) : raw;
+            });
+            values.push(id);
+            await client.query(`UPDATE public.games SET ${assignments} WHERE id = $${cols.length + 1}`, values);
+          }
+        },
       async fetchYakumansByGameIds(gameIds) {
         if (gameIds.length === 0) return [];
         const res = await client.query(
@@ -470,26 +766,19 @@ async function main() {
     }
 
     const insertRows = [];
+      const updateRows = [];
     const pendingGames = [];
     for (const game of plannedGames) {
       const existingGameId = existingByNoteKey.get(String(game.noteKey)) ?? null;
-      if (existingGameId) {
-        pendingGames.push({
-          ...game,
-          existingGameId,
-        });
-        continue;
-      }
-
       const row = { ...game.row };
       for (const entry of game.entries) {
         row[`player${entry.slot}`] = entry.player;
         row[`player${entry.slot}_id`] = nameToId.get(entry.player) ?? null;
         row[`score${entry.slot}`] = entry.score;
         row[`rank${entry.slot}`] = entry.rank;
-        row[`is_tobi${entry.slot}`] = false;
-        row[`is_tobashi${entry.slot}`] = false;
-        row[`is_yakitori${entry.slot}`] = false;
+          row[`is_tobi${entry.slot}`] = game.tobiPlayer === entry.player;
+          row[`is_tobashi${entry.slot}`] = game.tobashiPlayer === entry.player;
+          row[`is_yakitori${entry.slot}`] = game.yakitoriPlayers.has(entry.player);
       }
 
       if (game.entries.length === 3) {
@@ -504,21 +793,36 @@ async function main() {
 
       row.top_player_id = nameToId.get(String(row.top_player)) ?? null;
       row.last_player_id = nameToId.get(String(row.last_player)) ?? null;
-      row.tobi_player_id = null;
-      row.tobashi_player_id = null;
+      row.tobi_player = game.tobiPlayer;
+      row.tobashi_player = game.tobashiPlayer;
+      row.yakitori_players = Array.from(game.yakitoriPlayers).join(",");
+      row.tobi_player_id = game.tobiPlayer ? (nameToId.get(String(game.tobiPlayer)) ?? null) : null;
+      row.tobashi_player_id = game.tobashiPlayer ? (nameToId.get(String(game.tobashiPlayer)) ?? null) : null;
+      row.yakitori_player_ids = Array.from(game.yakitoriPlayers)
+        .map((playerName) => nameToId.get(String(playerName)) ?? null)
+        .filter((id) => id !== null);
 
-      insertRows.push(row);
-      pendingGames.push({
-        ...game,
-        existingGameId: null,
-      });
+        if (existingGameId) {
+          updateRows.push({
+            id: existingGameId,
+            ...row,
+          });
+        } else {
+          insertRows.push(row);
+        }
+
+        pendingGames.push({
+          ...game,
+          existingGameId,
+        });
     }
 
     const total = plannedGames.length;
     const skipped = total - insertRows.length;
     console.log(`Planned games: ${total}`);
-    console.log(`Skipped (already imported): ${skipped}`);
+      console.log(`Existing imports: ${skipped}`);
     console.log(`To insert: ${insertRows.length}`);
+      console.log(`To update: ${updateRows.length}`);
 
     const plannedYakumans = pendingGames.reduce((sum, game) => sum + game.yakumans.length, 0);
     console.log(`Planned yakuman occurrences: ${plannedYakumans}`);
@@ -528,6 +832,7 @@ async function main() {
       return;
     }
 
+      await store.updateGames(updateRows);
     const insertedGames = await store.insertGames(insertRows);
 
     const gameIdByNotes = new Map();
@@ -603,6 +908,7 @@ async function main() {
 
     await store.insertYakumans(yakumanInsertRows);
 
+  console.log(`Updated: ${updateRows.length}`);
     console.log(`Inserted: ${insertRows.length}`);
     console.log(`Inserted yakuman occurrences: ${yakumanInsertRows.length}`);
   } finally {

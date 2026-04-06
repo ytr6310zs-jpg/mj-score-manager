@@ -165,9 +165,16 @@ npm run seed:historical
 仕様:
 
 - ファイル名 `YYYYMMDD.csv` を対局日として扱う
-- 各列を1対局として変換（非空スコア3人=3p、4人=4p）
+- ヘッダが数値の列のみを1対局として変換（非空スコア3人=3p、4人=4p）
+- 列末尾の `飛ばし回数` / `飛び回数` / `焼き鳥回数` は日別集計列として読み取り、対局フラグへ反映する
 - `notes` に `CSV_IMPORT:...` キーを付与し、再実行時は同キーで重複投入を回避
-- `players.name` から `player*_id` / `top_player_id` / `last_player_id` を解決
+- `players.name` から `player*_id` / `top_player_id` / `last_player_id` / `tobi_player_id` / `tobashi_player_id` / `yakitori_player_ids` を解決
+
+補足:
+
+- CSV の追加3列は日別集計値のため、import スクリプトは集計回数が一致するよう対局フラグへ決定的に割り当てる
+- `飛ばし回数` は高スコア対局を優先、`飛び回数` と `焼き鳥回数` は低スコア対局を優先して割り当てる
+- 既存の `CSV_IMPORT:*` データがある場合も、再実行時にこれらのフラグと関連 ID を更新する
 
 役満セル（`役満発生` 行）の拡張記法:
 
