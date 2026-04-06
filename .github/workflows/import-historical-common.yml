@@ -149,7 +149,7 @@ jobs:
                 }
 
                 if (ref) {
-                  console.log(`https://${ref}.supabase.co`);
+                  console.log('https://' + ref + '.supabase.co');
                 }
               } catch (_) {
                 // no-op
