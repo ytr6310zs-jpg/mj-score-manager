@@ -33,3 +33,17 @@ sudo ./scripts/bootstrap-runner.sh https://github.com/<org>/<repo> <REGISTRATION
 
 連絡先
 - ランナー運用担当: TODO（チーム内担当者を記載してください）
+
+## Prod: Reset + Seed Players Workflow
+
+新規で `Prod Reset and Seed Players` ワークフロー（`.github/workflows/prod-reset-and-seed-players.yml`）を追加しました。用途は「稼働前に本番 DB を初期化してマイグレーションを適用し、players を投入する」ための手動トリガーです。
+
+使用方法（要注意: 破壊的操作）:
+
+- **トリガー**: GitHub Actions の `Run workflow`（`workflow_dispatch`）で手動実行。
+- **確認入力**: `confirmation` 入力欄に **正確に** `RESET AND SEED` を入力しない限り、reset と migrate は実行されません（誤実行防止）。`run_seed_only=true` を渡すと reset/migrate をスキップして seed のみ実行できます。
+- **必須 Secrets**: `PROD_DATABASE_URL`, `PROD_APP_URL`, `PROD_SUPABASE_SERVICE_ROLE_KEY`（リポジトリまたは Environment の Secrets に設定してください）。マイグレーション実行に `SUPABASE_ACCESS_TOKEN` が必要な場合があります。
+- **バックアップ**: ワークフローは実行前に `pg_dump` によるバックアップを取得し、`migration-backup` というアーティファクト名で保存します。
+- **検証**: 実行後に `players` テーブルの件数と、Issue #73 指定リストのプレイヤーが存在することを psql によって検証します。
+
+注意: 本ワークフローは破壊的な操作を行います。実行前に必ずバックアップの取得先と承認者を確認してください。

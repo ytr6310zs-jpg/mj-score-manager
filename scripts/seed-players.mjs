@@ -31,6 +31,10 @@ const SUPABASE_KEY =
   envLocal.SUPABASE_SERVICE_ROLE_KEY ||
   envLocal.SUPABASE_ANON_KEY;
 
+// Lightweight, non-sensitive runtime information to aid operations
+console.log('seed-players: SUPABASE_URL present:', SUPABASE_URL ? 'YES' : 'NO');
+console.log('seed-players: key source:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'env:SERVICE_ROLE' : process.env.SUPABASE_ANON_KEY ? 'env:ANON' : envLocal.SUPABASE_SERVICE_ROLE_KEY ? 'envLocal:SERVICE_ROLE' : envLocal.SUPABASE_ANON_KEY ? 'envLocal:ANON' : 'none');
+
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('SUPABASE_URL と SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY のいずれかを設定してください');
   process.exit(1);
