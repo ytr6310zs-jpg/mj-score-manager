@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 const MESSAGES: Record<string, string> = {
   deleted: "対局を削除しました。",
   updated: "対局を編集しました。",
-  invalidDate: "日付範囲が不正だったため、該当フィールドをクリアしました。",
+  invalidDate: "日付範囲が不正のため、修正してください。",
   yakumanDeleted: "役満を削除しました。",
 };
 
