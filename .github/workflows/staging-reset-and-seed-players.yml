@@ -112,23 +112,21 @@ jobs:
           fi
           npx supabase@2.84.2 db push --db-url "$SUPABASE_DB_URL"
 
-      - name: Run seed-players script
-        env:
-          SUPABASE_URL: ${{ secrets.STAGING_APP_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      - name: Seed players via psql
         run: |
           set -euo pipefail
-          if [ -z "${SUPABASE_URL:-}" ]; then
-            echo "SUPABASE_URL (STAGING_APP_URL) is not set; aborting" >&2
-            exit 1
-          fi
-          node scripts/seed-players.mjs
+          psql "$DATABASE_URL" <<'SQL'
+          INSERT INTO public.players (name) VALUES
+            ('杉原'),('沢尾望'),('沢尾徹平'),('山本有美'),('横山'),('前田'),('村上'),
+            ('田宮'),('谷口'),('加藤'),('福本'),('西村'),('山本恭大'),('長谷川彩未'),
+            ('長谷川柊太'),('太雅'),('松原'),('市川'),('徳岡'),('但田')
+          ON CONFLICT (name) DO NOTHING;
+          SQL
+          echo "Seed complete."
 
       - name: Verify players inserted
         run: |
           set -euo pipefail
-          sudo apt-get update && sudo apt-get install -y postgresql-client
           PSQL_URL="$DATABASE_URL"
           echo "Checking players count and presence of specified names..."
           COUNT=$(psql "$PSQL_URL" -tAc "SELECT count(*) FROM players;")
