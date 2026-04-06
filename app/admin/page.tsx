@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppHeader } from "@/components/app-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AdminIndexPage() {
   return (
@@ -21,6 +21,11 @@ export default function AdminIndexPage() {
                 <li>
                   <Link href="/admin/players" className="text-primary underline">
                     プレイヤー管理
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/admin/yakumans" className="text-primary underline">
+                    役満管理
                   </Link>
                 </li>
               </ul>
