@@ -4,10 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       apply:
-        description: 'If true, run actual import after dry-run'
+        description: 'Run actual import after dry-run (true/false)'
         required: false
-        type: boolean
-        default: false
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
 
 jobs:
   import_historical:
@@ -15,6 +18,6 @@ jobs:
     with:
       target: staging
       environment_name: "Preview – mj-score-manager-tfvp"
-      apply: ${{ inputs.apply }}
+      apply: ${{ inputs.apply == 'true' }}
       confirmation: ''
     secrets: inherit
