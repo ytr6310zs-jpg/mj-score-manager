@@ -10,6 +10,8 @@
     "lint": "next lint",
     "seeds": "node scripts/seed-to-supabase.mjs",
     "seed:players": "node scripts/seed-players.mjs",
+    "seed:historical:dry": "node scripts/import-historical-games.mjs",
+    "seed:historical": "node scripts/import-historical-games.mjs --apply",
     "test": "node --test && node -r ts-node/register test/validate-match.cjs",
     "check:required-files": "bash -c \"if [ ! -f .github/copilot-instructions.md ]; then echo '\".github/copilot-instructions.md\" が存在しません。コミットを中止します。'; exit 1; fi\"",
     "supabase:init": "npx supabase@2.84.2 init",
