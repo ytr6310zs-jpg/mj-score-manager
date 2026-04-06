@@ -1,0 +1,20 @@
+name: Import Historical CSV (Staging)
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'If true, run actual import after dry-run'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  import_historical:
+    uses: ./.github/workflows/import-historical-common.yml
+    with:
+      target: staging
+      environment_name: "Preview – mj-score-manager-tfvp"
+      apply: ${{ inputs.apply }}
+      confirmation: ''
+    secrets: inherit

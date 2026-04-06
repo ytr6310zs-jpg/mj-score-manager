@@ -1,0 +1,123 @@
+name: Reusable historical CSV import workflow
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      environment_name:
+        required: true
+        type: string
+      apply:
+        required: false
+        type: boolean
+        default: false
+      confirmation:
+        required: false
+        type: string
+        default: ''
+      node_version:
+        required: false
+        type: string
+        default: '20'
+    secrets:
+      SUPABASE_URL:
+        required: false
+      SUPABASE_SERVICE_ROLE_KEY:
+        required: false
+      STAGING_SUPABASE_URL:
+        required: false
+      STAGING_SUPABASE_SERVICE_ROLE_KEY:
+        required: false
+      PREVIEW_SUPABASE_URL:
+        required: false
+      PREVIEW_SUPABASE_SERVICE_ROLE_KEY:
+        required: false
+      PROD_SUPABASE_URL:
+        required: false
+      PROD_SUPABASE_SERVICE_ROLE_KEY:
+        required: false
+
+jobs:
+  import_historical:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+          cache: npm
+
+      - name: Validate inputs
+        env:
+          TARGET: ${{ inputs.target }}
+          APPLY: ${{ inputs.apply }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [ "$TARGET" != "staging" ] && [ "$TARGET" != "prod" ]; then
+            echo "target must be staging or prod" >&2
+            exit 1
+          fi
+          if [ "$TARGET" = "prod" ] && [ "$APPLY" = "true" ] && [ "$CONFIRMATION" != "APPLY HISTORICAL IMPORT" ]; then
+            echo "For prod apply, confirmation must be exactly 'APPLY HISTORICAL IMPORT'." >&2
+            exit 1
+          fi
+
+      - name: Resolve Supabase credentials
+        env:
+          TARGET: ${{ inputs.target }}
+          SECRET_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SECRET_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          PREVIEW_SUPABASE_URL: ${{ secrets.PREVIEW_SUPABASE_URL }}
+          PREVIEW_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PREVIEW_SUPABASE_SERVICE_ROLE_KEY }}
+          PROD_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+          PROD_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PROD_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+
+          URL="${SECRET_SUPABASE_URL:-}"
+          KEY="${SECRET_SUPABASE_SERVICE_ROLE_KEY:-}"
+
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            if [ "$TARGET" = "staging" ]; then
+              URL="${STAGING_SUPABASE_URL:-${PREVIEW_SUPABASE_URL:-}}"
+              KEY="${STAGING_SUPABASE_SERVICE_ROLE_KEY:-${PREVIEW_SUPABASE_SERVICE_ROLE_KEY:-}}"
+            else
+              URL="${PROD_SUPABASE_URL:-}"
+              KEY="${PROD_SUPABASE_SERVICE_ROLE_KEY:-}"
+            fi
+          fi
+
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "Could not resolve SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY for target=$TARGET" >&2
+            echo "Set environment secrets SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY" >&2
+            echo "or target-specific secrets (STAGING_/PREVIEW_ or PROD_ prefixes)." >&2
+            exit 1
+          fi
+
+          echo "SUPABASE_URL=$URL" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$KEY" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Dry-run historical import
+        env:
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run seed:historical:dry
+
+      - name: Apply historical import
+        if: ${{ inputs.apply == true }}
+        env:
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run seed:historical

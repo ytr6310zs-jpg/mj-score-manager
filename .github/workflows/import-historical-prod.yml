@@ -1,0 +1,25 @@
+name: Import Historical CSV (Production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'If true, run actual import after dry-run'
+        required: false
+        type: boolean
+        default: false
+      confirmation:
+        description: "Required only for apply=true: type APPLY HISTORICAL IMPORT"
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  import_historical:
+    uses: ./.github/workflows/import-historical-common.yml
+    with:
+      target: prod
+      environment_name: "Production – mj-score-manager-tfvp"
+      apply: ${{ inputs.apply }}
+      confirmation: ${{ inputs.confirmation }}
+    secrets: inherit
