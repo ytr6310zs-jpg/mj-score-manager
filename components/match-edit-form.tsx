@@ -469,11 +469,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>なし</SelectItem>
-              {playersToCheck.map((player) => (
-                <SelectItem key={`tobi-${player}`} value={player}>
-                  {player} が飛び
-                </SelectItem>
-              ))}
+              {playersToCheck.map((player) => {
+                const isDisabled = player === tobashiPlayer && player !== tobiPlayer;
+                return (
+                  <SelectItem key={`tobi-${player}`} value={player} disabled={isDisabled}>
+                    {player} が飛び
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           <Select value={tobashiPlayer} onValueChange={setTobashiPlayer}>
@@ -482,11 +485,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>なし</SelectItem>
-              {playersToCheck.map((player) => (
-                <SelectItem key={`tobashi-${player}`} value={player}>
-                  {player} が飛ばし
-                </SelectItem>
-              ))}
+              {playersToCheck.map((player) => {
+                const isDisabled = player === tobiPlayer && player !== tobashiPlayer;
+                return (
+                  <SelectItem key={`tobashi-${player}`} value={player} disabled={isDisabled}>
+                    {player} が飛ばし
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
