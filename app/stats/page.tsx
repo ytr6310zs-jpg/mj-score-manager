@@ -63,17 +63,9 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
 
           <div className="p-4">
             {/* client-side date filter that sets start/end when '当日' is checked */}
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex items-end gap-4">
               <div className="flex-1">
                 <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/stats" />
-              </div>
-              <div className="flex items-end mb-2">
-                <CsvExportButton
-                  apiPath="/api/export/stats"
-                  className="ml-0 sm:ml-2 rounded bg-emerald-600 px-3 text-sm text-white w-full sm:w-auto text-center sm:text-left h-10 flex items-center justify-center"
-                >
-                  CSV 出力
-                </CsvExportButton>
               </div>
             </div>
             {error ? (
@@ -244,6 +236,17 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                 </div>
               </>
             )}
+
+            {/* CSV 出力（表の下部右寄せ） */}
+            <div className="flex justify-end mt-3">
+              <CsvExportButton
+                apiPath="/api/export/stats"
+                className="rounded bg-emerald-600 px-3 text-sm text-white h-10 flex items-center justify-center"
+              >
+                CSV 出力
+              </CsvExportButton>
+            </div>
+
           </div>
         </div>
 
