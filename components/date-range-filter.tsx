@@ -6,13 +6,15 @@ type Props = {
   initialStart?: string | null;
   initialEnd?: string | null;
   initialToday?: boolean;
+  initialThisYear?: boolean;
   actionPath?: string;
 };
 
-export default function DateRangeFilter({ initialStart, initialEnd, initialToday, actionPath }: Props) {
+export default function DateRangeFilter({ initialStart, initialEnd, initialToday, initialThisYear, actionPath }: Props) {
   const [start, setStart] = useState<string>(initialStart ?? "");
   const [end, setEnd] = useState<string>(initialEnd ?? "");
   const [todayChecked, setTodayChecked] = useState<boolean>(!!initialToday);
+  const [thisYearChecked, setThisYearChecked] = useState<boolean>(!!initialThisYear);
 
   useEffect(() => {
     if (todayChecked) {
@@ -23,15 +25,31 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
       const todayStr = `${y}-${m}-${d}`;
       setStart(todayStr);
       setEnd(todayStr);
+      // when today is selected, ensure thisYear is unset
+      setThisYearChecked(false);
     }
   }, [todayChecked]);
+
+  useEffect(() => {
+    if (thisYearChecked) {
+      const today = new Date();
+      const y = today.getFullYear();
+      const startStr = `${y}-01-01`;
+      const endStr = `${y}-12-31`;
+      setStart(startStr);
+      setEnd(endStr);
+      // when thisYear is selected, ensure today is unset
+      setTodayChecked(false);
+    }
+  }, [thisYearChecked]);
 
   useEffect(() => {
     // initialize from server props when component mounts
     setStart(initialStart ?? "");
     setEnd(initialEnd ?? "");
     setTodayChecked(!!initialToday);
-  }, [initialStart, initialEnd, initialToday]);
+    setThisYearChecked(!!initialThisYear);
+  }, [initialStart, initialEnd, initialToday, initialThisYear]);
 
   // helper to dispatch flash
   const showInvalidDateFlash = useCallback(() => {
@@ -48,12 +66,18 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
     if (todayChecked) {
       setTodayChecked(false);
     }
+    if (thisYearChecked) {
+      setThisYearChecked(false);
+    }
     setStart(value);
   }
 
   function handleEndChange(value: string) {
     if (todayChecked) {
       setTodayChecked(false);
+    }
+    if (thisYearChecked) {
+      setThisYearChecked(false);
     }
     setEnd(value);
   }
@@ -90,31 +114,39 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
         />
       </div>
 
-      <div className="flex items-center justify-start gap-2 w-full">
+      <div className="flex items-center justify-start gap-3 w-full">
         <label className="flex items-center gap-2 text-sm text-emerald-800">
           <input
             name="today"
             type="checkbox"
             checked={todayChecked}
-            onChange={(e) => setTodayChecked(e.target.checked)}
+            onChange={(e) => {
+              const v = e.target.checked;
+              setTodayChecked(v);
+              if (v) setThisYearChecked(false);
+            }}
             className="h-4 w-4"
           />
           <span>当日</span>
         </label>
+
+        <label className="flex items-center gap-2 text-sm text-emerald-800">
+          <input
+            name="thisYear"
+            type="checkbox"
+            checked={thisYearChecked}
+            onChange={(e) => {
+              const v = e.target.checked;
+              setThisYearChecked(v);
+              if (v) setTodayChecked(false);
+            }}
+            className="h-4 w-4"
+          />
+          <span>今年</span>
+        </label>
+
         <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
           絞込
-        </button>
-
-        <button
-          type="button"
-          className="rounded border px-3 py-1 text-sm h-10 flex items-center justify-center"
-          onClick={() => {
-            setStart("");
-            setEnd("");
-            setTodayChecked(false);
-          }}
-        >
-          クリア
         </button>
       </div>
 

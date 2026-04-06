@@ -36,10 +36,30 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
   const startRaw = params?.start;
   const endRaw = params?.end;
   const todayRaw = params?.today;
+  const thisYearRaw = params?.thisYear;
   const todayChecked = todayRaw !== undefined;
+  const thisYearChecked = thisYearRaw !== undefined;
   const todayStr = new Date().toISOString().slice(0, 10);
-  const start = todayChecked ? todayStr : Array.isArray(startRaw) ? startRaw[0] : startRaw;
-  const end = todayChecked ? todayStr : Array.isArray(endRaw) ? endRaw[0] : endRaw;
+  const year = new Date().getFullYear();
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+
+  let start: string | undefined;
+  let end: string | undefined;
+  if (todayChecked) {
+    start = todayStr;
+    end = todayStr;
+  } else if (thisYearChecked) {
+    start = yearStart;
+    end = yearEnd;
+  } else if (startRaw || endRaw) {
+    start = Array.isArray(startRaw) ? startRaw[0] : (startRaw as string | undefined);
+    end = Array.isArray(endRaw) ? endRaw[0] : (endRaw as string | undefined);
+  } else {
+    start = yearStart;
+    end = yearEnd;
+  }
+
   const { matches, error } = await fetchMatchResults(start, end);
 
   return (
@@ -62,7 +82,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
             {/* client-side date filter that sets start/end when '当日' is checked */}
             <div className="flex items-end gap-4">
               <div className="flex-1">
-                <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/matches" />
+                <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} initialThisYear={thisYearChecked} actionPath="/matches" />
               </div>
             </div>
             {error ? (
