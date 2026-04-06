@@ -150,6 +150,37 @@ npm run build
 - `scripts/sheets/reset-sheet1-and-verify-from-image-seed.mjs` — テスト用に Sheet1 をリセットして画像シードを投入
 - `scripts/sheets/verify-against-pdf-text.mjs` — Sheet1 と PDF抽出結果の照合・書き出し
 
+### 開催済みCSVの投入（Issue #63）
+
+`scripts/mahjong-data/*.csv` を `games` テーブルへ投入する専用スクリプトです。
+
+```bash
+# dry-run（変換件数の確認のみ）
+npm run seed:historical:dry
+
+# 実投入
+npm run seed:historical
+```
+
+仕様:
+
+- ファイル名 `YYYYMMDD.csv` を対局日として扱う
+- 各列を1対局として変換（非空スコア3人=3p、4人=4p）
+- `notes` に `CSV_IMPORT:...` キーを付与し、再実行時は同キーで重複投入を回避
+- `players.name` から `player*_id` / `top_player_id` / `last_player_id` を解決
+
+役満セル（`役満発生` 行）の拡張記法:
+
+- 従来記法（例: `国士`）: `games.notes` のみ保存
+- 拡張記法（例: `沢尾望:国士|加藤:大三元(32000)`）:
+	- `games.notes` へ保存
+	- `yakuman_occurrences` へも投入（`meta.source=csv-import` 付き）
+
+注意:
+
+- 拡張記法で指定するプレイヤー名は、その対局列の参加者名と一致させる
+- 未登録プレイヤーが CSV に含まれる場合は投入を中断するため、先に `npm run seed:players` を実行する
+
 これらのスクリプトを実行する場合は、Google API 用の環境変数（上に記載）を `.env.local` に追記してください。
 
 ## 現在の入力ルール
