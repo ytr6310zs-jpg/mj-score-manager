@@ -71,9 +71,9 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
       method="get"
       action={actionPath}
       onSubmit={handleSubmit}
-      className="flex w-full flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-2"
+      className="flex w-full flex-row flex-wrap gap-2 items-end justify-between mb-2"
     >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2 w-full">
+      <div className="flex flex-row flex-wrap gap-2 items-end w-full">
         <div className="flex items-center gap-2">
           <label className="text-xs text-emerald-800">開始日</label>
           <input
