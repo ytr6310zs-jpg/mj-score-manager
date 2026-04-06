@@ -15,7 +15,7 @@ on:
 jobs:
   reset_and_seed:
     runs-on: ubuntu-latest
-    environment: Production
+    environment: "Production – mj-score-manager-tfvp"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,14 +38,14 @@ jobs:
 
       - name: Resolve DATABASE_URL and APP_URL
         env:
-          SECRET_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-          SECRET_APP_URL: ${{ secrets.PROD_APP_URL }}
+          SECRET_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_APP_URL: ${{ secrets.APP_URL }}
         run: |
           set -euo pipefail
           DB_URL="${SECRET_DATABASE_URL:-}"
           APP_URL="${SECRET_APP_URL:-}"
           if [ -z "$DB_URL" ]; then
-            echo "PROD_DATABASE_URL secret is empty; aborting" >&2
+            echo "DATABASE_URL secret is empty; aborting" >&2
             exit 1
           fi
           echo "DATABASE_URL will be used from secret"
