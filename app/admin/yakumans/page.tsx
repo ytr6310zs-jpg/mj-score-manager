@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createClient } from "@supabase/supabase-js";
 
 import { AppHeader } from "@/components/app-header";
@@ -27,7 +29,10 @@ async function fetchYakumans(): Promise<YakumanRow[]> {
 
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
   const { data, error } = await supabase.from("yakuman_types").select("id,code,name,points,description,sort_order,is_active").order("sort_order", { ascending: true });
-  if (error || !data) return [];
+  if (error) {
+    console.error("fetchYakumans supabase error:", error);
+  }
+  if (!data) return [];
   return (data as Array<Record<string, unknown>>).map((r) => ({
     id: Number(r.id ?? 0),
     code: String(r.code ?? ""),
