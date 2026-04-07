@@ -20,13 +20,13 @@ export function AppHeader({ current }: AppHeaderProps) {
         <Menu current={current} />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      <div className="flex items-center gap-2 flex-wrap">
         <Link
           href="/"
           className={buttonVariants({
             variant: current === "input" ? "default" : "outline",
             size: "sm",
-            className: "w-full sm:w-auto",
+            className: "w-auto",
           })}
         >
           スコア入力
@@ -36,7 +36,7 @@ export function AppHeader({ current }: AppHeaderProps) {
           className={buttonVariants({
             variant: current === "matches" ? "default" : "outline",
             size: "sm",
-            className: "w-full sm:w-auto",
+            className: "w-auto",
           })}
         >
           対局履歴
@@ -46,7 +46,7 @@ export function AppHeader({ current }: AppHeaderProps) {
           className={buttonVariants({
             variant: current === "stats" ? "default" : "outline",
             size: "sm",
-            className: "col-span-2 w-full sm:col-span-1 sm:w-auto",
+            className: "w-auto",
           })}
         >
           成績集計
