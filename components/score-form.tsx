@@ -249,7 +249,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   return (
     <Card className="w-full max-w-3xl border-white/70 bg-white/90 shadow-xl backdrop-blur">
       <CardHeader className="p-4 sm:p-6">
-        <CardTitle className="text-xl sm:text-2xl">麻雀成績入力</CardTitle>
+        <CardTitle className="text-xl sm:text-2xl">スコア入力</CardTitle>
         <CardDescription>
           3人打ち・4人打ちの最終スコア、飛び、焼き鳥を保存して後日の集計に使える形で記録します。
         </CardDescription>

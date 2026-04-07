@@ -25,7 +25,7 @@ export default function AdminIndexPage() {
                 </li>
                 <li>
                   <Link href="/admin/yakumans" className="text-primary underline">
-                    役満管理
+                    役満種別管理
                   </Link>
                 </li>
               </ul>
