@@ -80,11 +80,11 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
           name="mode"
           value={mode}
           onChange={(e) => setMode(e.target.value as Mode)}
-          className="rounded border p-1 text-sm h-10"
+          className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
         >
           <option value="thisYear">今年</option>
           <option value="today">当日</option>
-          <option value="range">期間指定</option>
+          <option value="range">任意</option>
         </select>
 
         {mode === "range" && (
@@ -95,7 +95,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
               aria-label="開始日"
               value={start}
               onChange={(e) => handleStartChange(e.target.value)}
-              className="rounded border p-1 text-sm h-10 w-36 sm:w-auto"
+              className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
             />
 
             <span className="text-sm text-emerald-800">～</span>
@@ -106,22 +106,23 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
               aria-label="終了日"
               value={end}
               onChange={(e) => handleEndChange(e.target.value)}
-              className="rounded border p-1 text-sm h-10 w-36 sm:w-auto"
+              className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
             />
           </>
         )}
-      </div>
 
-      {/* 絞込ボタンの位置: range のときは下部（既存の位置）、それ以外は select の右 */}
-      {mode === "range" ? (
-        <div className="flex items-center justify-start gap-2 w-full">
-          <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
+        {/* 非 range のときは絞込ボタンをセレクト右に表示 */}
+        {mode !== "range" && (
+          <button type="submit" className="ml-auto rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
             絞込
           </button>
-        </div>
-      ) : (
-        <div className="mt-0">
-          <button type="submit" className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
+        )}
+      </div>
+
+      {/* range のときは下部に絞込ボタンを表示 */}
+      {mode === "range" && (
+        <div className="flex items-center justify-start gap-2 w-full">
+          <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
             絞込
           </button>
         </div>
