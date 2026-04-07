@@ -72,6 +72,16 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
     }
   }
 
+  function handleModeChange(newMode: Mode) {
+    setMode(newMode);
+    // セレクトで "任意" を選択したときは常に当日を開始/終了にセットする
+    if (newMode === "range") {
+      const today = formatDate(new Date());
+      setStart(today);
+      setEnd(today);
+    }
+  }
+
   function handleEndChange(value: string) {
     setEnd(value);
   }
@@ -89,7 +99,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
         <select
           name="mode"
           value={mode}
-          onChange={(e) => setMode(e.target.value as Mode)}
+          onChange={(e) => handleModeChange(e.target.value as Mode)}
           className="rounded border p-1 text-sm h-10 w-14 sm:w-auto"
         >
           <option value="thisYear">今年</option>
