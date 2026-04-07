@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Mode = "today" | "thisYear" | "range";
 
@@ -23,6 +23,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
   const [mode, setMode] = useState<Mode>(computeInitialMode());
   const [start, setStart] = useState<string>(initialStart ?? "");
   const [end, setEnd] = useState<string>(initialEnd ?? "");
+  const endRef = useRef<HTMLInputElement | null>(null);
 
   const formatDate = (d: Date) => {
     const y = d.getFullYear();
@@ -60,9 +61,10 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
 
   function handleStartChange(value: string) {
     setStart(value);
-    // 利便性向上: 開始日をセットしたときに終了日が空なら同日にする
-    if (value && mode === "range" && (!end || end === "")) {
+    // 開始日をセットしたら終了日を常に同日に上書きし、終了日にフォーカスを移す
+    if (value && mode === "range") {
       setEnd(value);
+      setTimeout(() => endRef.current?.focus(), 0);
     }
   }
 
@@ -110,6 +112,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
               aria-label="終了日"
               value={end}
               onChange={(e) => handleEndChange(e.target.value)}
+              ref={endRef}
               className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
             />
           </>
