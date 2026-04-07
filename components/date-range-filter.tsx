@@ -60,6 +60,10 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
 
   function handleStartChange(value: string) {
     setStart(value);
+    // 利便性向上: 開始日をセットしたときに終了日が空なら同日にする
+    if (value && mode === "range" && (!end || end === "")) {
+      setEnd(value);
+    }
   }
 
   function handleEndChange(value: string) {
