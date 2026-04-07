@@ -64,7 +64,11 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
     // 開始日をセットしたら終了日を常に同日に上書きし、終了日にフォーカスを移す
     if (value && mode === "range") {
       setEnd(value);
-      setTimeout(() => endRef.current?.focus(), 0);
+      // 終了日の値をハイライトしてすぐ上書き入力できるようにする
+      setTimeout(() => {
+        endRef.current?.focus();
+        endRef.current?.select?.();
+      }, 0);
     }
   }
 
