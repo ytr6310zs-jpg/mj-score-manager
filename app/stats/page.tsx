@@ -87,14 +87,6 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
               <div className="flex-1">
                 <DateRangeFilter initialMode={mode} initialStart={start} initialEnd={end} actionPath="/stats" />
               </div>
-              <div className="flex items-end mb-2">
-                <CsvExportButton
-                  apiPath="/api/export/stats"
-                  className="ml-0 sm:ml-2 rounded bg-emerald-600 px-3 text-sm text-white w-full sm:w-auto text-center sm:text-left h-10 flex items-center justify-center"
-                >
-                  CSV 出力
-                </CsvExportButton>
-              </div>
             </div>
             {error ? (
               <p className="py-8 text-center text-sm text-destructive">{error}</p>
