@@ -85,7 +85,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
 
   return (
     <form method="get" action={actionPath} onSubmit={handleSubmit} className="w-full flex flex-col gap-2 mb-2">
-      <div className="flex items-center gap-2 w-full">
+      <div className="flex items-center gap-2 w-full flex-wrap">
         <select
           name="mode"
           value={mode}
@@ -119,6 +119,16 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
               ref={endRef}
               className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
             />
+
+            {/* range のときの絞込ボタン:
+                - mobile (<sm): 同行折返し時に右寄せするため `ml-auto`
+                - sm 以上: 終了日の直右に配置するため `sm:ml-2` */}
+            <button
+              type="submit"
+              className="ml-auto sm:ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center"
+            >
+              絞込
+            </button>
           </>
         )}
 
@@ -130,14 +140,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
         )}
       </div>
 
-      {/* range のときは下部に絞込ボタンを表示 */}
-      {mode === "range" && (
-        <div className="flex items-center justify-start gap-2 w-full">
-          <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
-            絞込
-          </button>
-        </div>
-      )}
+      {/* range のときのボタンは上部行内に配置するので下部ボタンは不要 */}
 
       {/* CSV button slot kept empty here; pages place CSV button under the table (right-aligned) */}
     </form>
