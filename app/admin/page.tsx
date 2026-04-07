@@ -12,8 +12,8 @@ export default function AdminIndexPage() {
         <div className="max-w-3xl mx-auto py-2">
           <Card>
             <CardHeader>
-                <CardTitle>管理画面</CardTitle>
-              </CardHeader>
+              <CardTitle>管理画面</CardTitle>
+            </CardHeader>
             <CardContent>
               <p className="mb-4 text-sm text-muted-foreground">管理者向けの操作パネルです。</p>
 

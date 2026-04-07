@@ -29,7 +29,7 @@ export function AppHeader({ current }: AppHeaderProps) {
             className: "w-auto",
           })}
         >
-          スコア入力
+          スコア入力画面
         </Link>
         <Link
           href="/matches"
@@ -39,7 +39,7 @@ export function AppHeader({ current }: AppHeaderProps) {
             className: "w-auto",
           })}
         >
-          対局履歴
+          対局履歴画面
         </Link>
         <Link
           href="/stats"
@@ -49,7 +49,7 @@ export function AppHeader({ current }: AppHeaderProps) {
             className: "w-auto",
           })}
         >
-          成績集計
+          成績集計画面
         </Link>
       </div>
     </div>
