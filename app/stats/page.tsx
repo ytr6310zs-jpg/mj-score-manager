@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { AppHeader } from "@/components/app-header";
 import CsvExportButton from "@/components/csv-export-button";
 import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
-import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "個人成績集計 | 麻雀成績入力",
@@ -86,6 +86,14 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
             <div className="flex items-end gap-4">
               <div className="flex-1">
                 <DateRangeFilter initialMode={mode} initialStart={start} initialEnd={end} actionPath="/stats" />
+              </div>
+              <div className="flex items-end mb-2">
+                <CsvExportButton
+                  apiPath="/api/export/stats"
+                  className="ml-0 sm:ml-2 rounded bg-emerald-600 px-3 text-sm text-white w-full sm:w-auto text-center sm:text-left h-10 flex items-center justify-center"
+                >
+                  CSV 出力
+                </CsvExportButton>
               </div>
             </div>
             {error ? (
