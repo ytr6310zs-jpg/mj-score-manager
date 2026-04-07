@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { AppHeader } from "@/components/app-header";
-import DateRangeFilter from "@/components/date-range-filter";
-import { Suspense } from "react";
-import { FlashMessage } from "@/components/flash-message";
 import CsvExportButton from "@/components/csv-export-button";
+import DateRangeFilter from "@/components/date-range-filter";
+import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
 
 export const metadata: Metadata = {
@@ -38,13 +38,33 @@ type SearchParams = { [key: string]: string | string[] | undefined } | undefined
 
 export default async function StatsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = await (searchParams as Promise<SearchParams> | undefined);
+  const modeRaw = params?.mode;
   const startRaw = params?.start;
   const endRaw = params?.end;
-  const todayRaw = params?.today;
-  const todayChecked = todayRaw !== undefined;
+  const todayParam = params?.today;
+  const thisYearParam = params?.thisYear;
+
   const todayStr = new Date().toISOString().slice(0, 10);
-  const start = todayChecked ? todayStr : Array.isArray(startRaw) ? startRaw[0] : startRaw;
-  const end = todayChecked ? todayStr : Array.isArray(endRaw) ? endRaw[0] : endRaw;
+  const year = new Date().getFullYear();
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+
+  let mode: "today" | "thisYear" | "range" = "thisYear";
+  if (modeRaw) {
+    mode = Array.isArray(modeRaw) ? (modeRaw[0] as "today" | "thisYear" | "range") : (modeRaw as "today" | "thisYear" | "range");
+  } else if (todayParam !== undefined) {
+    mode = "today";
+  } else if (thisYearParam !== undefined) {
+    mode = "thisYear";
+  } else if (startRaw !== undefined || endRaw !== undefined) {
+    mode = "range";
+  }
+
+  const start =
+    mode === "today" ? todayStr : mode === "thisYear" ? yearStart : Array.isArray(startRaw) ? startRaw[0] : startRaw;
+  const end =
+    mode === "today" ? todayStr : mode === "thisYear" ? yearEnd : Array.isArray(endRaw) ? endRaw[0] : endRaw;
+
   const { stats, error } = await fetchPlayerStats(start, end);
 
   return (
@@ -63,17 +83,9 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
 
           <div className="p-4">
             {/* client-side date filter that sets start/end when '当日' is checked */}
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex items-end gap-4">
               <div className="flex-1">
-                <DateRangeFilter initialStart={start} initialEnd={end} initialToday={todayChecked} actionPath="/stats" />
-              </div>
-              <div className="flex items-end mb-2">
-                <CsvExportButton
-                  apiPath="/api/export/stats"
-                  className="ml-0 sm:ml-2 rounded bg-emerald-600 px-3 text-sm text-white w-full sm:w-auto text-center sm:text-left h-10 flex items-center justify-center"
-                >
-                  CSV 出力
-                </CsvExportButton>
+                <DateRangeFilter initialMode={mode} initialStart={start} initialEnd={end} actionPath="/stats" />
               </div>
             </div>
             {error ? (
@@ -244,6 +256,17 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                 </div>
               </>
             )}
+
+            {/* CSV 出力（表の下部右寄せ） */}
+            <div className="flex justify-end mt-3">
+              <CsvExportButton
+                apiPath="/api/export/stats"
+                className="rounded bg-emerald-600 px-3 text-sm text-white h-10 flex items-center justify-center"
+              >
+                CSV 出力
+              </CsvExportButton>
+            </div>
+
           </div>
         </div>
 

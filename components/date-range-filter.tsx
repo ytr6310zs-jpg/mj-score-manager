@@ -1,37 +1,55 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type Mode = "today" | "thisYear" | "range";
 
 type Props = {
+  initialMode?: Mode;
   initialStart?: string | null;
   initialEnd?: string | null;
-  initialToday?: boolean;
+  initialToday?: boolean; // backward compatibility
   actionPath?: string;
 };
 
-export default function DateRangeFilter({ initialStart, initialEnd, initialToday, actionPath }: Props) {
+export default function DateRangeFilter({ initialMode, initialStart, initialEnd, initialToday, actionPath }: Props) {
+  const computeInitialMode = (): Mode => {
+    if (initialMode === "today" || initialMode === "thisYear" || initialMode === "range") return initialMode as Mode;
+    if (initialToday) return "today";
+    if (initialStart && initialEnd) return "range";
+    return "thisYear";
+  };
+
+  const [mode, setMode] = useState<Mode>(computeInitialMode());
   const [start, setStart] = useState<string>(initialStart ?? "");
   const [end, setEnd] = useState<string>(initialEnd ?? "");
-  const [todayChecked, setTodayChecked] = useState<boolean>(!!initialToday);
+  const endRef = useRef<HTMLInputElement | null>(null);
+
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
 
   useEffect(() => {
-    if (todayChecked) {
-      const today = new Date();
-      const y = today.getFullYear();
-      const m = String(today.getMonth() + 1).padStart(2, "0");
-      const d = String(today.getDate()).padStart(2, "0");
-      const todayStr = `${y}-${m}-${d}`;
-      setStart(todayStr);
-      setEnd(todayStr);
-    }
-  }, [todayChecked]);
-
-  useEffect(() => {
-    // initialize from server props when component mounts
     setStart(initialStart ?? "");
     setEnd(initialEnd ?? "");
-    setTodayChecked(!!initialToday);
-  }, [initialStart, initialEnd, initialToday]);
+    setMode(computeInitialMode());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStart, initialEnd, initialMode, initialToday]);
+
+  // when user switches to range mode (or initialMode is range) and no start/end provided,
+  // default inputs to today so user sees today's date immediately
+  useEffect(() => {
+    if (mode === "range" && !start && !end) {
+      const today = formatDate(new Date());
+      setStart(today);
+      setEnd(today);
+    }
+    // only run when mode changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   // helper to dispatch flash
   const showInvalidDateFlash = useCallback(() => {
@@ -42,91 +60,94 @@ export default function DateRangeFilter({ initialStart, initialEnd, initialToday
     }
   }, []);
 
-  // no cross-component clearing — show flash only
-
   function handleStartChange(value: string) {
-    if (todayChecked) {
-      setTodayChecked(false);
-    }
     setStart(value);
+    // 開始日をセットしたら終了日を常に同日に上書きし、終了日にフォーカスを移す
+    if (value && mode === "range") {
+      setEnd(value);
+      // 終了日の値をハイライトしてすぐ上書き入力できるようにする
+      setTimeout(() => {
+        endRef.current?.focus();
+        endRef.current?.select?.();
+      }, 0);
+    }
+  }
+
+  function handleModeChange(newMode: Mode) {
+    setMode(newMode);
+    // セレクトで "任意" を選択したときは常に当日を開始/終了にセットする
+    if (newMode === "range") {
+      const today = formatDate(new Date());
+      setStart(today);
+      setEnd(today);
+    }
   }
 
   function handleEndChange(value: string) {
-    if (todayChecked) {
-      setTodayChecked(false);
-    }
     setEnd(value);
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    if (start && end && start > end) {
+    if (mode === "range" && start && end && start > end) {
       e.preventDefault();
-      // do not clear fields; notify user to correct
       showInvalidDateFlash();
     }
   }
 
   return (
-    <form
-      method="get"
-      action={actionPath}
-      onSubmit={handleSubmit}
-      className="flex w-full flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-2"
-    >
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-2 w-full">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-emerald-800">開始日</label>
-          <input
-            name="start"
-            type="date"
-            value={start}
-            onChange={(e) => handleStartChange(e.target.value)}
-            className="rounded border p-1 text-sm h-10"
-          />
-        </div>
+    <form method="get" action={actionPath} onSubmit={handleSubmit} className="w-full flex flex-col gap-2 mb-2">
+      <div className="flex items-center gap-2 w-full flex-wrap">
+        <select
+          name="mode"
+          value={mode}
+          onChange={(e) => handleModeChange(e.target.value as Mode)}
+          className="rounded border p-1 text-sm h-10 w-14 sm:w-auto"
+        >
+          <option value="thisYear">今年</option>
+          <option value="today">当日</option>
+          <option value="range">任意</option>
+        </select>
 
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-emerald-800">終了日</label>
-          <input
-            name="end"
-            type="date"
-            value={end}
-            onChange={(e) => handleEndChange(e.target.value)}
-            className="rounded border p-1 text-sm h-10"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-emerald-800 flex items-center gap-2">
+        {mode === "range" && (
+          <>
             <input
-              name="today"
-              type="checkbox"
-              checked={todayChecked}
-              onChange={(e) => setTodayChecked(e.target.checked)}
-              className="h-4 w-4"
+              name="start"
+              type="date"
+              aria-label="開始日"
+              value={start}
+              onChange={(e) => handleStartChange(e.target.value)}
+              className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
             />
-            <span>当日</span>
-          </label>
 
-          <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
+            <span className="text-sm text-emerald-800">～</span>
+
+            <input
+              name="end"
+              type="date"
+              aria-label="終了日"
+              value={end}
+              onChange={(e) => handleEndChange(e.target.value)}
+              ref={endRef}
+              className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
+            />
+
+            <button
+              type="submit"
+              className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center"
+            >
+              絞込
+            </button>
+          </>
+        )}
+
+        {mode !== "range" && (
+          <button type="submit" className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
             絞込
           </button>
-
-          <button
-            type="button"
-            className="rounded border px-3 py-1 text-sm h-10 flex items-center justify-center"
-            onClick={() => {
-              setStart("");
-              setEnd("");
-              setTodayChecked(false);
-            }}
-          >
-            クリア
-          </button>
-        </div>
+        )}
       </div>
 
-      {/* CSV button slot kept empty here; pages place CSV button on the right */}
+      {/* CSV button slot kept empty here; pages place CSV button under the table (right-aligned) */}
     </form>
   );
 }
