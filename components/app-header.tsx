@@ -112,7 +112,7 @@ function Menu({ current }: { current: "input" | "matches" | "stats" | "admin" })
             onClick={() => setIsOpen(false)}
             role="menuitem"
           >
-            管理
+            管理画面
           </Link>
           <form action={logoutAction} className="mt-2">
             <Button type="submit" variant="ghost" size="sm" className="w-full text-left" role="menuitem">

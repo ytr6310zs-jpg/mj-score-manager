@@ -50,7 +50,7 @@ export default async function YakumansAdminPage() {
         <div className="max-w-3xl mx-auto space-y-6 py-2">
           <Card>
             <CardHeader>
-              <CardTitle>役満種別管理</CardTitle>
+              <CardTitle>役満種別管理画面</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="mb-4 text-sm text-muted-foreground">役満種別の追加・編集・無効化を行います。</p>

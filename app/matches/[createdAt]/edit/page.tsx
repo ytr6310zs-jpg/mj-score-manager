@@ -10,7 +10,7 @@ import { MatchEditForm } from "@/components/match-edit-form";
 import { createClient } from "@supabase/supabase-js";
 
 export const metadata: Metadata = {
-  title: "対局編集 | 麻雀成績入力",
+  title: "対局を編集 | 麻雀成績入力",
   description: "対局データを編集します",
 };
 

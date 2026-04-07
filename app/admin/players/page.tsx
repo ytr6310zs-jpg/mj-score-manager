@@ -40,7 +40,7 @@ export default async function PlayersAdminPage() {
         <div className="max-w-3xl mx-auto space-y-6 py-2">
           <Card>
             <CardHeader>
-              <CardTitle>プレイヤー管理</CardTitle>
+              <CardTitle>プレイヤー管理画面</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="mb-4 text-sm text-muted-foreground">プレイヤーの追加・編集・削除を行います。</p>
