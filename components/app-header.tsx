@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";

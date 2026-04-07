@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { AppHeader } from "@/components/app-header";
+import CsvExportButton from "@/components/csv-export-button";
 import DateRangeFilter from "@/components/date-range-filter";
+import { FlashMessage } from "@/components/flash-message";
+import { MatchDeleteButton } from "@/components/match-delete-button";
 import { buttonVariants } from "@/components/ui/button";
 import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
-import { MatchDeleteButton } from "@/components/match-delete-button";
-import CsvExportButton from "@/components/csv-export-button";
-import { FlashMessage } from "@/components/flash-message";
 import Link from "next/link";
 
 export const metadata: Metadata = {

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 import { AppHeader } from "@/components/app-header";
-import DateRangeFilter from "@/components/date-range-filter";
-import { Suspense } from "react";
-import { FlashMessage } from "@/components/flash-message";
 import CsvExportButton from "@/components/csv-export-button";
+import DateRangeFilter from "@/components/date-range-filter";
+import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "個人成績集計 | 麻雀成績入力",

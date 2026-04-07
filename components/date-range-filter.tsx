@@ -125,7 +125,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
                 - sm 以上: 終了日の直右に配置するため `sm:ml-2` */}
             <button
               type="submit"
-              className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center"
+              className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center"
             >
               絞込
             </button>
