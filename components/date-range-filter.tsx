@@ -24,12 +24,31 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
   const [start, setStart] = useState<string>(initialStart ?? "");
   const [end, setEnd] = useState<string>(initialEnd ?? "");
 
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
   useEffect(() => {
     setStart(initialStart ?? "");
     setEnd(initialEnd ?? "");
     setMode(computeInitialMode());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialStart, initialEnd, initialMode, initialToday]);
+
+  // when user switches to range mode (or initialMode is range) and no start/end provided,
+  // default inputs to today so user sees today's date immediately
+  useEffect(() => {
+    if (mode === "range" && !start && !end) {
+      const today = formatDate(new Date());
+      setStart(today);
+      setEnd(today);
+    }
+    // only run when mode changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   const showInvalidDateFlash = useCallback(() => {
     try {
@@ -76,7 +95,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
               aria-label="開始日"
               value={start}
               onChange={(e) => handleStartChange(e.target.value)}
-              className="rounded border p-1 text-sm h-10"
+              className="rounded border p-1 text-sm h-10 w-36 sm:w-auto"
             />
 
             <span className="text-sm text-emerald-800">～</span>
@@ -87,17 +106,26 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
               aria-label="終了日"
               value={end}
               onChange={(e) => handleEndChange(e.target.value)}
-              className="rounded border p-1 text-sm h-10"
+              className="rounded border p-1 text-sm h-10 w-36 sm:w-auto"
             />
           </>
         )}
       </div>
 
-      <div className="flex items-center justify-start gap-2 w-full">
-        <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
-          絞込
-        </button>
-      </div>
+      {/* 絞込ボタンの位置: range のときは下部（既存の位置）、それ以外は select の右 */}
+      {mode === "range" ? (
+        <div className="flex items-center justify-start gap-2 w-full">
+          <button type="submit" className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
+            絞込
+          </button>
+        </div>
+      ) : (
+        <div className="mt-0">
+          <button type="submit" className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
+            絞込
+          </button>
+        </div>
+      )}
 
       {/* CSV button slot kept empty here; pages place CSV button under the table (right-aligned) */}
     </form>
