@@ -80,7 +80,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
           name="mode"
           value={mode}
           onChange={(e) => setMode(e.target.value as Mode)}
-          className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
+          className="rounded border p-1 text-sm h-10 w-14 sm:w-auto"
         >
           <option value="thisYear">今年</option>
           <option value="today">当日</option>
@@ -113,7 +113,7 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
 
         {/* 非 range のときは絞込ボタンをセレクト右に表示 */}
         {mode !== "range" && (
-          <button type="submit" className="ml-auto rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
+          <button type="submit" className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
             絞込
           </button>
         )}
