@@ -11,7 +11,7 @@ import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "対局履歴画面 | 麻雀成績入力",
+  title: "対局履歴 | 麻雀成績入力",
   description: "各対局のスコア・順位・飛び/飛ばし/焼き鳥を一覧表示します",
 };
 
@@ -72,7 +72,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
 
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
-            <h1 className="text-xl font-bold text-emerald-900">対局履歴画面</h1>
+            <h1 className="text-xl font-bold text-emerald-900">対局履歴</h1>
             <p className="mt-1 text-xs text-emerald-700/70">
               日付順に、各対局の順位・スコア・特記事項を確認できます。
             </p>
@@ -111,7 +111,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                             href={`/matches/${encodeURIComponent(match.createdAt)}/edit`}
                             className={buttonVariants({ variant: "outline", size: "sm" })}
                           >
-                            対局を編集
+                            編集
                           </Link>
                           <MatchDeleteButton createdAt={match.createdAt} />
                         </div>
@@ -250,7 +250,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                         <td className="px-3 py-3 text-center">
                           <div className="flex gap-2 justify-center">
                             <Link href={`/matches/${encodeURIComponent(match.createdAt)}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                              対局を編集
+                              編集
                             </Link>
                             <MatchDeleteButton createdAt={match.createdAt} />
                           </div>

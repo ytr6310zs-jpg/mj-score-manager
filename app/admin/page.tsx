@@ -12,7 +12,7 @@ export default function AdminIndexPage() {
         <div className="max-w-3xl mx-auto py-2">
           <Card>
             <CardHeader>
-              <CardTitle>管理画面</CardTitle>
+              <CardTitle>管理</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="mb-4 text-sm text-muted-foreground">管理者向けの操作パネルです。</p>
@@ -20,12 +20,12 @@ export default function AdminIndexPage() {
               <ul className="space-y-2">
                 <li>
                   <Link href="/admin/players" className="text-primary underline">
-                    プレイヤー管理画面
+                    プレイヤー管理
                   </Link>
                 </li>
                 <li>
                   <Link href="/admin/yakumans" className="text-primary underline">
-                    役満種別管理画面
+                    役満種別管理
                   </Link>
                 </li>
               </ul>

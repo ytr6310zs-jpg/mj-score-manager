@@ -29,7 +29,7 @@ export function AppHeader({ current }: AppHeaderProps) {
             className: "w-auto",
           })}
         >
-          スコア入力画面
+          スコア入力
         </Link>
         <Link
           href="/matches"
@@ -39,7 +39,7 @@ export function AppHeader({ current }: AppHeaderProps) {
             className: "w-auto",
           })}
         >
-          対局履歴画面
+          対局履歴
         </Link>
         <Link
           href="/stats"
@@ -49,7 +49,7 @@ export function AppHeader({ current }: AppHeaderProps) {
             className: "w-auto",
           })}
         >
-          成績集計画面
+          成績集計
         </Link>
       </div>
     </div>
@@ -112,7 +112,7 @@ function Menu({ current }: { current: "input" | "matches" | "stats" | "admin" })
             onClick={() => setIsOpen(false)}
             role="menuitem"
           >
-            管理画面
+            管理
           </Link>
           <form action={logoutAction} className="mt-2">
             <Button type="submit" variant="ghost" size="sm" className="w-full text-left" role="menuitem">
