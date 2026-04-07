@@ -8,7 +8,7 @@ import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
 
 export const metadata: Metadata = {
-  title: "個人成績集計 | 麻雀成績入力",
+  title: "成績集計 | 麻雀成績入力",
   description: "プレイヤーごとの累計成績を表示します",
 };
 
@@ -77,7 +77,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
 
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
-            <h1 className="text-xl font-bold text-emerald-900">個人成績明細（累計）</h1>
+            <h1 className="text-xl font-bold text-emerald-900">成績集計</h1>
             <p className="mt-1 text-xs text-emerald-700/70">※ 集計対象：記録済みの全対局</p>
           </div>
 

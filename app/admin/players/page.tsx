@@ -1,13 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { AppHeader } from "@/components/app-header";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { AppHeader } from "@/components/app-header";
 
 import { editPlayerFormAction } from "@/app/player-actions";
-import { PlayerDeleteButton } from "@/components/player-delete-button";
 import { PlayerAddForm } from "@/components/player-add-form";
+import { PlayerDeleteButton } from "@/components/player-delete-button";
 
 type PlayerRow = {
   id: number;
