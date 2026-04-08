@@ -68,6 +68,17 @@ export default function DateRangeFilter({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFilter, initialMode, initialStart, initialEnd]);
 
+  // isSubmitting の自動リセット: 遷移遅延時も最大3秒後には操作可能に
+  useEffect(() => {
+    if (!isSubmitting) return;
+
+    const timer = setTimeout(() => {
+      setIsSubmitting(false);
+    }, 3000); // 3秒後に自動リセット
+
+    return () => clearTimeout(timer);
+  }, [isSubmitting]);
+
   const showInvalidDateFlash = useCallback(() => {
     try {
       window.dispatchEvent(new CustomEvent("app:flash", { detail: { type: "invalidDate" } }));
