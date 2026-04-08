@@ -102,9 +102,13 @@ export function AppHeader({ current }: AppHeaderProps) {
         </Link>
 
         {showIndicator && (
-          <div role="status" aria-live="polite" className="ml-2 inline-flex items-center gap-2 rounded-full border bg-card px-2 py-1 text-xs text-foreground">
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-transparent border-t-current text-primary" aria-hidden />
-            <span>遷移中…</span>
+          <div
+            role="status"
+            aria-live="polite"
+            aria-label="画面遷移中"
+            className="ml-2 inline-flex items-center rounded-full border bg-card px-2 py-1"
+          >
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-transparent border-t-current text-primary" aria-hidden />
           </div>
         )}
 
