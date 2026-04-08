@@ -513,8 +513,10 @@ function parseCsvToGames(fileName, content) {
     const topPlayer = byRank[0]?.player ?? "";
     const lastPlayer = byRank[byRank.length - 1]?.player ?? "";
     const yakumanCell = parseYakumanCell(yakumanRow?.[col], rankedEntries, fileName, gameNo);
-    const noteKey = `${IMPORT_NOTE_PREFIX}:${fileName}:G${gameNo}`;
-    const notes = yakumanCell.noteSuffix ? `${noteKey} 役満:${yakumanCell.noteSuffix}` : noteKey;
+    // Do not write import metadata into `notes` (Issue #103 / ADR 0016).
+    // Keep notes empty to avoid embedding operational import keys.
+    const noteKey = `${IMPORT_NOTE_PREFIX}:${fileName}:G${gameNo}`; // still available for yakuman meta
+    const notes = "";
 
     games.push({
       sourceFile: fileName,
@@ -767,8 +769,10 @@ async function main() {
     }
 
     const insertRows = [];
-      const updateRows = [];
+    const updateRows = [];
     const pendingGames = [];
+    // track pending games corresponding to insertRows so we can map inserted IDs
+    const insertedPendingGames = [];
     for (const game of plannedGames) {
       const existingGameId = existingByNoteKey.get(String(game.noteKey)) ?? null;
       const row = { ...game.row };
@@ -803,19 +807,22 @@ async function main() {
         .map((playerName) => nameToId.get(String(playerName)) ?? null)
         .filter((id) => id !== null);
 
-        if (existingGameId) {
-          updateRows.push({
-            id: existingGameId,
-            ...row,
-          });
-        } else {
-          insertRows.push(row);
-        }
+          const pendingObj = {
+            ...game,
+            existingGameId,
+          };
 
-        pendingGames.push({
-          ...game,
-          existingGameId,
-        });
+          pendingGames.push(pendingObj);
+
+          if (existingGameId) {
+            updateRows.push({
+              id: existingGameId,
+              ...row,
+            });
+          } else {
+            insertRows.push(row);
+            insertedPendingGames.push(pendingObj);
+          }
     }
 
     const total = plannedGames.length;
@@ -836,18 +843,19 @@ async function main() {
       await store.updateGames(updateRows);
     const insertedGames = await store.insertGames(insertRows);
 
-    const gameIdByNotes = new Map();
-    for (const row of existingRows ?? []) {
-      gameIdByNotes.set(String(row.notes ?? ""), Number(row.id));
-    }
-    for (const row of insertedGames) {
-      gameIdByNotes.set(String(row.notes ?? ""), Number(row.id));
+    // Map inserted DB rows back to the pending game objects using insertion order
+    if (Array.isArray(insertedGames) && insertedGames.length > 0) {
+      for (let i = 0; i < insertedGames.length; i += 1) {
+        const ins = insertedGames[i];
+        const pending = insertedPendingGames[i];
+        if (pending) pending.gameId = Number(ins.id ?? ins.ID ?? ins.id);
+      }
     }
 
     const targetGames = pendingGames
       .map((game) => ({
         ...game,
-        gameId: game.existingGameId ?? gameIdByNotes.get(String(game.row.notes)),
+        gameId: Number.isInteger(game.existingGameId) ? game.existingGameId : Number.isInteger(game.gameId) ? game.gameId : null,
       }))
       .filter((game) => Number.isInteger(game.gameId));
 
