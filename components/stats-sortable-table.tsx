@@ -24,11 +24,7 @@ type SortKey =
   | "yakitoriAvoidanceRate"
   | "setaiRate";
 
-const RANK_ROW_BG: Record<number, string> = {
-  1: "bg-yellow-50",
-  2: "bg-slate-50",
-  3: "bg-orange-50/60",
-};
+// No per-rank row background; rows remain uniform (highlighting moved to badges).
 
 const RANK_BADGE: Record<number, string> = {
   1: "bg-yellow-400 text-yellow-900",
@@ -194,7 +190,7 @@ export default function StatsSortableTable({
       </thead>
       <tbody>
         {sorted.map((player) => {
-          const rowBg = RANK_ROW_BG[player.rank] ?? "bg-white/60";
+          const rowBg = "";
           const badgeCls = RANK_BADGE[player.rank] ?? "bg-transparent text-foreground";
 
           return (
@@ -220,120 +216,210 @@ export default function StatsSortableTable({
               {(() => {
                 const h = getCellHighlight("games", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {player.games}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {player.games}
+                      </span>
+                    ) : (
+                      player.games
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("topCount", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {player.topCount}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {player.topCount}
+                      </span>
+                    ) : (
+                      player.topCount
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("lastCount", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {player.lastCount}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {player.lastCount}
+                      </span>
+                    ) : (
+                      player.lastCount
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("topRate", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {pct(player.topRate)}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {pct(player.topRate)}
+                      </span>
+                    ) : (
+                      pct(player.topRate)
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("secondRate", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {pct(player.secondRate)}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {pct(player.secondRate)}
+                      </span>
+                    ) : (
+                      pct(player.secondRate)
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("thirdRate", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {pct(player.thirdRate)}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {pct(player.thirdRate)}
+                      </span>
+                    ) : (
+                      pct(player.thirdRate)
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("lastAvoidanceRate", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {pct(player.lastAvoidanceRate)}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {pct(player.lastAvoidanceRate)}
+                      </span>
+                    ) : (
+                      pct(player.lastAvoidanceRate)
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("tobashiCount", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {player.tobashiCount}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {player.tobashiCount}
+                      </span>
+                    ) : (
+                      player.tobashiCount
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("tobiCount", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {player.tobiCount}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {player.tobiCount}
+                      </span>
+                    ) : (
+                      player.tobiCount
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("yakitoriCount", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {player.yakitoriCount}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {player.yakitoriCount}
+                      </span>
+                    ) : (
+                      player.yakitoriCount
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("yakumanCount", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {player.yakumanCount}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {player.yakumanCount}
+                      </span>
+                    ) : (
+                      player.yakumanCount
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("tobashiRate", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {pct(player.tobashiRate)}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {pct(player.tobashiRate)}
+                      </span>
+                    ) : (
+                      pct(player.tobashiRate)
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("tobiAvoidanceRate", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {pct(player.tobiAvoidanceRate)}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {pct(player.tobiAvoidanceRate)}
+                      </span>
+                    ) : (
+                      pct(player.tobiAvoidanceRate)
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("yakitoriAvoidanceRate", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {pct(player.yakitoriAvoidanceRate)}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {pct(player.yakitoriAvoidanceRate)}
+                      </span>
+                    ) : (
+                      pct(player.yakitoriAvoidanceRate)
+                    )}
                   </td>
                 );
               })()}
               {(() => {
                 const h = getCellHighlight("setaiRate", player.name);
                 return (
-                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
-                    {pct(player.setaiRate)}
+                  <td className={`px-3 py-2 text-right tabular-nums`}>
+                    {h.cls ? (
+                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                        {pct(player.setaiRate)}
+                      </span>
+                    ) : (
+                      pct(player.setaiRate)
+                    )}
                   </td>
                 );
               })()}
