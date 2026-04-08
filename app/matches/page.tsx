@@ -7,7 +7,7 @@ import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { MatchDeleteButton } from "@/components/match-delete-button";
 import { buttonVariants } from "@/components/ui/button";
-import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
+import { fetchMatchResults, fetchMatchDates, type MatchPlayer } from "@/lib/matches";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -60,6 +60,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
   const end =
     mode === "today" ? todayStr : mode === "thisYear" ? yearEnd : Array.isArray(endRaw) ? endRaw[0] : endRaw;
 
+  const { dates: availableDates, error: datesError } = await fetchMatchDates();
   const { matches, error } = await fetchMatchResults(start, end);
 
   return (
@@ -80,9 +81,15 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
 
           <div className="p-4">
             {/* client-side date filter that sets start/end when '当日' is checked */}
-            <div className="flex items-end gap-4">
+                <div className="flex items-end gap-4">
               <div className="flex-1">
-                <DateRangeFilter initialMode={mode} initialStart={start} initialEnd={end} actionPath="/matches" />
+                <DateRangeFilter
+                  initialMode={mode}
+                  initialStart={start}
+                  initialEnd={end}
+                  actionPath="/matches"
+                  availableDates={datesError ? undefined : availableDates}
+                />
               </div>
             </div>
             {error ? (

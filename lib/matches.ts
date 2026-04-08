@@ -253,3 +253,53 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
     };
   }
 }
+
+export async function fetchMatchDates(): Promise<{ dates: string[]; error: string | null }> {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return { dates: [], error: "Supabase 連携用の環境変数が不足しています。" };
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+
+  try {
+    const { data, error } = await supabase.from("games").select("date").order("date", { ascending: false });
+    if (error || !data) {
+      console.error("fetchMatchDates supabase error:", error);
+      return { dates: [], error: "対局日の取得に失敗しました。Supabase の設定を確認してください。" };
+    }
+
+    const rows = data as Array<Record<string, unknown>>;
+    const seen = new Set<string>();
+    const dates: string[] = [];
+
+    for (const r of rows) {
+      const raw = r["date"];
+      if (raw === null || raw === undefined) continue;
+
+      let dateStr = "";
+      if (typeof raw === "string") {
+        dateStr = raw.trim();
+      } else {
+        try {
+          dateStr = new Date(String(raw)).toISOString().slice(0, 10);
+        } catch {
+          continue;
+        }
+      }
+
+      if (!dateStr) continue;
+      if (!seen.has(dateStr)) {
+        seen.add(dateStr);
+        dates.push(dateStr);
+      }
+    }
+
+    return { dates, error: null };
+  } catch (err) {
+    console.error("fetchMatchDates error:", err);
+    return { dates: [], error: "対局日の取得に失敗しました。" };
+  }
+}

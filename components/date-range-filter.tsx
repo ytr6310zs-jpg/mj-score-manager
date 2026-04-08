@@ -10,9 +10,10 @@ type Props = {
   initialEnd?: string | null;
   initialToday?: boolean; // backward compatibility
   actionPath?: string;
+  availableDates?: string[];
 };
 
-export default function DateRangeFilter({ initialMode, initialStart, initialEnd, initialToday, actionPath }: Props) {
+export default function DateRangeFilter({ initialMode, initialStart, initialEnd, initialToday, actionPath, availableDates }: Props) {
   const computeInitialMode = (): Mode => {
     if (initialMode === "today" || initialMode === "thisYear" || initialMode === "range") return initialMode as Mode;
     if (initialToday) return "today";
@@ -110,6 +111,24 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
 
         {mode === "range" && (
           <>
+                  {availableDates && availableDates.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-emerald-800">開催日</label>
+                      <select
+                        aria-label="開催日"
+                        onChange={(e) => handleStartChange(e.target.value)}
+                        value={start}
+                        className="rounded border p-1 text-sm h-10 w-36"
+                      >
+                        <option value="">選択してください</option>
+                        {availableDates.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
             <input
               name="start"
               type="date"
