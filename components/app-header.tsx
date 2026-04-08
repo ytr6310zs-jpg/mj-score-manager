@@ -1,32 +1,83 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { usePathname } from "next/navigation";
 
 import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 
+type NavTarget = "input" | "matches" | "stats" | "admin";
+
 type AppHeaderProps = {
-  current: "input" | "matches" | "stats" | "admin";
+  current: NavTarget;
 };
 
 export function AppHeader({ current }: AppHeaderProps) {
   const pathname = usePathname();
-  const [navigatingTo, setNavigatingTo] = useState<null | "input" | "matches" | "stats">(null);
+  const [navigatingTo, setNavigatingTo] = useState<null | NavTarget>(null);
+  const [showIndicator, setShowIndicator] = useState(false);
+
+  const delayTimerRef = useRef<number | null>(null);
+  const timeoutTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Clear pending state when the pathname changes (navigation finished)
     setNavigatingTo(null);
+    setShowIndicator(false);
+    if (delayTimerRef.current) {
+      clearTimeout(delayTimerRef.current);
+      delayTimerRef.current = null;
+    }
+    if (timeoutTimerRef.current) {
+      clearTimeout(timeoutTimerRef.current);
+      timeoutTimerRef.current = null;
+    }
   }, [pathname]);
 
-  function navClass(target: "input" | "matches" | "stats") {
+  useEffect(() => {
+    if (navigatingTo) {
+      // Show indicator only if navigation lasts longer than 120ms
+      delayTimerRef.current = window.setTimeout(() => {
+        setShowIndicator(true);
+      }, 120);
+
+      // Auto-clear after 10s to avoid stuck UI
+      timeoutTimerRef.current = window.setTimeout(() => {
+        setNavigatingTo(null);
+        setShowIndicator(false);
+      }, 10000);
+    } else {
+      if (delayTimerRef.current) {
+        clearTimeout(delayTimerRef.current);
+        delayTimerRef.current = null;
+      }
+      if (timeoutTimerRef.current) {
+        clearTimeout(timeoutTimerRef.current);
+        timeoutTimerRef.current = null;
+      }
+      setShowIndicator(false);
+    }
+
+    return () => {
+      if (delayTimerRef.current) {
+        clearTimeout(delayTimerRef.current);
+        delayTimerRef.current = null;
+      }
+      if (timeoutTimerRef.current) {
+        clearTimeout(timeoutTimerRef.current);
+        timeoutTimerRef.current = null;
+      }
+    };
+  }, [navigatingTo]);
+
+  function navClass(target: Exclude<NavTarget, "admin">) {
     const base = buttonVariants({
       variant: current === target ? "default" : "outline",
       size: "sm",
       className: "w-auto",
     });
-    if (navigatingTo === target) return `${base} opacity-70 cursor-wait`;
+    if (navigatingTo === target) return `${base} opacity-70 cursor-wait pointer-events-none`;
     return base;
   }
 
@@ -36,25 +87,36 @@ export function AppHeader({ current }: AppHeaderProps) {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900/70 sm:text-sm">
           Mahjong Score Manager
         </p>
-        <Menu current={current} />
+        <Menu current={current} setNavigatingTo={setNavigatingTo} />
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Link href="/" className={navClass("input")} onClick={() => setNavigatingTo("input")} aria-busy={navigatingTo === "input"}>
+        <Link href="/" className={navClass("input")} onClick={() => setNavigatingTo("input")} aria-busy={navigatingTo === "input"} aria-disabled={navigatingTo === "input"}>
           スコア入力
         </Link>
-        <Link href="/matches" className={navClass("matches")} onClick={() => setNavigatingTo("matches")} aria-busy={navigatingTo === "matches"}>
+        <Link href="/matches" className={navClass("matches")} onClick={() => setNavigatingTo("matches")} aria-busy={navigatingTo === "matches"} aria-disabled={navigatingTo === "matches"}>
           対局履歴
         </Link>
-        <Link href="/stats" className={navClass("stats")} onClick={() => setNavigatingTo("stats")} aria-busy={navigatingTo === "stats"}>
+        <Link href="/stats" className={navClass("stats")} onClick={() => setNavigatingTo("stats")} aria-busy={navigatingTo === "stats"} aria-disabled={navigatingTo === "stats"}>
           成績集計
         </Link>
+
+        {showIndicator && (
+          <div role="status" aria-live="polite" className="ml-2 inline-flex items-center gap-2 rounded-full border bg-card px-2 py-1 text-xs text-foreground">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-transparent border-t-current text-primary" aria-hidden />
+            <span>遷移中…</span>
+          </div>
+        )}
+
+        <div className="sr-only" aria-live="polite">
+          {navigatingTo ? "画面を読み込み中" : null}
+        </div>
       </div>
     </div>
   );
 }
 
-function Menu({ current }: { current: "input" | "matches" | "stats" | "admin" }) {
+function Menu({ current, setNavigatingTo }: { current: NavTarget; setNavigatingTo: Dispatch<SetStateAction<null | NavTarget>> }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -107,7 +169,10 @@ function Menu({ current }: { current: "input" | "matches" | "stats" | "admin" })
               size: "sm",
               className: "w-full text-left",
             })}
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false);
+              setNavigatingTo("admin");
+            }}
             role="menuitem"
           >
             管理
