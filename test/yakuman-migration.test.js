@@ -20,7 +20,8 @@ test('canonical yakuman codes are defined in migration or seed script', () => {
 
   const expected = [
     'DA', 'DS', 'TS', 'CH', 'KY', 'SS', 'ZN',
-    'CHUUREN', 'SUUKANTSU', 'CHINROUTOU', 'RYUISOU', 'TSUUIISOU', 'RENHOU', 'S4'
+    'CHUUREN', 'SUUKANTSU', 'CHINROUTOU', 'RYUISOU', 'TSUUIISOU', 'RENHOU', 'S4',
+    'ST', 'KZ'
   ];
 
   for (const code of expected) {
