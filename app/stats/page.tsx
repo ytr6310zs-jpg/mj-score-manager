@@ -6,6 +6,7 @@ import CsvExportButton from "@/components/csv-export-button";
 import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
+import StatsSortableTable from "@/components/stats-sortable-table";
 
 export const metadata: Metadata = {
   title: "成績集計 | 麻雀成績入力",
@@ -171,88 +172,8 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                 </div>
 
                 <div className="hidden overflow-x-auto md:block">
-                <table className="min-w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-emerald-800/20 bg-emerald-50/80 text-xs font-semibold text-emerald-900">
-                      <th className="sticky left-0 z-10 bg-emerald-50/80 px-3 py-2.5 text-left">名前</th>
-                      <th className="px-3 py-2.5 text-right">合計</th>
-                      <th className="px-3 py-2.5 text-center">順位</th>
-                      <th className="px-3 py-2.5 text-right">対局数</th>
-                      <th className="px-3 py-2.5 text-right">
-                        トップ
-                        <br />
-                        回数
-                      </th>
-                      <th className="px-3 py-2.5 text-right">
-                        ラス
-                        <br />
-                        回数
-                      </th>
-                      <th className="px-3 py-2.5 text-right">トップ率</th>
-                      <th className="px-3 py-2.5 text-right">ラス回避</th>
-                      <th className="px-3 py-2.5 text-right">飛ばし</th>
-                      <th className="px-3 py-2.5 text-right">飛び</th>
-                      <th className="px-3 py-2.5 text-right">焼き鳥</th>
-                      <th className="px-3 py-2.5 text-right">役満</th>
-                      <th className="px-3 py-2.5 text-right">飛ばし率</th>
-                      <th className="px-3 py-2.5 text-right">
-                        飛び
-                        <br />
-                        回避率
-                      </th>
-                      <th className="px-3 py-2.5 text-right">
-                        焼き鳥
-                        <br />
-                        回避率
-                      </th>
-                      <th className="px-3 py-2.5 text-right">接待率</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.map((player) => {
-                      const rowBg = RANK_ROW_BG[player.rank] ?? "bg-white/60";
-                      const badgeCls = RANK_BADGE[player.rank] ?? "bg-transparent text-foreground";
-
-                      return (
-                        <tr
-                          key={player.name}
-                          className={`border-b border-emerald-100 ${rowBg} transition-colors hover:bg-emerald-50/40`}
-                        >
-                          <td className={`sticky left-0 z-10 px-3 py-2 font-semibold ${rowBg}`}>
-                            {player.name}
-                          </td>
-                          <td
-                            className={`px-3 py-2 text-right font-semibold tabular-nums ${
-                              player.totalScore >= 0 ? "text-emerald-700" : "text-destructive"
-                            }`}
-                          >
-                            {score(player.totalScore)}
-                          </td>
-                          <td className="px-3 py-2 text-center">
-                            <span
-                              className={`inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded px-1.5 text-xs font-bold ${badgeCls}`}
-                            >
-                              {player.rank}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.games}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.topCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.lastCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.topRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.lastAvoidanceRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.tobashiCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.tobiCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.yakitoriCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.yakumanCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobashiRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobiAvoidanceRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.yakitoriAvoidanceRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.setaiRate)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                  {/* PC: sortable table component */}
+                  <StatsSortableTable stats={stats} />
                 </div>
               </>
             )}
