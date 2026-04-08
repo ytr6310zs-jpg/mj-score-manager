@@ -61,23 +61,15 @@ export default function DateRangeFilter({
   const formRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
+    // 新ページ読込完了時に自動リセット: Propsが更新されたら即座に操作可能に
+    setIsSubmitting(false);
+
     const init = computeInitial();
     setFilter(init.filter);
     setStart(init.start ?? "");
     setEnd(init.end ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFilter, initialMode, initialStart, initialEnd]);
-
-  // isSubmitting の自動リセット: 遷移遅延時も最大3秒後には操作可能に
-  useEffect(() => {
-    if (!isSubmitting) return;
-
-    const timer = setTimeout(() => {
-      setIsSubmitting(false);
-    }, 3000); // 3秒後に自動リセット
-
-    return () => clearTimeout(timer);
-  }, [isSubmitting]);
 
   const showInvalidDateFlash = useCallback(() => {
     try {
