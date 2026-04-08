@@ -9,6 +9,7 @@ import { fetchPlayerStats } from "@/lib/stats";
 import StatsSortableTable from "@/components/stats-sortable-table";
 import type { PlayerStats } from "@/lib/stats";
 import { computeTopSets, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION } from "@/lib/metric-ranks";
+import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
 
 type RankSets = { first: string[]; second: string[]; third: string[] };
@@ -18,19 +19,19 @@ function renderMedalBadge(topSets: Record<string, RankSets>, metric: string, pla
   if (!sets) return null;
   if (sets.first?.includes(playerName))
     return (
-      <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 text-yellow-900 text-[10px] font-bold">
+      <span className={`ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full ${RANK_BADGE[1]} text-[10px] font-bold`}>
         1
       </span>
     );
   if (sets.second?.includes(playerName))
     return (
-      <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-slate-800 text-[10px] font-bold">
+      <span className={`ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full ${RANK_BADGE[2]} text-[10px] font-bold`}>
         2
       </span>
     );
   if (sets.third?.includes(playerName))
     return (
-      <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400/70 text-amber-900 text-[10px] font-bold">
+      <span className={`ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full ${RANK_BADGE[3]} text-[10px] font-bold`}>
         3
       </span>
     );
@@ -52,17 +53,7 @@ function score(value: number): string {
   return String(value);
 }
 
-const RANK_ROW_BG: Record<number, string> = {
-  1: "bg-yellow-50",
-  2: "bg-slate-50",
-  3: "bg-orange-50/60",
-};
-
-const RANK_BADGE: Record<number, string> = {
-  1: "bg-yellow-400 text-yellow-900",
-  2: "bg-slate-300 text-slate-800",
-  3: "bg-amber-400/70 text-amber-900",
-};
+// rank styles are provided by lib/stats-rank-theme
 
 type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
 
