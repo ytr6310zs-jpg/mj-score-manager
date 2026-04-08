@@ -11,6 +11,7 @@ import type { PlayerStats } from "@/lib/stats";
 import { computeTopSets, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION } from "@/lib/metric-ranks";
 import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
+import { fetchMatchDates } from "@/lib/matches";
 
 type RankSets = { first: string[]; second: string[]; third: string[] };
 
@@ -59,33 +60,53 @@ type SearchParams = { [key: string]: string | string[] | undefined } | undefined
 
 export default async function StatsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = await (searchParams as Promise<SearchParams> | undefined);
-  const modeRaw = params?.mode;
+  const filterRaw = params?.filter;
+  const modeRaw = params?.mode; // backward compat
   const startRaw = params?.start;
   const endRaw = params?.end;
-  const todayParam = params?.today;
-  const thisYearParam = params?.thisYear;
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const year = new Date().getFullYear();
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
 
-  let mode: "today" | "thisYear" | "range" = "thisYear";
-  if (modeRaw) {
-    mode = Array.isArray(modeRaw) ? (modeRaw[0] as "today" | "thisYear" | "range") : (modeRaw as "today" | "thisYear" | "range");
-  } else if (todayParam !== undefined) {
-    mode = "today";
-  } else if (thisYearParam !== undefined) {
-    mode = "thisYear";
+  // resolve filter (new param) with backward compatibility for old mode/start/end
+  let filter: string | undefined;
+  if (filterRaw) filter = Array.isArray(filterRaw) ? (filterRaw[0] as string) : (filterRaw as string);
+  else if (modeRaw) {
+    const m = Array.isArray(modeRaw) ? modeRaw[0] : modeRaw;
+    if (m === "thisYear") filter = "year";
+    else if (m === "today") filter = todayStr;
+    else if (m === "range") filter = "custom";
   } else if (startRaw !== undefined || endRaw !== undefined) {
-    mode = "range";
+    const s = Array.isArray(startRaw) ? (startRaw[0] as string) : (startRaw as string | undefined);
+    const e = Array.isArray(endRaw) ? (endRaw[0] as string) : (endRaw as string | undefined);
+    if (s && e && s === e) filter = s;
+    else filter = "custom";
+  } else {
+    filter = "year";
   }
 
-  const start =
-    mode === "today" ? todayStr : mode === "thisYear" ? yearStart : Array.isArray(startRaw) ? startRaw[0] : startRaw;
-  const end =
-    mode === "today" ? todayStr : mode === "thisYear" ? yearEnd : Array.isArray(endRaw) ? endRaw[0] : endRaw;
+  // compute start/end to pass to data fetch
+  let start: string | undefined;
+  let end: string | undefined;
+  const isDate = (s: string | undefined) => !!s && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s);
+  if (filter === "year") {
+    start = yearStart;
+    end = yearEnd;
+  } else if (filter === "custom") {
+    start = Array.isArray(startRaw) ? (startRaw[0] as string | undefined) : (startRaw as string | undefined);
+    end = Array.isArray(endRaw) ? (endRaw[0] as string | undefined) : (endRaw as string | undefined);
+  } else if (isDate(filter)) {
+    start = filter;
+    end = filter;
+  } else {
+    // fallback
+    start = yearStart;
+    end = yearEnd;
+  }
 
+  const { dates: availableDates, error: datesError } = await fetchMatchDates();
   const { stats, error } = await fetchPlayerStats(start, end);
   const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
@@ -115,7 +136,13 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
             {/* client-side date filter that sets start/end when '当日' is checked */}
             <div className="flex items-end gap-4">
               <div className="flex-1">
-                <DateRangeFilter initialMode={mode} initialStart={start} initialEnd={end} actionPath="/stats" />
+                <DateRangeFilter
+                  initialFilter={filter}
+                  initialStart={start}
+                  initialEnd={end}
+                  actionPath="/stats"
+                  availableDates={datesError ? undefined : availableDates}
+                />
               </div>
             </div>
             {error ? (
