@@ -295,7 +295,6 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                         <th className="px-2 py-1 text-left">日付</th>
                         <th className="px-2 py-1 text-left">プレイヤー</th>
                         <th className="px-2 py-1 text-left">役</th>
-                        <th className="px-2 py-1 text-right">点数</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -304,7 +303,6 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                           <td className="px-2 py-1">{y.date}</td>
                           <td className="px-2 py-1">{y.playerName}</td>
                           <td className="px-2 py-1">{y.yakumanName}</td>
-                          <td className="px-2 py-1 text-right">{y.points ?? ""}</td>
                         </tr>
                       ))}
                     </tbody>
