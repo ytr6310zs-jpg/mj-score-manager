@@ -2,56 +2,71 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Mode = "today" | "thisYear" | "range";
-
 type Props = {
-  initialMode?: Mode;
+  // backward compatibility: some pages still pass initialMode
+  initialMode?: "today" | "thisYear" | "range";
+  // new initial filter: 'year' | 'custom' | 'YYYY-MM-DD'
+  initialFilter?: string;
   initialStart?: string | null;
   initialEnd?: string | null;
-  initialToday?: boolean; // backward compatibility
   actionPath?: string;
+  availableDates?: string[];
 };
 
-export default function DateRangeFilter({ initialMode, initialStart, initialEnd, initialToday, actionPath }: Props) {
-  const computeInitialMode = (): Mode => {
-    if (initialMode === "today" || initialMode === "thisYear" || initialMode === "range") return initialMode as Mode;
-    if (initialToday) return "today";
-    if (initialStart && initialEnd) return "range";
-    return "thisYear";
-  };
+export default function DateRangeFilter({
+  initialMode,
+  initialFilter,
+  initialStart,
+  initialEnd,
+  actionPath,
+  availableDates,
+}: Props) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const year = today.getFullYear();
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
 
-  const [mode, setMode] = useState<Mode>(computeInitialMode());
-  const [start, setStart] = useState<string>(initialStart ?? "");
-  const [end, setEnd] = useState<string>(initialEnd ?? "");
-  const endRef = useRef<HTMLInputElement | null>(null);
-
-  const formatDate = (d: Date) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  };
-
-  useEffect(() => {
-    setStart(initialStart ?? "");
-    setEnd(initialEnd ?? "");
-    setMode(computeInitialMode());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialStart, initialEnd, initialMode, initialToday]);
-
-  // when user switches to range mode (or initialMode is range) and no start/end provided,
-  // default inputs to today so user sees today's date immediately
-  useEffect(() => {
-    if (mode === "range" && !start && !end) {
-      const today = formatDate(new Date());
-      setStart(today);
-      setEnd(today);
+  const computeInitial = (): { filter: string; start: string; end: string } => {
+    // explicit new-style initialFilter takes precedence
+    if (initialFilter) {
+      if (initialFilter === "year") return { filter: "year", start: yearStart, end: yearEnd };
+      if (initialFilter === "custom") return { filter: "custom", start: initialStart ?? "", end: initialEnd ?? "" };
+      // assume date string
+      return { filter: initialFilter, start: initialFilter, end: initialFilter };
     }
-    // only run when mode changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
 
-  // helper to dispatch flash
+    // fallback to old initialMode for backward compatibility
+    if (initialMode) {
+      if (initialMode === "thisYear") return { filter: "year", start: yearStart, end: yearEnd };
+      if (initialMode === "today") return { filter: todayStr, start: todayStr, end: todayStr };
+      if (initialMode === "range") return { filter: "custom", start: initialStart ?? todayStr, end: initialEnd ?? todayStr };
+    }
+
+    // fallback to start/end presence
+    if (initialStart && initialEnd) {
+      if (initialStart === initialEnd) return { filter: initialStart, start: initialStart, end: initialEnd };
+      if (initialStart === yearStart && initialEnd === yearEnd) return { filter: "year", start: yearStart, end: yearEnd };
+      return { filter: "custom", start: initialStart, end: initialEnd };
+    }
+
+    return { filter: "year", start: yearStart, end: yearEnd };
+  };
+
+  const initial = computeInitial();
+  const [filter, setFilter] = useState<string>(initial.filter);
+  const [start, setStart] = useState<string>(initial.start ?? "");
+  const [end, setEnd] = useState<string>(initial.end ?? "");
+  const formRef = useRef<HTMLFormElement | null>(null);
+
+  useEffect(() => {
+    const init = computeInitial();
+    setFilter(init.filter);
+    setStart(init.start ?? "");
+    setEnd(init.end ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFilter, initialMode, initialStart, initialEnd]);
+
   const showInvalidDateFlash = useCallback(() => {
     try {
       window.dispatchEvent(new CustomEvent("app:flash", { detail: { type: "invalidDate" } }));
@@ -60,27 +75,46 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
     }
   }, []);
 
-  function handleStartChange(value: string) {
-    setStart(value);
-    // 開始日をセットしたら終了日を常に同日に上書きし、終了日にフォーカスを移す
-    if (value && mode === "range") {
-      setEnd(value);
-      // 終了日の値をハイライトしてすぐ上書き入力できるようにする
-      setTimeout(() => {
-        endRef.current?.focus();
-        endRef.current?.select?.();
-      }, 0);
-    }
+  function isDateString(s: string) {
+    return /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s);
   }
 
-  function handleModeChange(newMode: Mode) {
-    setMode(newMode);
-    // セレクトで "任意" を選択したときは常に当日を開始/終了にセットする
-    if (newMode === "range") {
-      const today = formatDate(new Date());
-      setStart(today);
-      setEnd(today);
+  async function handleFilterChange(value: string) {
+    setFilter(value);
+    if (value === "custom") {
+      // show inputs, do not auto-submit
+      const todayStrLocal = new Date().toISOString().slice(0, 10);
+      setStart((prev) => (prev ? prev : todayStrLocal));
+      setEnd((prev) => (prev ? prev : todayStrLocal));
+      return;
     }
+
+    if (value === "year") {
+      setStart(yearStart);
+      setEnd(yearEnd);
+    } else if (isDateString(value)) {
+      setStart(value);
+      setEnd(value);
+    } else {
+      // unknown value -> treat as year
+      setStart(yearStart);
+      setEnd(yearEnd);
+    }
+
+    // auto-submit the form for non-custom selections
+    setTimeout(() => {
+      try {
+        formRef.current?.requestSubmit?.();
+      } catch {
+        formRef.current?.submit();
+      }
+    }, 0);
+  }
+
+  function handleStartChange(value: string) {
+    setStart(value);
+    // keep end in sync when empty
+    if (!end) setEnd(value);
   }
 
   function handleEndChange(value: string) {
@@ -88,27 +122,33 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    if (mode === "range" && start && end && start > end) {
+    if (filter === "custom" && start && end && start > end) {
       e.preventDefault();
       showInvalidDateFlash();
     }
   }
 
+  const hasAvailable = Array.isArray(availableDates) && availableDates.length > 0;
+
   return (
-    <form method="get" action={actionPath} onSubmit={handleSubmit} className="w-full flex flex-col gap-2 mb-2">
+    <form ref={formRef} method="get" action={actionPath} onSubmit={handleSubmit} className="w-full flex flex-col gap-2 mb-2">
       <div className="flex items-center gap-2 w-full flex-wrap">
         <select
-          name="mode"
-          value={mode}
-          onChange={(e) => handleModeChange(e.target.value as Mode)}
-          className="rounded border p-1 text-sm h-10 w-14 sm:w-auto"
+          name="filter"
+          value={filter}
+          onChange={(e) => handleFilterChange(e.target.value)}
+          className="rounded border p-1 text-sm h-10 w-36 sm:w-auto"
         >
-          <option value="thisYear">今年</option>
-          <option value="today">当日</option>
-          <option value="range">任意</option>
+          <option value="year">今年</option>
+          {hasAvailable && availableDates!.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+          <option value="custom">任意</option>
         </select>
 
-        {mode === "range" && (
+        {filter === "custom" ? (
           <>
             <input
               name="start"
@@ -127,7 +167,6 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
               aria-label="終了日"
               value={end}
               onChange={(e) => handleEndChange(e.target.value)}
-              ref={endRef}
               className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
             />
 
@@ -138,16 +177,17 @@ export default function DateRangeFilter({ initialMode, initialStart, initialEnd,
               絞込
             </button>
           </>
-        )}
-
-        {mode !== "range" && (
-          <button type="submit" className="ml-2 rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center">
-            絞込
-          </button>
+        ) : (
+          // keep hidden inputs so CSV export and server can read start/end
+          <>
+            <input name="start" type="hidden" value={start} />
+            <input name="end" type="hidden" value={end} />
+          </>
         )}
       </div>
 
-      {/* CSV button slot kept empty here; pages place CSV button under the table (right-aligned) */}
+      {/* Always include filter in query so server can recognize new-style requests */}
+      <input name="filter" type="hidden" value={filter} />
     </form>
   );
 }
