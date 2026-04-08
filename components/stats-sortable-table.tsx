@@ -32,6 +32,9 @@ const RANK_BADGE: Record<number, string> = {
   3: "bg-amber-400/70 text-amber-900",
 };
 
+// Badge classes used for metric highlights to match rank badge style
+const METRIC_BADGE_CLS = "inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded px-1.5 text-xs font-bold";
+
 function pct(rate: number): string {
   return `${(rate * 100).toFixed(1)}%`;
 }
@@ -141,9 +144,9 @@ export default function StatsSortableTable({
   const getCellHighlight = (metric: string, playerName: string) => {
     const sets = topSetsMap[metric];
     if (!sets) return { cls: "", title: "" };
-    if (sets.first.has(playerName)) return { cls: "bg-yellow-100 text-amber-800", title: "1位" };
-    if (sets.second.has(playerName)) return { cls: "bg-slate-100 text-slate-800", title: "2位" };
-    if (sets.third.has(playerName)) return { cls: "bg-amber-100 text-amber-800", title: "3位" };
+    if (sets.first.has(playerName)) return { cls: RANK_BADGE[1] ?? "", title: "1位" };
+    if (sets.second.has(playerName)) return { cls: RANK_BADGE[2] ?? "", title: "2位" };
+    if (sets.third.has(playerName)) return { cls: RANK_BADGE[3] ?? "", title: "3位" };
     return { cls: "", title: "" };
   };
 
@@ -218,7 +221,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {player.games}
                       </span>
                     ) : (
@@ -232,7 +235,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {player.topCount}
                       </span>
                     ) : (
@@ -246,7 +249,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {player.lastCount}
                       </span>
                     ) : (
@@ -260,7 +263,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {pct(player.topRate)}
                       </span>
                     ) : (
@@ -274,7 +277,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {pct(player.secondRate)}
                       </span>
                     ) : (
@@ -288,7 +291,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {pct(player.thirdRate)}
                       </span>
                     ) : (
@@ -302,7 +305,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {pct(player.lastAvoidanceRate)}
                       </span>
                     ) : (
@@ -316,7 +319,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {player.tobashiCount}
                       </span>
                     ) : (
@@ -330,7 +333,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {player.tobiCount}
                       </span>
                     ) : (
@@ -344,7 +347,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {player.yakitoriCount}
                       </span>
                     ) : (
@@ -358,7 +361,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {player.yakumanCount}
                       </span>
                     ) : (
@@ -372,7 +375,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {pct(player.tobashiRate)}
                       </span>
                     ) : (
@@ -386,7 +389,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {pct(player.tobiAvoidanceRate)}
                       </span>
                     ) : (
@@ -400,7 +403,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {pct(player.yakitoriAvoidanceRate)}
                       </span>
                     ) : (
@@ -414,7 +417,7 @@ export default function StatsSortableTable({
                 return (
                   <td className={`px-3 py-2 text-right tabular-nums`}>
                     {h.cls ? (
-                      <span className={`inline-flex items-center justify-center rounded px-1 text-xs font-semibold ${h.cls}`} title={h.title}>
+                      <span className={`${METRIC_BADGE_CLS} ${h.cls}`} title={h.title}>
                         {pct(player.setaiRate)}
                       </span>
                     ) : (
