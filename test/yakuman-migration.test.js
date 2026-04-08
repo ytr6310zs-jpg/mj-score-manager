@@ -3,7 +3,7 @@ const path = require('path');
 const assert = require('node:assert');
 const { test } = require('node:test');
 
-test('supabase migration seeds expected yakuman codes', () => {
+test('canonical yakuman codes are defined in migration or seed script', () => {
   const migration = path.join(__dirname, '..', 'supabase', 'migrations', '20260406000000_create_yakuman_types.sql');
   const file = fs.readFileSync(migration, 'utf8');
 
@@ -26,6 +26,6 @@ test('supabase migration seeds expected yakuman codes', () => {
   for (const code of expected) {
     const inMigration = file.includes(`'${code}'`);
     const inSeedScript = seedFile.includes(`'${code}'`) || seedFile.includes(`code: '${code}'`);
-    assert.ok(inMigration || inSeedScript, `Expected migration or seed script to include code '${code}'`);
+    assert.ok(inMigration || inSeedScript, `Expected canonical yakuman code '${code}' to be defined in migration or seed script`);
   }
 });
