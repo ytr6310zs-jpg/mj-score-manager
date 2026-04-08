@@ -29,40 +29,71 @@
 備考:
 - 現状の`fetchMatchResults`は維持し、既存URLパラメータ仕様(`mode/start/end`)を壊さない。
 
-### 3.2 画面/API層
+### 3.2 画面/API層（再設計）
 
 `app/matches/page.tsx` で開催日候補を取得し、フィルタUIへ渡す。
 
 - ページロード時に `fetchMatchDates()` を実行
 - 候補を `DateRangeFilter` の新規propsで受け渡し
-- `mode="range"` の場合、既存の入力欄に加え「開催日選択」UIを追加
+- セレクトで選択した値（`filter` パラメータ）を処理:
+  - `filter=year` → 当年を `start/end` にセット
+  - `filter=YYYY-MM-DD` → その日付を `start=end` にセット
+  - `filter=custom` → 手入力の `start/end` を使用
 
 実装案:
 - 追加props(案):
   - `availableDates?: string[]`
-  - `selectedDate?: string`
-- `selectedDate` が指定された場合、`start/end` を同日にセットして送信する
+  - `selectedFilter?: 'year' | 'YYYY-MM-DD' | 'custom'`
+- `selectedFilter` に応じて、セレクト状態と入力欄の表示/非表示を制御
 
-### 3.3 フィルタUI
+### 3.3 フィルタUI（再設計）
 
-`components/date-range-filter.tsx` を拡張する。
+`components/date-range-filter.tsx` をリデザインする。
 
-- `mode="range"` 時に、`<select>` で `availableDates` を表示
-- 選択時の動作:
-  - 開催日を選ぶと `start=end=選択日` に同期
-  - 手入力の日付欄は残す(既存互換)
-- 候補が空の場合:
-  - 現行の手入力だけで動作可能にする
+**主UIは単一セレクト「開催日」に統一：**
 
-UIラベル案:
-- `開催日` (placeholder: `選択してください`)
+```
+[開催日: ▼ 今年▼]  ← セレクト
+```
 
-### 3.4 URLパラメータ互換
+セレクト選択肢:
+1. `今年` ... 現在年（例: 2026-01-01〜2026-12-31）
+2. `実在する開催日1` (YYYY-MM-DD)
+3. `実在する開催日2` ...
+4. `任意` ... カスタム日付入力へ切替
 
-新規クエリキーは増やさず、既存の `start/end/mode` に統一する。
+**動作:**
 
-- 理由: CSVエクスポートや他画面(統計)の連携を壊さないため
-- 共有URLの挙動を保ち、後方互換を確保
+- 選択肢 1〜3 を選ぶ → 即座に `start/end` をセット、フォーム送信
+- `任意` を選ぶ → `start/end` の手入力欄を表示（従来の `mode="range"` と同じUI）
+- 候補が空の場合 → セレクトは非表示、手入力だけで動作可能にする
+
+**廃止対象:**
+- `当日` オプション（実在日が開催日選択肢に含まれるため不要）
+- `mode` の概念（単一セレクト化で不要）
+
+### 3.4 URLパラメータ仕様（再設計）
+
+**新規クエリキー `filter` を導入:**
+
+```
+/matches?filter=year           → 今年を表示
+/matches?filter=2026-04-01     → 2026-04-01 のみ表示
+/matches?filter=custom&start=2026-01-01&end=2026-12-31  → カスタム範囲
+```
+
+**既存 URL との互換:**
+
+当面は既存の `mode/start/end` も受け付け、内部で新形式に変換する（段階的なマイグレーション）。
+
+- `?mode=thisYear` → `filter=year` に読替
+- `?mode=today` → 廃止（対応する `filter` 値なし）
+- `?mode=range&start=X&end=Y` → `filter=custom&start=X&end=Y` に読替
+
+ページロード時の優先順位:
+1. `filter` パラメータがあれば、それを優先
+2. 古い `mode/start/end` があれば、新形式に変換
+3. いずれもなければ、デフォルト `filter=year`
 
 ## 4. バリデーションとエラーハンドリング
 
@@ -82,17 +113,20 @@ UIラベル案:
   - `app/stats/page.tsx` (今回はIssue文面上、対局履歴のみ)
   - DBマイグレーション (既存の `games.date` を利用)
 
-## 6. テスト観点
+## 6. テスト観点（再設計版）
 
-1. 開催日セレクトにDBの日付が降順で表示される
-2. 開催日を選択して送信すると、当該日の対局のみ表示される
-3. 開催日未選択時は既存の手入力レンジ絞込みが機能する
-4. 候補取得失敗時でも画面が壊れず、手入力絞込みは利用できる
-5. 既存の `today/thisYear/range` モード挙動が維持される
+1. 開催日セレクトに「今年」「実在日」「任意」が正しく表示される
+2. 「今年」を選ぶと、年初〜年末の対局が表示される
+3. 実在する開催日を選ぶと、その日の対局のみ表示される
+4. 「任意」を選ぶと、`start/end` 手入力欄が表示される
+5. 手入力で日付範囲を指定して送信すると、該当対局が表示される
+6. 候補取得失敗時でも、セレクトなしで手入力絞込みは利用できる
+7. 既存URL（`?mode=thisYear` など）でもアクセス可能（互換性確認）
 
 ## 7. 実装ステップ
 
-1. `lib/matches.ts` に `fetchMatchDates` を追加
-2. `app/matches/page.tsx` で `fetchMatchDates` を呼び出し、`DateRangeFilter` へ渡す
-3. `components/date-range-filter.tsx` に開催日セレクトを追加
+1. `lib/matches.ts` の `fetchMatchDates` を確認（既実装）
+2. `components/date-range-filter.tsx` を新セレクト構造に全体リデザイン
+3. `app/matches/page.tsx` で URL パラメータ解析を新仕様に対応
 4. 手動確認 + `npm run build` で回帰確認
+5. 既存 URL（`?mode=thisYear` など）でのアクセス動作確認
