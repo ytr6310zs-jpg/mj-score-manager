@@ -32,6 +32,8 @@ VALUES
   ('CHINROUTOU','清老頭',32000,'清老頭 (Chinroutou)',18),
   ('RYUISOU','緑一色',32000,'緑一色 (Ryuuisou, all green)',19),
   ('TSUUIISOU','字一色',32000,'字一色 (Tsuuiisou, all honors)',20),
-  ('RENHOU','人和',32000,'人和 (Renhou — local rule)',21);
+  ('RENHOU','人和',32000,'人和 (Renhou — local rule)',21),
+  ('KZ','数え役満',32000,'数え役満 (Kazoe Yakuman)',8),
+  ('ST','四暗刻単騎',32000,'四暗刻単騎 (Su Anko Tanki)',22);
 
 COMMIT;

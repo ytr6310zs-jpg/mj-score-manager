@@ -89,3 +89,30 @@ export async function insertYakumanOccurrences(
     }
   }
 }
+
+export async function insertYakumanTypes(supabase: SupabaseClient) {
+  const desired = [
+    { code: "ST", name: "四暗刻単騎", points: 32000, description: "四暗刻単騎 (Su Anko Tanki)", sort_order: 22 },
+    { code: "KZ", name: "数え役満", points: 32000, description: "数え役満 (Kazoe Yakuman)", sort_order: 8 },
+  ];
+
+  const { data: existingRows, error: selectErr } = await supabase.from("yakuman_types").select("code");
+  if (selectErr) {
+    console.error("yakuman_types select error:", selectErr);
+    return;
+  }
+
+  const existingCodes = new Set<string>(((existingRows ?? []) as Array<Record<string, unknown>>).map((r) => String(r.code ?? "").trim()));
+  const toInsert = desired.filter((d) => !existingCodes.has(d.code));
+  if (toInsert.length === 0) {
+    console.log("insertYakumanTypes: no new types to insert");
+    return;
+  }
+
+  const { error: insertErr } = await supabase.from("yakuman_types").insert(toInsert);
+  if (insertErr) {
+    console.error("insert yakuman_types error:", insertErr);
+  } else {
+    console.log(`insertYakumanTypes: inserted ${toInsert.length} rows`);
+  }
+}
