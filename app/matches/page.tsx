@@ -200,7 +200,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                         <td className="px-3 py-3">
                           <ul className="space-y-1">
                             {match.players.map((player) => {
-                              const badge = resultBadge(player);
+                              const badges = resultBadges(player);
                               return (
                                 <li key={`${match.createdAt}-${player.slot}`} className="flex items-center gap-2">
                                   <span className="inline-flex min-w-10 justify-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-800">
@@ -214,8 +214,8 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                   >
                                       {signedScore(player.score)}
                                     </span>
-                                    {resultBadges(player).length > 0
-                                      ? resultBadges(player).map((b, i) => (
+                                    {badges.length > 0
+                                      ? badges.map((b, i) => (
                                           <span key={i} className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
                                             {b}
                                           </span>
