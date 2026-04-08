@@ -40,6 +40,20 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 }
 
 const YAKUMAN_TYPES = [
+  { code: 'DA', name: '大三元', points: 32000, description: '大三元 (Dai Sangen)', sort_order: 10 },
+  { code: 'DS', name: '大四喜', points: 32000, description: '大四喜 (Dai Suushi)', sort_order: 11 },
+  { code: 'TS', name: '天和', points: 32000, description: '天和 (Tenhou)', sort_order: 5 },
+  { code: 'CH', name: '地和', points: 32000, description: '地和 (Chiho)', sort_order: 6 },
+  { code: 'KY', name: '国士無双', points: 32000, description: '国士無双 (Kokushi Musou)', sort_order: 12 },
+  { code: 'SS', name: '四暗刻', points: 32000, description: '四暗刻 (Su Anko)', sort_order: 13 },
+  { code: 'ZN', name: '純正九蓮宝燈', points: 32000, description: '純正九蓮宝燈 (Junsei Chuuren Poutou)', sort_order: 14 },
+  { code: 'CHUUREN', name: '九連宝燈', points: 32000, description: '九連宝燈 (Chuuren Poutou)', sort_order: 15 },
+  { code: 'SUUKANTSU', name: '四槓子', points: 32000, description: '四槓子 (Suu Kantsu)', sort_order: 16 },
+  { code: 'S4', name: '小四喜', points: 32000, description: '小四喜 (Shou Suushi / Little Four Winds)', sort_order: 17 },
+  { code: 'CHINROUTOU', name: '清老頭', points: 32000, description: '清老頭 (Chinroutou)', sort_order: 18 },
+  { code: 'RYUISOU', name: '緑一色', points: 32000, description: '緑一色 (Ryuuisou, all green)', sort_order: 19 },
+  { code: 'TSUUIISOU', name: '字一色', points: 32000, description: '字一色 (Tsuuiisou, all honors)', sort_order: 20 },
+  { code: 'RENHOU', name: '人和', points: 32000, description: '人和 (Renhou — local rule)', sort_order: 21 },
   { code: 'ST', name: '四暗刻単騎', points: 32000, description: '四暗刻単騎 (Su Anko Tanki)', sort_order: 22 },
   { code: 'KZ', name: '数え役満', points: 32000, description: '数え役満 (Kazoe Yakuman)', sort_order: 8 },
 ];
