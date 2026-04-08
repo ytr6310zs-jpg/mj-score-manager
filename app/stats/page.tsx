@@ -100,7 +100,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
     start,
     end,
-    20
+    5
   );
 
   return (
