@@ -12,6 +12,8 @@ type SortKey =
   | "topCount"
   | "lastCount"
   | "topRate"
+  | "secondRate"
+  | "thirdRate"
   | "lastAvoidanceRate"
   | "tobashiCount"
   | "tobiCount"
@@ -74,6 +76,10 @@ export default function StatsSortableTable({ stats }: { stats: PlayerStats[] }) 
           return p.lastCount;
         case "topRate":
           return p.topRate;
+        case "secondRate":
+          return p.secondRate;
+        case "thirdRate":
+          return p.thirdRate;
         case "lastAvoidanceRate":
           return p.lastAvoidanceRate;
         case "tobashiCount":
@@ -146,6 +152,8 @@ export default function StatsSortableTable({ stats }: { stats: PlayerStats[] }) 
           {header("topCount", "トップ\n回数")}
           {header("lastCount", "ラス\n回数")}
           {header("topRate", "トップ率")}
+                    {header("secondRate", "2位率")}
+                    {header("thirdRate", "3位率")}
           {header("lastAvoidanceRate", "ラス回避")}
           {header("tobashiCount", "飛ばし")}
           {header("tobiCount", "飛び")}
@@ -186,6 +194,8 @@ export default function StatsSortableTable({ stats }: { stats: PlayerStats[] }) 
               <td className="px-3 py-2 text-right tabular-nums">{player.topCount}</td>
               <td className="px-3 py-2 text-right tabular-nums">{player.lastCount}</td>
               <td className="px-3 py-2 text-right tabular-nums">{pct(player.topRate)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{pct(player.secondRate)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{pct(player.thirdRate)}</td>
               <td className="px-3 py-2 text-right tabular-nums">{pct(player.lastAvoidanceRate)}</td>
               <td className="px-3 py-2 text-right tabular-nums">{player.tobashiCount}</td>
               <td className="px-3 py-2 text-right tabular-nums">{player.tobiCount}</td>

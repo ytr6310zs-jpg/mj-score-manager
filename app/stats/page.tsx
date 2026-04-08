@@ -133,6 +133,14 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                             <dd>{pct(player.topRate)}</dd>
                           </div>
                           <div>
+                            <dt className="font-semibold">2位率</dt>
+                            <dd>{pct(player.secondRate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">3位率</dt>
+                            <dd>{pct(player.thirdRate)}</dd>
+                          </div>
+                          <div>
                             <dt className="font-semibold">ラス回避</dt>
                             <dd>{pct(player.lastAvoidanceRate)}</dd>
                           </div>
