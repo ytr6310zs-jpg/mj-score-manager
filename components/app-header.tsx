@@ -81,23 +81,33 @@ export function AppHeader({ current }: AppHeaderProps) {
     return base;
   }
 
+  function handleNavClick(target: Exclude<NavTarget, "admin">) {
+    return (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (current === target || navigatingTo) {
+        e.preventDefault();
+        return;
+      }
+      setNavigatingTo(target);
+    };
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900/70 sm:text-sm">
           Mahjong Score Manager
         </p>
-        <Menu current={current} setNavigatingTo={setNavigatingTo} />
+        <Menu current={current} setNavigatingTo={setNavigatingTo} navigatingTo={navigatingTo} />
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Link href="/" className={navClass("input")} onClick={() => setNavigatingTo("input")} aria-busy={navigatingTo === "input"} aria-disabled={navigatingTo === "input"}>
+        <Link href="/" className={navClass("input")} onClick={handleNavClick("input")} aria-busy={navigatingTo === "input"} aria-disabled={navigatingTo === "input"}>
           スコア入力
         </Link>
-        <Link href="/matches" className={navClass("matches")} onClick={() => setNavigatingTo("matches")} aria-busy={navigatingTo === "matches"} aria-disabled={navigatingTo === "matches"}>
+        <Link href="/matches" className={navClass("matches")} onClick={handleNavClick("matches")} aria-busy={navigatingTo === "matches"} aria-disabled={navigatingTo === "matches"}>
           対局履歴
         </Link>
-        <Link href="/stats" className={navClass("stats")} onClick={() => setNavigatingTo("stats")} aria-busy={navigatingTo === "stats"} aria-disabled={navigatingTo === "stats"}>
+        <Link href="/stats" className={navClass("stats")} onClick={handleNavClick("stats")} aria-busy={navigatingTo === "stats"} aria-disabled={navigatingTo === "stats"}>
           成績集計
         </Link>
 
@@ -125,7 +135,7 @@ export function AppHeader({ current }: AppHeaderProps) {
   );
 }
 
-function Menu({ current, setNavigatingTo }: { current: NavTarget; setNavigatingTo: Dispatch<SetStateAction<null | NavTarget>> }) {
+function Menu({ current, setNavigatingTo, navigatingTo }: { current: NavTarget; setNavigatingTo: Dispatch<SetStateAction<null | NavTarget>>; navigatingTo: null | NavTarget }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -178,7 +188,11 @@ function Menu({ current, setNavigatingTo }: { current: NavTarget; setNavigatingT
               size: "sm",
               className: "w-full text-left",
             })}
-            onClick={() => {
+            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              if (current === "admin" || navigatingTo) {
+                e.preventDefault();
+                return;
+              }
               setIsOpen(false);
               setNavigatingTo("admin");
             }}
