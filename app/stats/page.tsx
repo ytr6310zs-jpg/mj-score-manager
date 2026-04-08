@@ -9,6 +9,7 @@ import { fetchPlayerStats } from "@/lib/stats";
 import StatsSortableTable from "@/components/stats-sortable-table";
 import type { PlayerStats } from "@/lib/stats";
 import { computeTopSets, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION } from "@/lib/metric-ranks";
+import { fetchStatsSubtables } from "@/lib/stats-subtables";
 
 type RankSets = { first: string[]; second: string[]; third: string[] };
 
@@ -96,6 +97,11 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
 
   const { stats, error } = await fetchPlayerStats(start, end);
   const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
+  const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
+    start,
+    end,
+    20
+  );
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
@@ -270,6 +276,130 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
               </CsvExportButton>
             </div>
 
+          </div>
+        </div>
+
+        {/* --- 追加: 別表 (役満一覧 / 1対局ランキング) --- */}
+        <div className="rounded-xl border border-white/70 bg-white/90 px-5 py-4 text-sm text-emerald-900/85 shadow backdrop-blur">
+          <h2 className="font-semibold">追加の統計（別表）</h2>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <section className="rounded border p-3">
+              <h3 className="font-medium">役満リスト（最新 {yakumanEvents.length}件）</h3>
+              {yakumanEvents.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-emerald-800">
+                        <th className="px-2 py-1 text-left">日付</th>
+                        <th className="px-2 py-1 text-left">プレイヤー</th>
+                        <th className="px-2 py-1 text-left">役</th>
+                        <th className="px-2 py-1 text-right">点数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {yakumanEvents.map((y, i) => (
+                        <tr key={`${y.gameId}-${i}`} className="border-t">
+                          <td className="px-2 py-1">{y.date}</td>
+                          <td className="px-2 py-1">{y.playerName}</td>
+                          <td className="px-2 py-1">{y.yakumanName}</td>
+                          <td className="px-2 py-1 text-right">{y.points ?? ""}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded border p-3">
+              <h3 className="font-medium">最高得点ランキング（最新 {highestScores.length}件）</h3>
+              {highestScores.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-emerald-800">
+                        <th className="px-2 py-1 text-left">日付</th>
+                        <th className="px-2 py-1 text-left">プレイヤー</th>
+                        <th className="px-2 py-1 text-right">点数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {highestScores.map((r, i) => (
+                        <tr key={`${r.gameId}-${i}`} className="border-t">
+                          <td className="px-2 py-1">{r.date}</td>
+                          <td className="px-2 py-1">{r.playerName}</td>
+                          <td className="px-2 py-1 text-right">{r.score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <section className="rounded border p-3">
+              <h3 className="font-medium">最低得点ランキング（最新 {lowestScores.length}件）</h3>
+              {lowestScores.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-emerald-800">
+                        <th className="px-2 py-1 text-left">日付</th>
+                        <th className="px-2 py-1 text-left">プレイヤー</th>
+                        <th className="px-2 py-1 text-right">点数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lowestScores.map((r, i) => (
+                        <tr key={`${r.gameId}-${i}`} className="border-t">
+                          <td className="px-2 py-1">{r.date}</td>
+                          <td className="px-2 py-1">{r.playerName}</td>
+                          <td className="px-2 py-1 text-right">{r.score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded border p-3">
+              <h3 className="font-medium">最大点差ランキング（最新 {largestSpreads.length}件）</h3>
+              {largestSpreads.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-emerald-800">
+                        <th className="px-2 py-1 text-left">日付</th>
+                        <th className="px-2 py-1 text-left">上位</th>
+                        <th className="px-2 py-1 text-left">下位</th>
+                        <th className="px-2 py-1 text-right">差</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {largestSpreads.map((s, i) => (
+                        <tr key={`${s.gameId}-${i}`} className="border-t">
+                          <td className="px-2 py-1">{s.date}</td>
+                          <td className="px-2 py-1">{s.topPlayerName}</td>
+                          <td className="px-2 py-1">{s.lastPlayerName}</td>
+                          <td className="px-2 py-1 text-right">{s.spread}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </div>
         </div>
 
