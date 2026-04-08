@@ -44,7 +44,15 @@ function score(value: number): string {
   return String(value);
 }
 
-export default function StatsSortableTable({ stats }: { stats: PlayerStats[] }) {
+type RankSets = { first: string[]; second: string[]; third: string[] };
+
+export default function StatsSortableTable({
+  stats,
+  topSets = {},
+}: {
+  stats: PlayerStats[];
+  topSets?: Record<string, RankSets>;
+}) {
   const [sortKey, setSortKey] = useState<SortKey>("totalScore");
   const [direction, setDirection] = useState<SortDirection>("desc");
 
@@ -124,6 +132,25 @@ export default function StatsSortableTable({ stats }: { stats: PlayerStats[] }) 
     return withIndex.map((w) => w.s);
   }, [stats, sortKey, direction]);
 
+  // convert arrays from server into Sets for fast lookup on client
+  const topSetsMap = useMemo(() => {
+    const map: Record<string, { first: Set<string>; second: Set<string>; third: Set<string> }> = {};
+    for (const k in topSets) {
+      const v = topSets[k] as RankSets;
+      map[k] = { first: new Set(v.first || []), second: new Set(v.second || []), third: new Set(v.third || []) };
+    }
+    return map;
+  }, [topSets]);
+
+  const getCellHighlight = (metric: string, playerName: string) => {
+    const sets = topSetsMap[metric];
+    if (!sets) return { cls: "", title: "" };
+    if (sets.first.has(playerName)) return { cls: "bg-yellow-100 text-amber-800", title: "1位" };
+    if (sets.second.has(playerName)) return { cls: "bg-slate-100 text-slate-800", title: "2位" };
+    if (sets.third.has(playerName)) return { cls: "bg-amber-100 text-amber-800", title: "3位" };
+    return { cls: "", title: "" };
+  };
+
   const header = (key: SortKey, label: React.ReactNode, align = "right") => {
     const isActive = sortKey === key;
     return (
@@ -190,21 +217,126 @@ export default function StatsSortableTable({ stats }: { stats: PlayerStats[] }) 
                   {player.rank}
                 </span>
               </td>
-              <td className="px-3 py-2 text-right tabular-nums">{player.games}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{player.topCount}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{player.lastCount}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{pct(player.topRate)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{pct(player.secondRate)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{pct(player.thirdRate)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{pct(player.lastAvoidanceRate)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{player.tobashiCount}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{player.tobiCount}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{player.yakitoriCount}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{player.yakumanCount}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobashiRate)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobiAvoidanceRate)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{pct(player.yakitoriAvoidanceRate)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{pct(player.setaiRate)}</td>
+              {(() => {
+                const h = getCellHighlight("games", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {player.games}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("topCount", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {player.topCount}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("lastCount", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {player.lastCount}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("topRate", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {pct(player.topRate)}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("secondRate", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {pct(player.secondRate)}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("thirdRate", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {pct(player.thirdRate)}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("lastAvoidanceRate", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {pct(player.lastAvoidanceRate)}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("tobashiCount", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {player.tobashiCount}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("tobiCount", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {player.tobiCount}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("yakitoriCount", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {player.yakitoriCount}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("yakumanCount", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {player.yakumanCount}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("tobashiRate", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {pct(player.tobashiRate)}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("tobiAvoidanceRate", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {pct(player.tobiAvoidanceRate)}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("yakitoriAvoidanceRate", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {pct(player.yakitoriAvoidanceRate)}
+                  </td>
+                );
+              })()}
+              {(() => {
+                const h = getCellHighlight("setaiRate", player.name);
+                return (
+                  <td className={`px-3 py-2 text-right tabular-nums ${h.cls}`} title={h.title}>
+                    {pct(player.setaiRate)}
+                  </td>
+                );
+              })()}
             </tr>
           );
         })}

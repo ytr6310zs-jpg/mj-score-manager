@@ -7,6 +7,87 @@ import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
 import StatsSortableTable from "@/components/stats-sortable-table";
+import type { PlayerStats } from "@/lib/stats";
+
+type RankSets = { first: string[]; second: string[]; third: string[] };
+const METRIC_DIRECTION: Record<string, "asc" | "desc"> = {
+  games: "desc",
+  topCount: "desc",
+  topRate: "desc",
+  secondRate: "desc",
+  thirdRate: "desc",
+  lastAvoidanceRate: "desc",
+  tobashiCount: "desc",
+  yakumanCount: "desc",
+  tobashiRate: "desc",
+  tobiAvoidanceRate: "desc",
+  yakitoriAvoidanceRate: "desc",
+  setaiRate: "desc",
+  lastCount: "asc",
+};
+
+const METRICS_TO_HIGHLIGHT = Object.keys(METRIC_DIRECTION);
+
+function getMetricValue(p: PlayerStats, metric: string): number {
+  // safe access, fallback to 0
+  const v = (p as unknown as Record<string, unknown>)[metric];
+  if (v === undefined || v === null) return 0;
+  // ensure boolean-ish or non-number handled
+  return typeof v === "number" ? v : Number(v) || 0;
+}
+
+function computeTopSets(stats: PlayerStats[], metrics: string[], metricDir: Record<string, "asc" | "desc">): Record<string, RankSets> {
+  const out: Record<string, RankSets> = {};
+
+  for (const metric of metrics) {
+    const arr = stats.map((s) => ({ name: s.name, value: getMetricValue(s, metric) }));
+    const dir = metricDir[metric] ?? "desc";
+    arr.sort((a, b) => (dir === "desc" ? b.value - a.value : a.value - b.value));
+
+    // collect up to 3 distinct values
+    const uniq: number[] = [];
+    for (const it of arr) {
+      if (!uniq.includes(it.value)) uniq.push(it.value);
+      if (uniq.length >= 3) break;
+    }
+
+    const firstV = uniq[0];
+    const secondV = uniq[1];
+    const thirdV = uniq[2];
+
+    const first = arr.filter((x) => x.value === firstV).map((x) => x.name);
+    const second = secondV === undefined ? [] : arr.filter((x) => x.value === secondV).map((x) => x.name);
+    const third = thirdV === undefined ? [] : arr.filter((x) => x.value === thirdV).map((x) => x.name);
+
+    out[metric] = { first, second, third };
+  }
+
+  return out;
+}
+
+function renderMedalBadge(topSets: Record<string, RankSets>, metric: string, playerName: string) {
+  const sets = topSets[metric];
+  if (!sets) return null;
+  if (sets.first?.includes(playerName))
+    return (
+      <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 text-yellow-900 text-[10px] font-bold">
+        1
+      </span>
+    );
+  if (sets.second?.includes(playerName))
+    return (
+      <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-300 text-slate-800 text-[10px] font-bold">
+        2
+      </span>
+    );
+  if (sets.third?.includes(playerName))
+    return (
+      <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400/70 text-amber-900 text-[10px] font-bold">
+        3
+      </span>
+    );
+  return null;
+}
 
 export const metadata: Metadata = {
   title: "成績集計 | 麻雀成績入力",
@@ -67,6 +148,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
     mode === "today" ? todayStr : mode === "thisYear" ? yearEnd : Array.isArray(endRaw) ? endRaw[0] : endRaw;
 
   const { stats, error } = await fetchPlayerStats(start, end);
+  const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
@@ -122,59 +204,101 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-emerald-900/85">
                           <div>
                             <dt className="font-semibold">トップ</dt>
-                            <dd>{player.topCount}</dd>
+                            <dd>
+                              {player.topCount}
+                              {renderMedalBadge(topSets, "topCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">ラス</dt>
-                            <dd>{player.lastCount}</dd>
+                            <dd>
+                              {player.lastCount}
+                              {renderMedalBadge(topSets, "lastCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">トップ率</dt>
-                            <dd>{pct(player.topRate)}</dd>
+                            <dd>
+                              {pct(player.topRate)}
+                              {renderMedalBadge(topSets, "topRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">2位率</dt>
-                            <dd>{pct(player.secondRate)}</dd>
+                            <dd>
+                              {pct(player.secondRate)}
+                              {renderMedalBadge(topSets, "secondRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">3位率</dt>
-                            <dd>{pct(player.thirdRate)}</dd>
+                            <dd>
+                              {pct(player.thirdRate)}
+                              {renderMedalBadge(topSets, "thirdRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">ラス回避</dt>
-                            <dd>{pct(player.lastAvoidanceRate)}</dd>
+                            <dd>
+                              {pct(player.lastAvoidanceRate)}
+                              {renderMedalBadge(topSets, "lastAvoidanceRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">飛ばし</dt>
-                            <dd>{player.tobashiCount}</dd>
+                            <dd>
+                              {player.tobashiCount}
+                              {renderMedalBadge(topSets, "tobashiCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">飛び</dt>
-                            <dd>{player.tobiCount}</dd>
+                            <dd>
+                              {player.tobiCount}
+                              {renderMedalBadge(topSets, "tobiCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">焼き鳥</dt>
-                            <dd>{player.yakitoriCount}</dd>
+                            <dd>
+                              {player.yakitoriCount}
+                              {renderMedalBadge(topSets, "yakitoriCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">役満</dt>
-                            <dd>{player.yakumanCount}</dd>
+                            <dd>
+                              {player.yakumanCount}
+                              {renderMedalBadge(topSets, "yakumanCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">接待率</dt>
-                            <dd>{pct(player.setaiRate)}</dd>
+                            <dd>
+                              {pct(player.setaiRate)}
+                              {renderMedalBadge(topSets, "setaiRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">飛ばし率</dt>
-                            <dd>{pct(player.tobashiRate)}</dd>
+                            <dd>
+                              {pct(player.tobashiRate)}
+                              {renderMedalBadge(topSets, "tobashiRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">飛び回避率</dt>
-                            <dd>{pct(player.tobiAvoidanceRate)}</dd>
+                            <dd>
+                              {pct(player.tobiAvoidanceRate)}
+                              {renderMedalBadge(topSets, "tobiAvoidanceRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">焼き鳥回避率</dt>
-                            <dd>{pct(player.yakitoriAvoidanceRate)}</dd>
+                            <dd>
+                              {pct(player.yakitoriAvoidanceRate)}
+                              {renderMedalBadge(topSets, "yakitoriAvoidanceRate", player.name)}
+                            </dd>
                           </div>
                         </dl>
                       </article>
@@ -184,7 +308,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
 
                 <div className="hidden overflow-x-auto md:block">
                   {/* PC: sortable table component */}
-                  <StatsSortableTable stats={stats} />
+                  <StatsSortableTable stats={stats} topSets={topSets} />
                 </div>
               </>
             )}
