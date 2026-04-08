@@ -26,11 +26,7 @@ type SortKey =
 
 // No per-rank row background; rows remain uniform (highlighting moved to badges).
 
-const RANK_BADGE: Record<number, string> = {
-  1: "bg-yellow-400 text-yellow-900",
-  2: "bg-slate-300 text-slate-800",
-  3: "bg-amber-400/70 text-amber-900",
-};
+import { RANK_BADGE } from "@/lib/stats-rank-theme";
 
 // Badge classes used for metric highlights to match rank badge style
 const METRIC_BADGE_CLS = "inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded px-1.5 text-xs font-bold";
