@@ -171,9 +171,6 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                       <th className="px-3 py-2.5 text-left">対局日</th>
                       <th className="px-3 py-2.5 text-center">形式</th>
                       <th className="px-3 py-2.5 text-left">順位 / プレイヤー</th>
-                      <th className="px-3 py-2.5 text-right">合計</th>
-                      <th className="px-3 py-2.5 text-left">飛び/飛ばし</th>
-                      <th className="px-3 py-2.5 text-left">焼き鳥</th>
                       <th className="px-3 py-2.5 text-left">備考</th>
                       <th className="px-3 py-2.5 text-center">操作</th>
                     </tr>
