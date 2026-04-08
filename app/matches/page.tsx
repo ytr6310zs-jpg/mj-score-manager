@@ -8,6 +8,7 @@ import { FlashMessage } from "@/components/flash-message";
 import { MatchDeleteButton } from "@/components/match-delete-button";
 import { buttonVariants } from "@/components/ui/button";
 import { fetchMatchResults, fetchMatchDates, type MatchPlayer } from "@/lib/matches";
+import { resolveFilterParams } from "@/lib/filter-params";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -33,51 +34,13 @@ type SearchParams = { [key: string]: string | string[] | undefined } | undefined
 
 export default async function MatchesPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = await (searchParams as Promise<SearchParams> | undefined);
-  const filterRaw = params?.filter;
-  const modeRaw = params?.mode; // backward compat
-  const startRaw = params?.start;
-  const endRaw = params?.end;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const year = new Date().getFullYear();
-  const yearStart = `${year}-01-01`;
-  const yearEnd = `${year}-12-31`;
-
-  // resolve filter (new param) with backward compatibility for old mode/start/end
-  let filter: string | undefined;
-  if (filterRaw) filter = Array.isArray(filterRaw) ? (filterRaw[0] as string) : (filterRaw as string);
-  else if (modeRaw) {
-    const m = Array.isArray(modeRaw) ? modeRaw[0] : modeRaw;
-    if (m === "thisYear") filter = "year";
-    else if (m === "today") filter = todayStr;
-    else if (m === "range") filter = "custom";
-  } else if (startRaw !== undefined || endRaw !== undefined) {
-    const s = Array.isArray(startRaw) ? (startRaw[0] as string) : (startRaw as string | undefined);
-    const e = Array.isArray(endRaw) ? (endRaw[0] as string) : (endRaw as string | undefined);
-    if (s && e && s === e) filter = s;
-    else filter = "custom";
-  } else {
-    filter = "year";
-  }
-
-  // compute start/end to pass to data fetch
-  let start: string | undefined;
-  let end: string | undefined;
-  const isDate = (s: string | undefined) => !!s && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s);
-  if (filter === "year") {
-    start = yearStart;
-    end = yearEnd;
-  } else if (filter === "custom") {
-    start = Array.isArray(startRaw) ? (startRaw[0] as string | undefined) : (startRaw as string | undefined);
-    end = Array.isArray(endRaw) ? (endRaw[0] as string | undefined) : (endRaw as string | undefined);
-  } else if (isDate(filter)) {
-    start = filter;
-    end = filter;
-  } else {
-    // fallback
-    start = yearStart;
-    end = yearEnd;
-  }
+  const { filter, start, end } = resolveFilterParams({
+    filterRaw: params?.filter,
+    modeRaw: params?.mode,
+    startRaw: params?.start,
+    endRaw: params?.end,
+  });
 
   const { dates: availableDates, error: datesError } = await fetchMatchDates();
   const { matches, error } = await fetchMatchResults(start, end);
