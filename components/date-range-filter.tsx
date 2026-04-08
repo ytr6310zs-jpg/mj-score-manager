@@ -57,8 +57,15 @@ export default function DateRangeFilter({
   const [filter, setFilter] = useState<string>(initial.filter);
   const [start, setStart] = useState<string>(initial.start ?? "");
   const [end, setEnd] = useState<string>(initial.end ?? "");
+  const [isDisabled, setIsDisabled] = useState(true); // 初期状態では disabled
   const formRef = useRef<HTMLFormElement | null>(null);
 
+  // コンポーネント mount 完了時に enabled
+  useEffect(() => {
+    setIsDisabled(false);
+  }, []);
+
+  // Propsが更新された時（別のページから遷移）、状態を初期化
   useEffect(() => {
     const init = computeInitial();
     setFilter(init.filter);
@@ -101,6 +108,9 @@ export default function DateRangeFilter({
       setEnd(yearEnd);
     }
 
+    // フォーム送信時にセレクトを disabled に
+    setIsDisabled(true);
+
     // auto-submit the form for non-custom selections
     setTimeout(() => {
       try {
@@ -133,20 +143,30 @@ export default function DateRangeFilter({
   return (
     <form ref={formRef} method="get" action={actionPath} onSubmit={handleSubmit} className="w-full flex flex-col gap-2 mb-2">
       <div className="flex items-center gap-2 w-full flex-wrap">
-        <select
-          name="filter"
-          value={filter}
-          onChange={(e) => handleFilterChange(e.target.value)}
-          className="rounded border p-1 text-sm h-10 w-36 sm:w-auto"
-        >
-          <option value="year">今年</option>
-          {hasAvailable && availableDates!.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-          <option value="custom">任意</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            name="filter"
+            value={filter}
+            onChange={(e) => handleFilterChange(e.target.value)}
+            disabled={isDisabled}
+            className="rounded border p-1 text-sm h-10 w-36 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="year">今年</option>
+            {hasAvailable && availableDates!.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+            <option value="custom">任意</option>
+          </select>
+
+          {isDisabled && (
+            <div className="flex items-center gap-1">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent"></div>
+              <span className="text-xs text-emerald-600">読込中...</span>
+            </div>
+          )}
+        </div>
 
         {filter === "custom" ? (
           <>
