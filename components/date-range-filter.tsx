@@ -57,13 +57,16 @@ export default function DateRangeFilter({
   const [filter, setFilter] = useState<string>(initial.filter);
   const [start, setStart] = useState<string>(initial.start ?? "");
   const [end, setEnd] = useState<string>(initial.end ?? "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDisabled, setIsDisabled] = useState(true); // 初期状態では disabled
   const formRef = useRef<HTMLFormElement | null>(null);
 
+  // コンポーネント mount 完了時に enabled
   useEffect(() => {
-    // 新ページ読込完了時に自動リセット: Propsが更新されたら即座に操作可能に
-    setIsSubmitting(false);
+    setIsDisabled(false);
+  }, []);
 
+  // Propsが更新された時（別のページから遷移）、状態を初期化
+  useEffect(() => {
     const init = computeInitial();
     setFilter(init.filter);
     setStart(init.start ?? "");
@@ -105,8 +108,8 @@ export default function DateRangeFilter({
       setEnd(yearEnd);
     }
 
-    // Mark as submitting before auto-submit
-    setIsSubmitting(true);
+    // フォーム送信時にセレクトを disabled に
+    setIsDisabled(true);
 
     // auto-submit the form for non-custom selections
     setTimeout(() => {
@@ -145,7 +148,7 @@ export default function DateRangeFilter({
             name="filter"
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value)}
-            disabled={isSubmitting}
+            disabled={isDisabled}
             className="rounded border p-1 text-sm h-10 w-36 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="year">今年</option>
@@ -157,7 +160,7 @@ export default function DateRangeFilter({
             <option value="custom">任意</option>
           </select>
 
-          {isSubmitting && (
+          {isDisabled && (
             <div className="flex items-center gap-1">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent"></div>
               <span className="text-xs text-emerald-600">読込中...</span>
