@@ -106,9 +106,14 @@ export function AppHeader({ current }: AppHeaderProps) {
             role="status"
             aria-live="polite"
             aria-label="画面遷移中"
-            className="ml-2 inline-flex items-center rounded-full border bg-card px-2 py-1"
+            className="ml-2 inline-flex h-7 w-7 items-center justify-center"
           >
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-transparent border-t-current text-primary" aria-hidden />
+            <span
+              className="inline-flex h-6 w-6 origin-center animate-spin items-center justify-center text-[18px] leading-none"
+              aria-hidden
+            >
+              🀄
+            </span>
           </div>
         )}
 
