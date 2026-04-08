@@ -21,12 +21,12 @@ function signedScore(value: number): string {
   return value > 0 ? `+${value}` : `${value}`;
 }
 
-function resultBadge(player: MatchPlayer): string {
-  if (player.rank === 1) return "🏆";
-  if (player.isTobi) return "飛び";
-  if (player.isTobashi) return "飛ばし";
-  if (player.isYakitori) return "焼き鳥";
-  return "";
+function resultBadges(player: MatchPlayer): string[] {
+  const badges: string[] = [];
+  if (player.isTobi) badges.push("飛び");
+  if (player.isTobashi) badges.push("飛ばし");
+  if (player.isYakitori) badges.push("焼き鳥");
+  return badges;
 }
 
 type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
@@ -103,7 +103,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                         <div>
                           <p className="text-sm font-semibold text-emerald-900">{match.date || "-"}</p>
                           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                            {match.gameType.toUpperCase()} / 合計 {signedScore(match.scoreTotal)}
+                            {match.gameType.toUpperCase()}
                           </p>
                         </div>
                         <div className="flex shrink-0 gap-2">
@@ -119,18 +119,32 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
 
                       <ul className="mt-4 space-y-2">
                         {match.players.map((player) => {
-                          const badge = resultBadge(player);
+                          const badges = resultBadges(player);
                           return (
                             <li
                               key={`${match.createdAt}-${player.slot}`}
                               className="rounded-md bg-white/80 px-3 py-2 text-sm"
                             >
                               <div className="flex items-center justify-between gap-3">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <span className="inline-flex min-w-10 justify-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-800">
-                                    {player.rank}位
-                                  </span>
-                                  <span className="truncate font-medium text-emerald-950">{player.name}</span>
+                                <div className="flex min-w-0 flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex min-w-10 justify-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-800">
+                                      {player.rank}位
+                                    </span>
+                                    <span className="truncate font-medium text-emerald-950">{player.name}</span>
+                                  </div>
+                                  {badges.length > 0 ? (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {badges.map((b, i) => (
+                                        <span
+                                          key={i}
+                                          className="inline-flex rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900"
+                                        >
+                                          {b}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : null}
                                 </div>
                                 <span
                                   className={`shrink-0 tabular-nums ${
@@ -140,9 +154,6 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                   {signedScore(player.score)}
                                 </span>
                               </div>
-                              {badge ? (
-                                <p className="mt-2 text-xs font-semibold text-amber-900">{badge}</p>
-                              ) : null}
                               {player.yakumans && player.yakumans.length > 0 ? (
                                 <p className="mt-2">
                                   <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
@@ -156,18 +167,6 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                       </ul>
 
                       <dl className="mt-4 space-y-2 text-xs text-emerald-900/80">
-                        <div>
-                          <dt className="font-semibold text-emerald-900">飛び / 飛ばし</dt>
-                          <dd>
-                            {match.tobiPlayer || match.tobashiPlayer
-                              ? `飛び: ${match.tobiPlayer || "-"} / 飛ばし: ${match.tobashiPlayer || "-"}`
-                              : "-"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="font-semibold text-emerald-900">焼き鳥</dt>
-                          <dd>{match.yakitoriPlayers.length > 0 ? match.yakitoriPlayers.join("、") : "-"}</dd>
-                        </div>
                         <div>
                           <dt className="font-semibold text-emerald-900">備考</dt>
                           <dd className="whitespace-pre-wrap">{match.notes || "-"}</dd>
@@ -184,9 +183,6 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                       <th className="px-3 py-2.5 text-left">対局日</th>
                       <th className="px-3 py-2.5 text-center">形式</th>
                       <th className="px-3 py-2.5 text-left">順位 / プレイヤー</th>
-                      <th className="px-3 py-2.5 text-right">合計</th>
-                      <th className="px-3 py-2.5 text-left">飛び/飛ばし</th>
-                      <th className="px-3 py-2.5 text-left">焼き鳥</th>
                       <th className="px-3 py-2.5 text-left">備考</th>
                       <th className="px-3 py-2.5 text-center">操作</th>
                     </tr>
@@ -206,7 +202,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                         <td className="px-3 py-3">
                           <ul className="space-y-1">
                             {match.players.map((player) => {
-                              const badge = resultBadge(player);
+                              const badges = resultBadges(player);
                               return (
                                 <li key={`${match.createdAt}-${player.slot}`} className="flex items-center gap-2">
                                   <span className="inline-flex min-w-10 justify-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-800">
@@ -218,13 +214,15 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                       player.score >= 0 ? "text-emerald-700" : "text-destructive"
                                     }`}
                                   >
-                                    {signedScore(player.score)}
-                                  </span>
-                                  {badge ? (
-                                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
-                                      {badge}
+                                      {signedScore(player.score)}
                                     </span>
-                                  ) : null}
+                                    {badges.length > 0
+                                      ? badges.map((b, i) => (
+                                          <span key={i} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">
+                                            {b}
+                                          </span>
+                                        ))
+                                      : null}
                                   {player.yakumans && player.yakumans.length > 0 ? (
                                     <span className="ml-2 rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-900">
                                       {player.yakumans.map((y) => y.name).join("、")}
@@ -235,18 +233,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                             })}
                           </ul>
                         </td>
-                        <td className="px-3 py-3 text-right font-semibold tabular-nums text-emerald-800">
-                          {signedScore(match.scoreTotal)}
-                        </td>
-                        <td className="px-3 py-3 text-xs text-emerald-900/80">
-                          {match.tobiPlayer || match.tobashiPlayer
-                            ? `飛び: ${match.tobiPlayer || "-"} / 飛ばし: ${match.tobashiPlayer || "-"}`
-                            : "-"}
-                        </td>
-                        <td className="px-3 py-3 text-xs text-emerald-900/80">
-                          {match.yakitoriPlayers.length > 0 ? match.yakitoriPlayers.join("、") : "-"}
-                        </td>
-                        <td className="px-3 py-3 text-xs text-emerald-900/80">{match.notes || "-"}</td>
+                          <td className="px-3 py-3 text-xs text-emerald-900/80">{match.notes || "-"}</td>
                         <td className="px-3 py-3 text-center">
                           <div className="flex gap-2 justify-center">
                             <Link href={`/matches/${encodeURIComponent(match.createdAt)}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
