@@ -126,11 +126,25 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                               className="rounded-md bg-white/80 px-3 py-2 text-sm"
                             >
                               <div className="flex items-center justify-between gap-3">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <span className="inline-flex min-w-10 justify-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-800">
-                                    {player.rank}位
-                                  </span>
-                                  <span className="truncate font-medium text-emerald-950">{player.name}</span>
+                                <div className="flex min-w-0 flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex min-w-10 justify-center rounded bg-emerald-100 px-1.5 py-0.5 text-xs font-bold text-emerald-800">
+                                      {player.rank}位
+                                    </span>
+                                    <span className="truncate font-medium text-emerald-950">{player.name}</span>
+                                  </div>
+                                  {badges.length > 0 ? (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {badges.map((b, i) => (
+                                        <span
+                                          key={i}
+                                          className="inline-flex rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900"
+                                        >
+                                          {b}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : null}
                                 </div>
                                 <span
                                   className={`shrink-0 tabular-nums ${
@@ -140,18 +154,6 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                   {signedScore(player.score)}
                                 </span>
                               </div>
-                              {badges.length > 0 ? (
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {badges.map((b, i) => (
-                                    <span
-                                      key={i}
-                                      className="inline-flex rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900"
-                                    >
-                                      {b}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : null}
                               {player.yakumans && player.yakumans.length > 0 ? (
                                 <p className="mt-2">
                                   <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
@@ -216,7 +218,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                     </span>
                                     {badges.length > 0
                                       ? badges.map((b, i) => (
-                                          <span key={i} className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
+                                          <span key={i} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">
                                             {b}
                                           </span>
                                         ))
