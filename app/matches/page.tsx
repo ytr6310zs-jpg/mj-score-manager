@@ -22,7 +22,6 @@ function signedScore(value: number): string {
 }
 
 function resultBadge(player: MatchPlayer): string {
-  if (player.rank === 1) return "🏆";
   if (player.isTobi) return "飛び";
   if (player.isTobashi) return "飛ばし";
   if (player.isYakitori) return "焼き鳥";
@@ -103,7 +102,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                         <div>
                           <p className="text-sm font-semibold text-emerald-900">{match.date || "-"}</p>
                           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                            {match.gameType.toUpperCase()} / 合計 {signedScore(match.scoreTotal)}
+                            {match.gameType.toUpperCase()}
                           </p>
                         </div>
                         <div className="flex shrink-0 gap-2">
@@ -156,18 +155,6 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                       </ul>
 
                       <dl className="mt-4 space-y-2 text-xs text-emerald-900/80">
-                        <div>
-                          <dt className="font-semibold text-emerald-900">飛び / 飛ばし</dt>
-                          <dd>
-                            {match.tobiPlayer || match.tobashiPlayer
-                              ? `飛び: ${match.tobiPlayer || "-"} / 飛ばし: ${match.tobashiPlayer || "-"}`
-                              : "-"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="font-semibold text-emerald-900">焼き鳥</dt>
-                          <dd>{match.yakitoriPlayers.length > 0 ? match.yakitoriPlayers.join("、") : "-"}</dd>
-                        </div>
                         <div>
                           <dt className="font-semibold text-emerald-900">備考</dt>
                           <dd className="whitespace-pre-wrap">{match.notes || "-"}</dd>
@@ -235,18 +222,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                             })}
                           </ul>
                         </td>
-                        <td className="px-3 py-3 text-right font-semibold tabular-nums text-emerald-800">
-                          {signedScore(match.scoreTotal)}
-                        </td>
-                        <td className="px-3 py-3 text-xs text-emerald-900/80">
-                          {match.tobiPlayer || match.tobashiPlayer
-                            ? `飛び: ${match.tobiPlayer || "-"} / 飛ばし: ${match.tobashiPlayer || "-"}`
-                            : "-"}
-                        </td>
-                        <td className="px-3 py-3 text-xs text-emerald-900/80">
-                          {match.yakitoriPlayers.length > 0 ? match.yakitoriPlayers.join("、") : "-"}
-                        </td>
-                        <td className="px-3 py-3 text-xs text-emerald-900/80">{match.notes || "-"}</td>
+                          <td className="px-3 py-3 text-xs text-emerald-900/80">{match.notes || "-"}</td>
                         <td className="px-3 py-3 text-center">
                           <div className="flex gap-2 justify-center">
                             <Link href={`/matches/${encodeURIComponent(match.createdAt)}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
