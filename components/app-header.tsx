@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -11,6 +12,24 @@ type AppHeaderProps = {
 };
 
 export function AppHeader({ current }: AppHeaderProps) {
+  const pathname = usePathname();
+  const [navigatingTo, setNavigatingTo] = useState<null | "input" | "matches" | "stats">(null);
+
+  useEffect(() => {
+    // Clear pending state when the pathname changes (navigation finished)
+    setNavigatingTo(null);
+  }, [pathname]);
+
+  function navClass(target: "input" | "matches" | "stats") {
+    const base = buttonVariants({
+      variant: current === target ? "default" : "outline",
+      size: "sm",
+      className: "w-auto",
+    });
+    if (navigatingTo === target) return `${base} opacity-70 cursor-wait`;
+    return base;
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -21,34 +40,13 @@ export function AppHeader({ current }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Link
-          href="/"
-          className={buttonVariants({
-            variant: current === "input" ? "default" : "outline",
-            size: "sm",
-            className: "w-auto",
-          })}
-        >
+        <Link href="/" className={navClass("input")} onClick={() => setNavigatingTo("input")} aria-busy={navigatingTo === "input"}>
           スコア入力
         </Link>
-        <Link
-          href="/matches"
-          className={buttonVariants({
-            variant: current === "matches" ? "default" : "outline",
-            size: "sm",
-            className: "w-auto",
-          })}
-        >
+        <Link href="/matches" className={navClass("matches")} onClick={() => setNavigatingTo("matches")} aria-busy={navigatingTo === "matches"}>
           対局履歴
         </Link>
-        <Link
-          href="/stats"
-          className={buttonVariants({
-            variant: current === "stats" ? "default" : "outline",
-            size: "sm",
-            className: "w-auto",
-          })}
-        >
+        <Link href="/stats" className={navClass("stats")} onClick={() => setNavigatingTo("stats")} aria-busy={navigatingTo === "stats"}>
           成績集計
         </Link>
       </div>

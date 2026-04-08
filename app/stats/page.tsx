@@ -6,6 +6,37 @@ import CsvExportButton from "@/components/csv-export-button";
 import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
+import StatsSortableTable from "@/components/stats-sortable-table";
+import type { PlayerStats } from "@/lib/stats";
+import { computeTopSets, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION } from "@/lib/metric-ranks";
+import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
+import { fetchStatsSubtables } from "@/lib/stats-subtables";
+
+type RankSets = { first: string[]; second: string[]; third: string[] };
+
+function renderMedalBadge(topSets: Record<string, RankSets>, metric: string, playerName: string) {
+  const sets = topSets[metric];
+  if (!sets) return null;
+  if (sets.first?.includes(playerName))
+    return (
+      <span className={`ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full ${RANK_BADGE[1]} text-[10px] font-bold`}>
+        1
+      </span>
+    );
+  if (sets.second?.includes(playerName))
+    return (
+      <span className={`ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full ${RANK_BADGE[2]} text-[10px] font-bold`}>
+        2
+      </span>
+    );
+  if (sets.third?.includes(playerName))
+    return (
+      <span className={`ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full ${RANK_BADGE[3]} text-[10px] font-bold`}>
+        3
+      </span>
+    );
+  return null;
+}
 
 export const metadata: Metadata = {
   title: "成績集計 | 麻雀成績入力",
@@ -22,17 +53,7 @@ function score(value: number): string {
   return String(value);
 }
 
-const RANK_ROW_BG: Record<number, string> = {
-  1: "bg-yellow-50",
-  2: "bg-slate-50",
-  3: "bg-orange-50/60",
-};
-
-const RANK_BADGE: Record<number, string> = {
-  1: "bg-yellow-400 text-yellow-900",
-  2: "bg-slate-300 text-slate-800",
-  3: "bg-amber-400/70 text-amber-900",
-};
+// rank styles are provided by lib/stats-rank-theme
 
 type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
 
@@ -66,6 +87,12 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
     mode === "today" ? todayStr : mode === "thisYear" ? yearEnd : Array.isArray(endRaw) ? endRaw[0] : endRaw;
 
   const { stats, error } = await fetchPlayerStats(start, end);
+  const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
+  const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
+    start,
+    end,
+    5
+  );
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
@@ -78,7 +105,10 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
             <h1 className="text-xl font-bold text-emerald-900">成績集計</h1>
-            <p className="mt-1 text-xs text-emerald-700/70">※ 集計対象：記録済みの全対局</p>
+            <p className="mt-1 text-xs text-emerald-700/70 md:hidden">※ 集計対象：記録済みの全対局</p>
+            <p className="mt-1 text-xs text-emerald-700/70 hidden md:block">
+              ※ 集計対象：記録済みの全対局。PC など横幅のある端末では表の列ヘッダーをクリックして任意の指標で並び替え（ソート）ができます。クリックごとに降順/昇順が切り替わり、アクティブな列は▲/▼で示されます。
+            </p>
           </div>
 
           <div className="p-4">
@@ -118,51 +148,101 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-emerald-900/85">
                           <div>
                             <dt className="font-semibold">トップ</dt>
-                            <dd>{player.topCount}</dd>
+                            <dd>
+                              {player.topCount}
+                              {renderMedalBadge(topSets, "topCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">ラス</dt>
-                            <dd>{player.lastCount}</dd>
+                            <dd>
+                              {player.lastCount}
+                              {renderMedalBadge(topSets, "lastCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">トップ率</dt>
-                            <dd>{pct(player.topRate)}</dd>
+                            <dd>
+                              {pct(player.topRate)}
+                              {renderMedalBadge(topSets, "topRate", player.name)}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">2位率</dt>
+                            <dd>
+                              {pct(player.secondRate)}
+                              {renderMedalBadge(topSets, "secondRate", player.name)}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-semibold">3位率</dt>
+                            <dd>
+                              {pct(player.thirdRate)}
+                              {renderMedalBadge(topSets, "thirdRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">ラス回避</dt>
-                            <dd>{pct(player.lastAvoidanceRate)}</dd>
+                            <dd>
+                              {pct(player.lastAvoidanceRate)}
+                              {renderMedalBadge(topSets, "lastAvoidanceRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">飛ばし</dt>
-                            <dd>{player.tobashiCount}</dd>
+                            <dd>
+                              {player.tobashiCount}
+                              {renderMedalBadge(topSets, "tobashiCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">飛び</dt>
-                            <dd>{player.tobiCount}</dd>
+                            <dd>
+                              {player.tobiCount}
+                              {renderMedalBadge(topSets, "tobiCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">焼き鳥</dt>
-                            <dd>{player.yakitoriCount}</dd>
+                            <dd>
+                              {player.yakitoriCount}
+                              {renderMedalBadge(topSets, "yakitoriCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">役満</dt>
-                            <dd>{player.yakumanCount}</dd>
+                            <dd>
+                              {player.yakumanCount}
+                              {renderMedalBadge(topSets, "yakumanCount", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">接待率</dt>
-                            <dd>{pct(player.setaiRate)}</dd>
+                            <dd>
+                              {pct(player.setaiRate)}
+                              {renderMedalBadge(topSets, "setaiRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">飛ばし率</dt>
-                            <dd>{pct(player.tobashiRate)}</dd>
+                            <dd>
+                              {pct(player.tobashiRate)}
+                              {renderMedalBadge(topSets, "tobashiRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">飛び回避率</dt>
-                            <dd>{pct(player.tobiAvoidanceRate)}</dd>
+                            <dd>
+                              {pct(player.tobiAvoidanceRate)}
+                              {renderMedalBadge(topSets, "tobiAvoidanceRate", player.name)}
+                            </dd>
                           </div>
                           <div>
                             <dt className="font-semibold">焼き鳥回避率</dt>
-                            <dd>{pct(player.yakitoriAvoidanceRate)}</dd>
+                            <dd>
+                              {pct(player.yakitoriAvoidanceRate)}
+                              {renderMedalBadge(topSets, "yakitoriAvoidanceRate", player.name)}
+                            </dd>
                           </div>
                         </dl>
                       </article>
@@ -171,88 +251,8 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                 </div>
 
                 <div className="hidden overflow-x-auto md:block">
-                <table className="min-w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-emerald-800/20 bg-emerald-50/80 text-xs font-semibold text-emerald-900">
-                      <th className="sticky left-0 z-10 bg-emerald-50/80 px-3 py-2.5 text-left">名前</th>
-                      <th className="px-3 py-2.5 text-right">合計</th>
-                      <th className="px-3 py-2.5 text-center">順位</th>
-                      <th className="px-3 py-2.5 text-right">対局数</th>
-                      <th className="px-3 py-2.5 text-right">
-                        トップ
-                        <br />
-                        回数
-                      </th>
-                      <th className="px-3 py-2.5 text-right">
-                        ラス
-                        <br />
-                        回数
-                      </th>
-                      <th className="px-3 py-2.5 text-right">トップ率</th>
-                      <th className="px-3 py-2.5 text-right">ラス回避</th>
-                      <th className="px-3 py-2.5 text-right">飛ばし</th>
-                      <th className="px-3 py-2.5 text-right">飛び</th>
-                      <th className="px-3 py-2.5 text-right">焼き鳥</th>
-                      <th className="px-3 py-2.5 text-right">役満</th>
-                      <th className="px-3 py-2.5 text-right">飛ばし率</th>
-                      <th className="px-3 py-2.5 text-right">
-                        飛び
-                        <br />
-                        回避率
-                      </th>
-                      <th className="px-3 py-2.5 text-right">
-                        焼き鳥
-                        <br />
-                        回避率
-                      </th>
-                      <th className="px-3 py-2.5 text-right">接待率</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.map((player) => {
-                      const rowBg = RANK_ROW_BG[player.rank] ?? "bg-white/60";
-                      const badgeCls = RANK_BADGE[player.rank] ?? "bg-transparent text-foreground";
-
-                      return (
-                        <tr
-                          key={player.name}
-                          className={`border-b border-emerald-100 ${rowBg} transition-colors hover:bg-emerald-50/40`}
-                        >
-                          <td className={`sticky left-0 z-10 px-3 py-2 font-semibold ${rowBg}`}>
-                            {player.name}
-                          </td>
-                          <td
-                            className={`px-3 py-2 text-right font-semibold tabular-nums ${
-                              player.totalScore >= 0 ? "text-emerald-700" : "text-destructive"
-                            }`}
-                          >
-                            {score(player.totalScore)}
-                          </td>
-                          <td className="px-3 py-2 text-center">
-                            <span
-                              className={`inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded px-1.5 text-xs font-bold ${badgeCls}`}
-                            >
-                              {player.rank}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.games}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.topCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.lastCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.topRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.lastAvoidanceRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.tobashiCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.tobiCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.yakitoriCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{player.yakumanCount}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobashiRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.tobiAvoidanceRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.yakitoriAvoidanceRate)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{pct(player.setaiRate)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                  {/* PC: sortable table component */}
+                  <StatsSortableTable stats={stats} topSets={topSets} />
                 </div>
               </>
             )}
@@ -267,6 +267,128 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
               </CsvExportButton>
             </div>
 
+          </div>
+        </div>
+
+        {/* --- 追加: 別表 (役満一覧 / 1対局ランキング) --- */}
+        <div className="rounded-xl border border-white/70 bg-white/90 px-5 py-4 text-sm text-emerald-900/85 shadow backdrop-blur">
+          <h2 className="font-semibold">追加の統計（別表）</h2>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <section className="rounded border p-3">
+              <h3 className="font-medium">役満リスト（最新 {yakumanEvents.length}件）</h3>
+              {yakumanEvents.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-emerald-800">
+                        <th className="px-2 py-1 text-left">日付</th>
+                        <th className="px-2 py-1 text-left">プレイヤー</th>
+                        <th className="px-2 py-1 text-left">役</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {yakumanEvents.map((y, i) => (
+                        <tr key={`${y.gameId}-${i}`} className="border-t">
+                          <td className="px-2 py-1">{y.date}</td>
+                          <td className="px-2 py-1">{y.playerName}</td>
+                          <td className="px-2 py-1">{y.yakumanName}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded border p-3">
+              <h3 className="font-medium">最高得点ランキング（最新 {highestScores.length}件）</h3>
+              {highestScores.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-emerald-800">
+                        <th className="px-2 py-1 text-left">日付</th>
+                        <th className="px-2 py-1 text-left">プレイヤー</th>
+                        <th className="px-2 py-1 text-right">点数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {highestScores.map((r, i) => (
+                        <tr key={`${r.gameId}-${i}`} className="border-t">
+                          <td className="px-2 py-1">{r.date}</td>
+                          <td className="px-2 py-1">{r.playerName}</td>
+                          <td className="px-2 py-1 text-right">{r.score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <section className="rounded border p-3">
+              <h3 className="font-medium">最低得点ランキング（最新 {lowestScores.length}件）</h3>
+              {lowestScores.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-emerald-800">
+                        <th className="px-2 py-1 text-left">日付</th>
+                        <th className="px-2 py-1 text-left">プレイヤー</th>
+                        <th className="px-2 py-1 text-right">点数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lowestScores.map((r, i) => (
+                        <tr key={`${r.gameId}-${i}`} className="border-t">
+                          <td className="px-2 py-1">{r.date}</td>
+                          <td className="px-2 py-1">{r.playerName}</td>
+                          <td className="px-2 py-1 text-right">{r.score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded border p-3">
+              <h3 className="font-medium">最大点差ランキング（最新 {largestSpreads.length}件）</h3>
+              {largestSpreads.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
+              ) : (
+                <div className="overflow-x-auto mt-2">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-emerald-800">
+                        <th className="px-2 py-1 text-left">日付</th>
+                        <th className="px-2 py-1 text-left">上位</th>
+                        <th className="px-2 py-1 text-left">下位</th>
+                        <th className="px-2 py-1 text-right">差</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {largestSpreads.map((s, i) => (
+                        <tr key={`${s.gameId}-${i}`} className="border-t">
+                          <td className="px-2 py-1">{s.date}</td>
+                          <td className="px-2 py-1">{s.topPlayerName}</td>
+                          <td className="px-2 py-1">{s.lastPlayerName}</td>
+                          <td className="px-2 py-1 text-right">{s.spread}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </div>
         </div>
 

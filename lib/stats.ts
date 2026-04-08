@@ -16,6 +16,8 @@ export type PlayerStats = {
   tobashiRate: number;
   tobiAvoidanceRate: number;
   yakitoriAvoidanceRate: number;
+  secondRate: number;
+  thirdRate: number;
   /** 接待率 = (対局数 - トップ回数 - ラス回数) / 対局数 */
   setaiRate: number;
 };
@@ -29,6 +31,8 @@ type PlayerAccumulator = {
   tobiCount: number;
   yakitoriCount: number;
   yakumanCount: number;
+  secondCount: number;
+  thirdCount: number;
 };
 
 // Removed unused helpers `toBool` and `toInt` to clean ESLint warnings.
@@ -59,6 +63,8 @@ export async function fetchPlayerStats(startDate?: string, endDate?: string): Pr
             tobiCount: 0,
             yakitoriCount: 0,
             yakumanCount: 0,
+            secondCount: 0,
+            thirdCount: 0,
           });
         }
 
@@ -67,6 +73,8 @@ export async function fetchPlayerStats(startDate?: string, endDate?: string): Pr
         acc.games += 1;
         if (p.rank === 1) acc.topCount += 1;
         if (p.rank === playerCount) acc.lastCount += 1;
+        if (p.rank === 2) acc.secondCount += 1;
+        if (p.rank === 3) acc.thirdCount += 1;
         if (p.isTobashi) acc.tobashiCount += 1;
         if (p.isTobi) acc.tobiCount += 1;
         if (p.isYakitori) acc.yakitoriCount += 1;
@@ -94,6 +102,8 @@ export async function fetchPlayerStats(startDate?: string, endDate?: string): Pr
         yakitoriCount: s.yakitoriCount,
         yakumanCount: s.yakumanCount,
         topRate: games > 0 ? s.topCount / games : 0,
+        secondRate: games > 0 ? s.secondCount / games : 0,
+        thirdRate: games > 0 ? s.thirdCount / games : 0,
         lastAvoidanceRate: games > 0 ? 1 - s.lastCount / games : 0,
         tobashiRate: games > 0 ? s.tobashiCount / games : 0,
         tobiAvoidanceRate: games > 0 ? 1 - s.tobiCount / games : 0,

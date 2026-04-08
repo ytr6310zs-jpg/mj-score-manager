@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createClient } from "@supabase/supabase-js";
 
 import { AppHeader } from "@/components/app-header";
@@ -23,7 +25,10 @@ async function fetchPlayers(): Promise<PlayerRow[]> {
 
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
   const { data, error } = await supabase.from("players").select("id,name,created_at").order("id", { ascending: true });
-  if (error || !data) return [];
+  if (error) {
+    console.error("fetchPlayers supabase error:", error);
+  }
+  if (!data) return [];
 
   const rows = data as Array<{ id: number; name: string; created_at: string | null }>;
   return rows.map((r) => ({ id: Number(r.id), name: String(r.name ?? ""), created_at: r.created_at ?? null }));
