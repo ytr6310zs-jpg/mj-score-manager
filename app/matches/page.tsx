@@ -21,11 +21,12 @@ function signedScore(value: number): string {
   return value > 0 ? `+${value}` : `${value}`;
 }
 
-function resultBadge(player: MatchPlayer): string {
-  if (player.isTobi) return "飛び";
-  if (player.isTobashi) return "飛ばし";
-  if (player.isYakitori) return "焼き鳥";
-  return "";
+function resultBadges(player: MatchPlayer): string[] {
+  const badges: string[] = [];
+  if (player.isTobi) badges.push("飛び");
+  if (player.isTobashi) badges.push("飛ばし");
+  if (player.isYakitori) badges.push("焼き鳥");
+  return badges;
 }
 
 type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
@@ -118,7 +119,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
 
                       <ul className="mt-4 space-y-2">
                         {match.players.map((player) => {
-                          const badge = resultBadge(player);
+                          const badges = resultBadges(player);
                           return (
                             <li
                               key={`${match.createdAt}-${player.slot}`}
@@ -139,8 +140,17 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                   {signedScore(player.score)}
                                 </span>
                               </div>
-                              {badge ? (
-                                <p className="mt-2 text-xs font-semibold text-amber-900">{badge}</p>
+                              {badges.length > 0 ? (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {badges.map((b, i) => (
+                                    <span
+                                      key={i}
+                                      className="inline-flex rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900"
+                                    >
+                                      {b}
+                                    </span>
+                                  ))}
+                                </div>
                               ) : null}
                               {player.yakumans && player.yakumans.length > 0 ? (
                                 <p className="mt-2">
@@ -202,13 +212,15 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                                       player.score >= 0 ? "text-emerald-700" : "text-destructive"
                                     }`}
                                   >
-                                    {signedScore(player.score)}
-                                  </span>
-                                  {badge ? (
-                                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
-                                      {badge}
+                                      {signedScore(player.score)}
                                     </span>
-                                  ) : null}
+                                    {resultBadges(player).length > 0
+                                      ? resultBadges(player).map((b, i) => (
+                                          <span key={i} className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
+                                            {b}
+                                          </span>
+                                        ))
+                                      : null}
                                   {player.yakumans && player.yakumans.length > 0 ? (
                                     <span className="ml-2 rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[11px] font-semibold text-sky-900">
                                       {player.yakumans.map((y) => y.name).join("、")}
