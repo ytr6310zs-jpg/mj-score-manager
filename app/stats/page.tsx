@@ -79,7 +79,8 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
             <h1 className="text-xl font-bold text-emerald-900">成績集計</h1>
-            <p className="mt-1 text-xs text-emerald-700/70">
+            <p className="mt-1 text-xs text-emerald-700/70 md:hidden">※ 集計対象：記録済みの全対局</p>
+            <p className="mt-1 text-xs text-emerald-700/70 hidden md:block">
               ※ 集計対象：記録済みの全対局。PC など横幅のある端末では表の列ヘッダーをクリックして任意の指標で並び替え（ソート）ができます。クリックごとに降順/昇順が切り替わり、アクティブな列は▲/▼で示されます。
             </p>
           </div>
