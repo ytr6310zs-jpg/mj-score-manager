@@ -8,7 +8,8 @@ const IMPORT_NOTE_PREFIX = "CSV_IMPORT";
 const SCORE_TOLERANCE = 1;
 const YAKUMAN_CODE_RULES = [
   { keyword: "国士", code: "KY" },
-  { keyword: "大三", code: "DA" },
+  // use full canonical name
+  { keyword: "大三元", code: "DA" },
   { keyword: "四単", code: "ST" },
   { keyword: "四暗", code: "SS" },
   { keyword: "数え", code: "KZ" },
