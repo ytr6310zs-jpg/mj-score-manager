@@ -7,7 +7,8 @@ import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { MatchDeleteButton } from "@/components/match-delete-button";
 import { buttonVariants } from "@/components/ui/button";
-import { fetchMatchResults, type MatchPlayer } from "@/lib/matches";
+import { fetchMatchResults, fetchMatchDates, type MatchPlayer } from "@/lib/matches";
+import { resolveFilterParams } from "@/lib/filter-params";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -33,33 +34,15 @@ type SearchParams = { [key: string]: string | string[] | undefined } | undefined
 
 export default async function MatchesPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = await (searchParams as Promise<SearchParams> | undefined);
-  const modeRaw = params?.mode;
-  const startRaw = params?.start;
-  const endRaw = params?.end;
-  const todayParam = params?.today;
-  const thisYearParam = params?.thisYear;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const year = new Date().getFullYear();
-  const yearStart = `${year}-01-01`;
-  const yearEnd = `${year}-12-31`;
+  const { filter, start, end } = resolveFilterParams({
+    filterRaw: params?.filter,
+    modeRaw: params?.mode,
+    startRaw: params?.start,
+    endRaw: params?.end,
+  });
 
-  let mode: "today" | "thisYear" | "range" = "thisYear";
-  if (modeRaw) {
-    mode = Array.isArray(modeRaw) ? (modeRaw[0] as "today" | "thisYear" | "range") : (modeRaw as "today" | "thisYear" | "range");
-  } else if (todayParam !== undefined) {
-    mode = "today";
-  } else if (thisYearParam !== undefined) {
-    mode = "thisYear";
-  } else if (startRaw !== undefined || endRaw !== undefined) {
-    mode = "range";
-  }
-
-  const start =
-    mode === "today" ? todayStr : mode === "thisYear" ? yearStart : Array.isArray(startRaw) ? startRaw[0] : startRaw;
-  const end =
-    mode === "today" ? todayStr : mode === "thisYear" ? yearEnd : Array.isArray(endRaw) ? endRaw[0] : endRaw;
-
+  const { dates: availableDates, error: datesError } = await fetchMatchDates();
   const { matches, error } = await fetchMatchResults(start, end);
 
   return (
@@ -80,9 +63,15 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
 
           <div className="p-4">
             {/* client-side date filter that sets start/end when '当日' is checked */}
-            <div className="flex items-end gap-4">
+                <div className="flex items-end gap-4">
               <div className="flex-1">
-                <DateRangeFilter initialMode={mode} initialStart={start} initialEnd={end} actionPath="/matches" />
+                <DateRangeFilter
+                  initialFilter={filter}
+                  initialStart={start}
+                  initialEnd={end}
+                  actionPath="/matches"
+                  availableDates={datesError ? undefined : availableDates}
+                />
               </div>
             </div>
             {error ? (

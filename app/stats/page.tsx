@@ -11,6 +11,8 @@ import type { PlayerStats } from "@/lib/stats";
 import { computeTopSets, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION } from "@/lib/metric-ranks";
 import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
+import { fetchMatchDates } from "@/lib/matches";
+import { resolveFilterParams } from "@/lib/filter-params";
 
 type RankSets = { first: string[]; second: string[]; third: string[] };
 
@@ -59,33 +61,15 @@ type SearchParams = { [key: string]: string | string[] | undefined } | undefined
 
 export default async function StatsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = await (searchParams as Promise<SearchParams> | undefined);
-  const modeRaw = params?.mode;
-  const startRaw = params?.start;
-  const endRaw = params?.end;
-  const todayParam = params?.today;
-  const thisYearParam = params?.thisYear;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const year = new Date().getFullYear();
-  const yearStart = `${year}-01-01`;
-  const yearEnd = `${year}-12-31`;
+  const { filter, start, end } = resolveFilterParams({
+    filterRaw: params?.filter,
+    modeRaw: params?.mode,
+    startRaw: params?.start,
+    endRaw: params?.end,
+  });
 
-  let mode: "today" | "thisYear" | "range" = "thisYear";
-  if (modeRaw) {
-    mode = Array.isArray(modeRaw) ? (modeRaw[0] as "today" | "thisYear" | "range") : (modeRaw as "today" | "thisYear" | "range");
-  } else if (todayParam !== undefined) {
-    mode = "today";
-  } else if (thisYearParam !== undefined) {
-    mode = "thisYear";
-  } else if (startRaw !== undefined || endRaw !== undefined) {
-    mode = "range";
-  }
-
-  const start =
-    mode === "today" ? todayStr : mode === "thisYear" ? yearStart : Array.isArray(startRaw) ? startRaw[0] : startRaw;
-  const end =
-    mode === "today" ? todayStr : mode === "thisYear" ? yearEnd : Array.isArray(endRaw) ? endRaw[0] : endRaw;
-
+  const { dates: availableDates, error: datesError } = await fetchMatchDates();
   const { stats, error } = await fetchPlayerStats(start, end);
   const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
@@ -115,7 +99,13 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
             {/* client-side date filter that sets start/end when '当日' is checked */}
             <div className="flex items-end gap-4">
               <div className="flex-1">
-                <DateRangeFilter initialMode={mode} initialStart={start} initialEnd={end} actionPath="/stats" />
+                <DateRangeFilter
+                  initialFilter={filter}
+                  initialStart={start}
+                  initialEnd={end}
+                  actionPath="/stats"
+                  availableDates={datesError ? undefined : availableDates}
+                />
               </div>
             </div>
             {error ? (
