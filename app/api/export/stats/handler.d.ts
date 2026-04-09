@@ -30,3 +30,11 @@ export function makeStatsResponse(
     "Content-Disposition": string;
   };
 };
+
+export function parseMinGames(raw: string | null): number | undefined;
+
+export function resolveStatsExportParams(url: URL): {
+  start: string;
+  end: string;
+  minGames: number | undefined;
+};

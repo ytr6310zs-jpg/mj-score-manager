@@ -1,13 +1,38 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 
-import { buildStatsCsv } from "../app/api/export/stats/csv-builder.js";
+import { buildStatsCsv } from '../app/api/export/stats/csv-builder.js';
+import { makeStatsResponse, parseMinGames, resolveStatsExportParams } from '../app/api/export/stats/handler.js';
 
-describe("stats CSV builder", () => {
-  it("builds CSV with header and rows", () => {
+describe('stats export handler rules', () => {
+  it('parses minGames safely', () => {
+    assert.strictEqual(parseMinGames('20'), 20);
+    assert.strictEqual(parseMinGames('0'), 0);
+    assert.strictEqual(parseMinGames(''), undefined);
+    assert.strictEqual(parseMinGames(null), undefined);
+    assert.strictEqual(parseMinGames('-1'), undefined);
+    assert.strictEqual(parseMinGames('abc'), undefined);
+    assert.strictEqual(parseMinGames('1.5'), undefined);
+  });
+
+  it('resolves export params from URL', () => {
+    const url = new URL('http://localhost/api/export/stats?start=2026-01-01&end=2026-12-31&minGames=20');
+    const params = resolveStatsExportParams(url);
+    assert.deepStrictEqual(params, {
+      start: '2026-01-01',
+      end: '2026-12-31',
+      minGames: 20,
+    });
+
+    const noMinUrl = new URL('http://localhost/api/export/stats?start=2026-01-01&end=2026-12-31&minGames=');
+    const noMinParams = resolveStatsExportParams(noMinUrl);
+    assert.strictEqual(noMinParams.minGames, undefined);
+  });
+
+  it('builds CSV payload and response headers', () => {
     const stats = [
       {
-        name: "Alice",
+        name: 'Alice',
         rank: 1,
         totalScore: 120,
         games: 6,
@@ -27,7 +52,7 @@ describe("stats CSV builder", () => {
         setaiRate: 0.3333333333,
       },
       {
-        name: "Bob",
+        name: 'Bob',
         rank: 1,
         totalScore: 120,
         games: 5,
@@ -47,7 +72,7 @@ describe("stats CSV builder", () => {
         setaiRate: 0.4,
       },
       {
-        name: "Carol",
+        name: 'Carol',
         rank: 3,
         totalScore: 80,
         games: 4,
@@ -68,12 +93,21 @@ describe("stats CSV builder", () => {
       },
     ];
 
-    const { csv, filename } = buildStatsCsv(stats, { start: "2026-01-01", end: "2026-12-31" });
+    const builderResult = buildStatsCsv(stats, { start: '2026-01-01', end: '2026-12-31' });
+    assert.ok(builderResult.csv.includes('Alice,1,120'), 'builder row contains Alice');
+    assert.ok(builderResult.csv.includes('Bob,1,120'), 'builder keeps tie rank');
+    assert.ok(builderResult.csv.includes('Carol,3,80'), 'builder keeps competition rank skip');
+    assert.strictEqual(builderResult.filename, 'player-stats_2026-01-01_2026-12-31.csv');
 
-    assert.ok(csv.includes("name,rank,totalScore"), "header present");
-    assert.ok(csv.includes("Alice,1,120"), "row contains Alice");
-    assert.ok(csv.includes("Bob,1,120"), "tie rank row contains Bob rank 1");
-    assert.ok(csv.includes("Carol,3,80"), "competition rank skip is represented");
-    assert.strictEqual(filename, "player-stats_2026-01-01_2026-12-31.csv");
+    const { csv, filename, headers } = makeStatsResponse(stats, {
+      start: '2026-01-01',
+      end: '2026-12-31',
+    });
+
+    assert.strictEqual(filename, 'player-stats_2026-01-01_2026-12-31.csv');
+    assert.strictEqual(headers['Content-Type'], 'text/csv; charset=utf-8');
+    assert.ok(headers['Content-Disposition'].includes(filename));
+    assert.ok(csv.includes('name,rank,totalScore,games'), 'CSV header exists');
+    assert.ok(csv.includes('Alice,1,120'), 'CSV row exists');
   });
 });
