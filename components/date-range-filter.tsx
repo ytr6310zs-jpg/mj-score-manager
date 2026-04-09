@@ -152,7 +152,10 @@ export default function DateRangeFilter({
     if (filter === "custom" && start && end && start > end) {
       e.preventDefault();
       showInvalidDateFlash();
+      return;
     }
+
+    setIsDisabled(true);
   }
 
   const hasAvailable = Array.isArray(availableDates) && availableDates.length > 0;
@@ -166,7 +169,8 @@ export default function DateRangeFilter({
             name="filter"
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="h-10 w-auto rounded border p-1 text-sm"
+            disabled={isDisabled}
+            className="h-10 w-auto rounded border p-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="year">今年</option>
             {hasAvailable && availableDates!.map((date) => (
@@ -189,7 +193,8 @@ export default function DateRangeFilter({
           <select
             value={minGames}
             onChange={(e) => handleMinGamesChange(e.target.value)}
-            className="h-10 w-auto rounded border p-1 text-sm"
+            disabled={isDisabled}
+            className="h-10 w-auto rounded border p-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="試合数フィルタ"
           >
             <option value="">試合数：条件なし</option>
