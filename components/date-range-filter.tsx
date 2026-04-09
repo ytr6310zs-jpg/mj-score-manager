@@ -149,7 +149,7 @@ export default function DateRangeFilter({
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value)}
             disabled={isDisabled}
-            className="rounded border p-1 text-sm h-10 w-36 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded border p-1 text-sm h-10 w-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="year">今年</option>
             {hasAvailable && availableDates!.map((d) => (
@@ -169,7 +169,7 @@ export default function DateRangeFilter({
         </div>
 
         {filter === "custom" ? (
-          <>
+          <div className="flex w-full items-center gap-2 flex-wrap sm:w-auto sm:flex-nowrap">
             <input
               name="start"
               type="date"
@@ -196,7 +196,7 @@ export default function DateRangeFilter({
             >
               絞込
             </button>
-          </>
+          </div>
         ) : (
           // keep hidden inputs so CSV export and server can read start/end
           <>
