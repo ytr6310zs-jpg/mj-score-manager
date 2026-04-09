@@ -11,6 +11,7 @@ type Props = {
   initialEnd?: string | null;
   actionPath?: string;
   availableDates?: string[];
+  initialMinGames?: string;
 };
 
 export default function DateRangeFilter({
@@ -20,6 +21,7 @@ export default function DateRangeFilter({
   initialEnd,
   actionPath,
   availableDates,
+  initialMinGames,
 }: Props) {
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -57,6 +59,7 @@ export default function DateRangeFilter({
   const [filter, setFilter] = useState<string>(initial.filter);
   const [start, setStart] = useState<string>(initial.start ?? "");
   const [end, setEnd] = useState<string>(initial.end ?? "");
+  const [minGames, setMinGames] = useState<string>(initialMinGames ?? "");
   const [isDisabled, setIsDisabled] = useState(true); // 初期状態では disabled
   const formRef = useRef<HTMLFormElement | null>(null);
 
@@ -71,8 +74,9 @@ export default function DateRangeFilter({
     setFilter(init.filter);
     setStart(init.start ?? "");
     setEnd(init.end ?? "");
+    setMinGames(initialMinGames ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFilter, initialMode, initialStart, initialEnd]);
+  }, [initialFilter, initialMode, initialStart, initialEnd, initialMinGames]);
 
   const showInvalidDateFlash = useCallback(() => {
     try {
@@ -167,6 +171,18 @@ export default function DateRangeFilter({
             </div>
           )}
         </div>
+
+        <select
+          name="minGames"
+          value={minGames}
+          onChange={(e) => setMinGames(e.target.value)}
+          disabled={isDisabled}
+          className="rounded border p-1 text-sm h-10 w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="試合数フィルタ"
+        >
+          <option value="">試合数：条件なし</option>
+          <option value="20">試合数：20試合以上</option>
+        </select>
 
         {filter === "custom" ? (
           <div className="flex w-full items-center gap-2 flex-wrap sm:w-auto sm:flex-nowrap">

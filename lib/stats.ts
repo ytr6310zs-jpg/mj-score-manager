@@ -37,7 +37,11 @@ type PlayerAccumulator = {
 
 // Removed unused helpers `toBool` and `toInt` to clean ESLint warnings.
 
-export async function fetchPlayerStats(startDate?: string, endDate?: string): Promise<{
+export async function fetchPlayerStats(
+  startDate?: string,
+  endDate?: string,
+  minGames?: number
+): Promise<{
   stats: PlayerStats[];
   error: string | null;
 }> {
@@ -86,7 +90,7 @@ export async function fetchPlayerStats(startDate?: string, endDate?: string): Pr
       .filter(([, s]) => s.games > 0)
       .sort(([, a], [, b]) => b.totalScore - a.totalScore);
 
-    const stats: PlayerStats[] = sorted.map(([name, s], index) => {
+    let stats: PlayerStats[] = sorted.map(([name, s], index) => {
       const { games } = s;
       const middleCount = games - s.topCount - s.lastCount;
 
@@ -111,6 +115,16 @@ export async function fetchPlayerStats(startDate?: string, endDate?: string): Pr
         setaiRate: games > 0 ? middleCount / games : 0,
       };
     });
+
+    // Apply minGames filter if specified
+    if (typeof minGames === "number") {
+      stats = stats.filter((player) => player.games >= minGames);
+      // Re-rank after filtering
+      stats = stats.map((player, index) => ({
+        ...player,
+        rank: index + 1,
+      }));
+    }
 
     return { stats, error: null };
   } catch {

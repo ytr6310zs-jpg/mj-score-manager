@@ -13,8 +13,14 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const start = url.searchParams.get("start") ?? "";
   const end = url.searchParams.get("end") ?? "";
+  const minGamesRaw = url.searchParams.get("minGames");
+  let minGames: number | undefined;
+  const minGamesParsed = Number(minGamesRaw);
+  if (Number.isInteger(minGamesParsed) && minGamesParsed >= 0) {
+    minGames = minGamesParsed;
+  }
 
-  const { stats, error } = await fetchPlayerStats(start || undefined, end || undefined);
+  const { stats, error } = await fetchPlayerStats(start || undefined, end || undefined, minGames);
   if (error) {
     return new Response(JSON.stringify({ error }), { status: 500, headers: { "Content-Type": "application/json" } });
   }

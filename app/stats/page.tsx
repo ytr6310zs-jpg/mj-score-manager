@@ -62,15 +62,16 @@ type SearchParams = { [key: string]: string | string[] | undefined } | undefined
 export default async function StatsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = await (searchParams as Promise<SearchParams> | undefined);
 
-  const { filter, start, end } = resolveFilterParams({
+  const { filter, start, end, minGames } = resolveFilterParams({
     filterRaw: params?.filter,
     modeRaw: params?.mode,
     startRaw: params?.start,
     endRaw: params?.end,
+    minGamesRaw: params?.minGames,
   });
 
   const { dates: availableDates, error: datesError } = await fetchMatchDates();
-  const { stats, error } = await fetchPlayerStats(start, end);
+  const { stats, error } = await fetchPlayerStats(start, end, minGames);
   const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
     start,
@@ -103,6 +104,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                   initialFilter={filter}
                   initialStart={start}
                   initialEnd={end}
+                  initialMinGames={typeof minGames === "number" ? String(minGames) : undefined}
                   actionPath="/stats"
                   availableDates={datesError ? undefined : availableDates}
                 />

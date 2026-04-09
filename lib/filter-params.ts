@@ -9,16 +9,18 @@ export interface FilterParamConfig {
   modeRaw: unknown;
   startRaw: unknown;
   endRaw: unknown;
+  minGamesRaw?: unknown;
 }
 
 export interface FilterParamResult {
   filter: string; // 'year' | 'custom' | 'YYYY-MM-DD'
   start: string;
   end: string;
+  minGames?: number;
 }
 
 export function resolveFilterParams(config: FilterParamConfig): FilterParamResult {
-  const { filterRaw, modeRaw, startRaw, endRaw } = config;
+  const { filterRaw, modeRaw, startRaw, endRaw, minGamesRaw } = config;
 
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -88,5 +90,15 @@ export function resolveFilterParams(config: FilterParamConfig): FilterParamResul
     end = yearEnd;
   }
 
-  return { filter, start, end };
+  // Parse and validate minGames
+  let minGames: number | undefined;
+  if (minGamesRaw) {
+    const raw = Array.isArray(minGamesRaw) ? minGamesRaw[0] : minGamesRaw;
+    const parsed = Number(raw);
+    if (Number.isInteger(parsed) && parsed >= 0) {
+      minGames = parsed;
+    }
+  }
+
+  return { filter, start, end, minGames };
 }
