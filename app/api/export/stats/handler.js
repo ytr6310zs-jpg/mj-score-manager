@@ -1,11 +1,4 @@
-function escapeCsv(value) {
-  if (value === null || value === undefined) return "";
-  const s = String(value);
-  if (s.includes(",") || s.includes("\n") || s.includes('"')) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
+import { buildStatsCsv } from "./csv-builder.js";
 
 export function parseMinGames(raw) {
   if (raw === null || String(raw).trim() === "") {
@@ -29,58 +22,16 @@ export function resolveStatsExportParams(url) {
   };
 }
 
-export function makeStatsResponse(stats, { start, end }) {
-  const headers = [
-    "name",
-    "rank",
-    "totalScore",
-    "games",
-    "topCount",
-    "lastCount",
-    "secondRate",
-    "thirdRate",
-    "tobashiCount",
-    "tobiCount",
-    "yakitoriCount",
-    "yakumanCount",
-    "topRate",
-    "lastAvoidanceRate",
-    "tobashiRate",
-    "tobiAvoidanceRate",
-    "yakitoriAvoidanceRate",
-    "setaiRate",
-  ];
-
-  const rows = [headers.join(",")];
-  for (const p of stats) {
-    rows.push([
-      escapeCsv(p.name),
-      escapeCsv(p.rank),
-      escapeCsv(p.totalScore),
-      escapeCsv(p.games),
-      escapeCsv(p.topCount),
-      escapeCsv(p.lastCount),
-      escapeCsv(p.secondRate),
-      escapeCsv(p.thirdRate),
-      escapeCsv(p.tobashiCount),
-      escapeCsv(p.tobiCount),
-      escapeCsv(p.yakitoriCount),
-      escapeCsv(p.yakumanCount),
-      escapeCsv(p.topRate),
-      escapeCsv(p.lastAvoidanceRate),
-      escapeCsv(p.tobashiRate),
-      escapeCsv(p.tobiAvoidanceRate),
-      escapeCsv(p.yakitoriAvoidanceRate),
-      escapeCsv(p.setaiRate),
-    ].join(","));
-  }
-
-  const csv = rows.join("\r\n");
-  const filename = `player-stats_${start || "all"}_${end || "all"}.csv`;
-  const responseHeaders = {
+/**
+ * Build response payload for stats export from player stats array.
+ * @param {Array} stats
+ * @param {{start?:string,end?:string}} opts
+ */
+export function makeStatsResponse(stats, opts = {}) {
+  const { csv, filename } = buildStatsCsv(stats, opts);
+  const headers = {
     "Content-Type": "text/csv; charset=utf-8",
     "Content-Disposition": `attachment; filename="${filename}"`,
   };
-
-  return { csv, filename, headers: responseHeaders };
+  return { csv, filename, headers };
 }

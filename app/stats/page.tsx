@@ -7,7 +7,6 @@ import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
 import StatsSortableTable from "@/components/stats-sortable-table";
-import type { PlayerStats } from "@/lib/stats";
 import { computeTopSets, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION } from "@/lib/metric-ranks";
 import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";

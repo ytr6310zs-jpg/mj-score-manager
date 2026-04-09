@@ -15,7 +15,7 @@ describe('computeTopSets', () => {
     assert.deepStrictEqual(s.games.third, ['C']);
   });
 
-  it('handles ties correctly', () => {
+  it('handles ties with competition rank semantics', () => {
     const stats = [
       { name: 'A', games: 5 },
       { name: 'B', games: 5 },
@@ -24,7 +24,8 @@ describe('computeTopSets', () => {
     ];
     const s = computeTopSets(stats, ['games'], METRIC_DIRECTION);
     assert.deepStrictEqual(new Set(s.games.first), new Set(['A', 'B']));
-    assert.deepStrictEqual(s.games.second, ['C']);
+    assert.deepStrictEqual(s.games.second, []);
+    assert.deepStrictEqual(s.games.third, ['C']);
   });
 
   it('respects asc direction for lastCount', () => {

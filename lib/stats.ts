@@ -1,4 +1,5 @@
 import { fetchMatchResults } from "./matches";
+import { sortAndAssignCompetitionRank } from "./stats-ranking";
 
 export type PlayerStats = {
   name: string;
@@ -86,17 +87,20 @@ export async function fetchPlayerStats(
       }
     }
 
-    const sorted = Array.from(playerMap.entries())
+    const rows = Array.from(playerMap.entries())
       .filter(([, s]) => s.games > 0)
-      .sort(([, a], [, b]) => b.totalScore - a.totalScore);
+      .map(([name, s]) => ({ name, ...s }));
 
-    let stats: PlayerStats[] = sorted.map(([name, s], index) => {
+    const filteredRows = typeof minGames === "number" ? rows.filter((row) => row.games >= minGames) : rows;
+    const rankedRows = sortAndAssignCompetitionRank(filteredRows);
+
+    const stats: PlayerStats[] = rankedRows.map((s) => {
       const { games } = s;
       const middleCount = games - s.topCount - s.lastCount;
 
       return {
-        name,
-        rank: index + 1,
+        name: s.name,
+        rank: s.rank,
         totalScore: s.totalScore,
         games,
         topCount: s.topCount,
@@ -115,16 +119,6 @@ export async function fetchPlayerStats(
         setaiRate: games > 0 ? middleCount / games : 0,
       };
     });
-
-    // Apply minGames filter if specified
-    if (typeof minGames === "number") {
-      stats = stats.filter((player) => player.games >= minGames);
-      // Re-rank after filtering
-      stats = stats.map((player, index) => ({
-        ...player,
-        rank: index + 1,
-      }));
-    }
 
     return { stats, error: null };
   } catch {

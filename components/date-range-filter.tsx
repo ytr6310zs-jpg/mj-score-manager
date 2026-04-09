@@ -9,16 +9,13 @@ import {
 } from "@/components/date-range-filter-rules";
 
 type Props = {
-  // backward compatibility: some pages still pass initialMode
   initialMode?: "today" | "thisYear" | "range";
-  // new initial filter: 'year' | 'custom' | 'YYYY-MM-DD'
   initialFilter?: string;
   initialStart?: string | null;
   initialEnd?: string | null;
   actionPath?: string;
   availableDates?: string[];
   initialMinGames?: string;
-  // when false, hide the match-count filter (used by matches page)
   showMinGames?: boolean;
 };
 
@@ -39,22 +36,18 @@ export default function DateRangeFilter({
   const yearEnd = `${year}-12-31`;
 
   const computeInitial = (): { filter: string; start: string; end: string } => {
-    // explicit new-style initialFilter takes precedence
     if (initialFilter) {
       if (initialFilter === "year") return { filter: "year", start: yearStart, end: yearEnd };
       if (initialFilter === "custom") return { filter: "custom", start: initialStart ?? "", end: initialEnd ?? "" };
-      // assume date string
       return { filter: initialFilter, start: initialFilter, end: initialFilter };
     }
 
-    // fallback to old initialMode for backward compatibility
     if (initialMode) {
       if (initialMode === "thisYear") return { filter: "year", start: yearStart, end: yearEnd };
       if (initialMode === "today") return { filter: todayStr, start: todayStr, end: todayStr };
       if (initialMode === "range") return { filter: "custom", start: initialStart ?? todayStr, end: initialEnd ?? todayStr };
     }
 
-    // fallback to start/end presence
     if (initialStart && initialEnd) {
       if (initialStart === initialEnd) return { filter: initialStart, start: initialStart, end: initialEnd };
       if (initialStart === yearStart && initialEnd === yearEnd) return { filter: "year", start: yearStart, end: yearEnd };
@@ -70,15 +63,13 @@ export default function DateRangeFilter({
   const [start, setStart] = useState<string>(initial.start ?? "");
   const [end, setEnd] = useState<string>(initial.end ?? "");
   const [minGames, setMinGames] = useState<string>(initialMinGames ?? defaultMin);
-  const [isDisabled, setIsDisabled] = useState(true); // 初期状態では disabled
+  const [isDisabled, setIsDisabled] = useState(true);
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  // コンポーネント mount 完了時に enabled
   useEffect(() => {
     setIsDisabled(false);
   }, []);
 
-  // Propsが更新された時（別のページから遷移）、状態を初期化
   useEffect(() => {
     const init = computeInitial();
     setFilter(init.filter);
@@ -104,11 +95,9 @@ export default function DateRangeFilter({
   async function handleFilterChange(value: string) {
     setFilter(value);
     if (value === "custom") {
-      // show inputs, do not auto-submit
       const todayStrLocal = new Date().toISOString().slice(0, 10);
       setStart((prev) => (prev ? prev : todayStrLocal));
       setEnd((prev) => (prev ? prev : todayStrLocal));
-      // custom default should be no match-count condition
       setMinGames("");
       return;
     }
@@ -119,18 +108,14 @@ export default function DateRangeFilter({
     } else if (isDateString(value)) {
       setStart(value);
       setEnd(value);
-      // single date -> treat as no match-count filter
       setMinGames("");
     } else {
-      // unknown value -> treat as year
       setStart(yearStart);
       setEnd(yearEnd);
     }
 
-    // フォーム送信時にセレクトを disabled に
     setIsDisabled(true);
 
-    // auto-submit the form for non-custom selections
     setTimeout(() => {
       try {
         formRef.current?.requestSubmit?.();
@@ -140,18 +125,14 @@ export default function DateRangeFilter({
     }, 0);
   }
 
-  // handle changes to match-count select
   function handleMinGamesChange(value: string) {
     setMinGames(value);
-    // if current filter is 'year', immediately submit
     if (shouldAutoSubmitOnMinGamesChange(filter)) {
       setIsDisabled(true);
-      // Avoid state timing race by navigating with explicit query params.
       const params = new URLSearchParams();
       params.set("filter", filter);
       params.set("start", start);
       params.set("end", end);
-      // Keep explicit "no condition" as minGames="" so server can distinguish from omitted param.
       params.set("minGames", value);
       const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
       window.location.href = target;
@@ -160,7 +141,6 @@ export default function DateRangeFilter({
 
   function handleStartChange(value: string) {
     setStart(value);
-    // keep end in sync when empty
     if (!end) setEnd(value);
   }
 
@@ -179,19 +159,19 @@ export default function DateRangeFilter({
   const indicatorPlacement = getLoadingIndicatorPlacement(filter);
 
   return (
-    <form ref={formRef} method="get" action={actionPath} onSubmit={handleSubmit} className="w-full flex flex-col gap-2 mb-2">
-      <div className="flex items-center gap-2 w-full flex-wrap">
+    <form ref={formRef} method="get" action={actionPath} onSubmit={handleSubmit} className="mb-2 flex w-full flex-col gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2">
         <div className="flex items-center gap-2">
           <select
             name="filter"
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="rounded border p-1 text-sm h-10 w-auto"
+            className="h-10 w-auto rounded border p-1 text-sm"
           >
             <option value="year">今年</option>
-            {hasAvailable && availableDates!.map((d) => (
-              <option key={d} value={d}>
-                {d}
+            {hasAvailable && availableDates!.map((date) => (
+              <option key={date} value={date}>
+                {date}
               </option>
             ))}
             <option value="custom">任意</option>
@@ -209,7 +189,7 @@ export default function DateRangeFilter({
           <select
             value={minGames}
             onChange={(e) => handleMinGamesChange(e.target.value)}
-            className="rounded border p-1 text-sm h-10 w-auto"
+            className="h-10 w-auto rounded border p-1 text-sm"
             aria-label="試合数フィルタ"
           >
             <option value="">試合数：条件なし</option>
@@ -225,14 +205,14 @@ export default function DateRangeFilter({
         ) : null}
 
         {filter === "custom" ? (
-          <div className="flex w-full items-center gap-2 flex-wrap sm:w-auto sm:flex-nowrap">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
             <input
               name="start"
               type="date"
               aria-label="開始日"
               value={start}
               onChange={(e) => handleStartChange(e.target.value)}
-              className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
+              className="h-10 w-28 rounded border p-1 text-sm sm:w-auto"
             />
 
             <span className="text-sm text-emerald-800">～</span>
@@ -243,24 +223,23 @@ export default function DateRangeFilter({
               aria-label="終了日"
               value={end}
               onChange={(e) => handleEndChange(e.target.value)}
-              className="rounded border p-1 text-sm h-10 w-28 sm:w-auto"
+              className="h-10 w-28 rounded border p-1 text-sm sm:w-auto"
             />
 
             <button
               type="submit"
-              className="rounded bg-emerald-600 px-3 py-1 text-sm text-white h-10 flex items-center justify-center"
+              className="flex h-10 items-center justify-center rounded bg-emerald-600 px-3 py-1 text-sm text-white"
             >
               絞込
             </button>
             {isDisabled && indicatorPlacement === "submitButtonRight" && (
-              <div className="flex items-center gap-1 ml-2">
+              <div className="ml-2 flex items-center gap-1">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent"></div>
                 <span className="text-xs text-emerald-600">読込中...</span>
               </div>
             )}
           </div>
         ) : (
-          // keep hidden inputs so CSV export and server can read start/end
           <>
             <input name="start" type="hidden" value={start} />
             <input name="end" type="hidden" value={end} />
@@ -268,9 +247,7 @@ export default function DateRangeFilter({
         )}
       </div>
 
-      {/* Always include filter in query so server can recognize new-style requests */}
       <input name="filter" type="hidden" value={filter} />
-      {/* Submit minGames via hidden input to keep behavior stable during auto-submit */}
       <input
         name="minGames"
         type="hidden"
