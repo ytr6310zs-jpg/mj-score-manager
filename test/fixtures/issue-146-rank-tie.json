@@ -1,0 +1,15 @@
+{
+  "description": "Issue #146: Excel互換順位（競争順位）確認用データ",
+  "rows": [
+    { "name": "Alice", "totalScore": 120, "games": 6 },
+    { "name": "Bob", "totalScore": 120, "games": 5 },
+    { "name": "Carol", "totalScore": 80, "games": 4 },
+    { "name": "Dave", "totalScore": 70, "games": 3 }
+  ],
+  "expected": [
+    { "name": "Alice", "rank": 1 },
+    { "name": "Bob", "rank": 1 },
+    { "name": "Carol", "rank": 3 },
+    { "name": "Dave", "rank": 4 }
+  ]
+}
