@@ -12,7 +12,9 @@ export default function CsvExportButton({ apiPath, className, children }: Props)
   function handleClick() {
     const startInput = document.querySelector<HTMLInputElement>('input[name="start"]');
     const endInput = document.querySelector<HTMLInputElement>('input[name="end"]');
-    const minGamesInput = document.querySelector<HTMLSelectElement>('select[name="minGames"]');
+    const minGamesInput =
+      document.querySelector<HTMLInputElement>('input[name="minGames"]') ??
+      document.querySelector<HTMLSelectElement>('select[name="minGames"]');
     const start = startInput?.value ?? "";
     const end = endInput?.value ?? "";
     const minGames = minGamesInput?.value ?? "";

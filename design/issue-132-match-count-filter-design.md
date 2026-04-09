@@ -146,7 +146,38 @@ URL パラメータに以下を追加する:
 6. `components/csv-export-button.tsx` に `minGames` を組み込む
 7. `npm run build` とテスト実行で確認
 
-## 8. 補足
+## 8. 実装後の検証（要求仕様に基づく挙動）
+
+以下は実装後にコードを確認・ビルドして検証した結果です。挙動は要求どおりに行われます。
+
+- 表示条件
+  - `filter` が `year`（今年）の場合: `試合数` セレクトを表示する。
+  - `filter` が `custom`（任意）の場合: `試合数` セレクトを表示する。
+  - `filter` が単一日付（YYYY-MM-DD）の場合: `試合数` セレクトは非表示。`minGames` は条件なし扱い（送信されない）。
+  - 対局履歴画面（`app/matches/page.tsx`）では `DateRangeFilter` に `showMinGames={false}` を渡し、常に非表示にしている。
+
+- 初期値
+  - `filter` が `year` の初期状態では `minGames` の初期値は `20` に設定される（URL に `minGames` が含まれている場合はその値を優先）。
+  - `filter` が `custom` の初期状態では `minGames` の初期値は空（条件なし）。
+  - 単一日付のときは初期 `minGames` は空（条件なし）。
+
+- 挙動（発動／送信）
+  - `filter === 'year'` のとき: `minGames` を変更すると即時反映され、選択値（空を含む）を URL クエリへ明示的に載せて再遷移する。
+  - `filter === 'custom'` のとき: `minGames` を変更しても自動送信は行わない（ユーザーは日付範囲を設定後に絞込ボタンを押す）。
+  - `filter` が単一日付のとき: `minGames` は送信されない（条件なし扱い）。
+  - `filter === 'year'` で `minGames` を条件なし（空）にした場合も、`minGames=` を保持して「既定値20の再適用」を防ぐ。
+
+- CSV 出力
+  - `components/csv-export-button.tsx` は `input[name="minGames"]`（hidden）を優先して読み取り、必要に応じて `select[name="minGames"]` も参照する。したがって画面上で `minGames` が表示されている（`year`/`custom`）場合、CSV にも同じフィルタが反映される。単一日付や対局履歴ページでは `minGames` は含まれない。
+
+- 実施結果
+  - ビルド: `npm run build` を実行し成功を確認済み（ESLint 警告は非 blocking）。
+  - 変更ファイル一覧（主なもの）:
+    - `components/date-range-filter.tsx` — 表示条件・自動送信ロジック・初期値を実装
+    - `app/matches/page.tsx` — `showMinGames={false}` を渡して非表示に設定
+    - `lib/filter-params.ts`, `lib/stats.ts`, `app/stats/page.tsx`, `app/api/export/stats/route.ts`, `components/csv-export-button.tsx` — 既存の `minGames` 連携を実装
+
+## 9. 補足
 
 - 今回は Issue 要件に合わせて `20試合以上 / 条件なし` の固定選択に留める。
 - 将来的には `10試合以上` や任意値入力への拡張を検討できる。

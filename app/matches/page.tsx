@@ -69,6 +69,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                   initialFilter={filter}
                   initialStart={start}
                   initialEnd={end}
+                  showMinGames={false}
                   actionPath="/matches"
                   availableDates={datesError ? undefined : availableDates}
                 />
