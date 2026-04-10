@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
 import useYakumans from "@/lib/useYakumans";
 
 const initialState: SaveScoreState = {
@@ -19,12 +20,6 @@ const initialState: SaveScoreState = {
 };
 
 const NONE_VALUE = "__none__";
-
-type PendingYakumanSelection = {
-  playerName: string;
-  yakumanCode: string;
-  yakumanName: string;
-};
 
 type GameType = "3p" | "4p";
 
@@ -56,13 +51,11 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   });
   const [scores, setScores] = useState<Record<number, string>>({});
   const [autoFilledSlot, setAutoFilledSlot] = useState<number | null>(null);
-  const [tobiPlayer, setTobiPlayer] = useState(NONE_VALUE);
+  const [tobiPlayers, setTobiPlayers] = useState<string[]>([]);
   const [tobashiPlayer, setTobashiPlayer] = useState(NONE_VALUE);
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
-  const [selectedYakumanPlayer, setSelectedYakumanPlayer] = useState("");
-  const [selectedYakumanCode, setSelectedYakumanCode] = useState("");
-  const [pendingYakumans, setPendingYakumans] = useState<PendingYakumanSelection[]>([]);
+  const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>([]);
 
   const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
   const { yakumans } = useYakumans();
@@ -82,12 +75,10 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   function resetRoundFields() {
     setScores({});
     setAutoFilledSlot(null);
-    setTobiPlayer(NONE_VALUE);
+    setTobiPlayers([]);
     setTobashiPlayer(NONE_VALUE);
     setYakitoriSlots({});
     setNotes("");
-    setSelectedYakumanPlayer("");
-    setSelectedYakumanCode("");
     setPendingYakumans([]);
     setClientError(null);
   }
@@ -171,58 +162,16 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   useEffect(() => {
     const playerNames = new Set(activePlayers.map((entry) => entry.name));
 
-    if (tobiPlayer !== NONE_VALUE && !playerNames.has(tobiPlayer)) {
-      setTobiPlayer(NONE_VALUE);
-    }
+    setTobiPlayers((current) => current.filter((player) => playerNames.has(player)));
 
     if (tobashiPlayer !== NONE_VALUE && !playerNames.has(tobashiPlayer)) {
       setTobashiPlayer(NONE_VALUE);
     }
-  }, [activePlayers, tobiPlayer, tobashiPlayer]);
 
-  useEffect(() => {
-    if (selectedYakumanPlayer && !activePlayerNames.includes(selectedYakumanPlayer)) {
-      setSelectedYakumanPlayer("");
+    if (tobashiPlayer !== NONE_VALUE) {
+      setTobiPlayers((current) => current.filter((player) => player !== tobashiPlayer));
     }
-
-    setPendingYakumans((current) => {
-      const filtered = current.filter((entry) => activePlayerNames.includes(entry.playerName));
-      return filtered.length === current.length ? current : filtered;
-    });
-  }, [activePlayerNames, selectedYakumanPlayer]);
-
-  function addYakumanSelection() {
-    if (!selectedYakumanPlayer) {
-      setClientError("役満の対象プレイヤーを選択してください。");
-      return;
-    }
-
-    if (!selectedYakumanCode) {
-      setClientError("役満名を選択してください。");
-      return;
-    }
-
-    const found = yakumans.find((y) => y.code === selectedYakumanCode);
-    if (!found) {
-      setClientError("役満名の選択が不正です。");
-      return;
-    }
-
-    setPendingYakumans((current) => [
-      ...current,
-      {
-        playerName: selectedYakumanPlayer,
-        yakumanCode: found.code,
-        yakumanName: found.name,
-      },
-    ]);
-    setSelectedYakumanCode("");
-    setClientError(null);
-  }
-
-  function removeYakumanSelection(index: number) {
-    setPendingYakumans((current) => current.filter((_, i) => i !== index));
-  }
+  }, [activePlayers, tobashiPlayer]);
 
   useEffect(() => {
     const selectedPlayers = activeSlots
@@ -289,16 +238,13 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
               return;
             }
 
-            if (
-              (tobiPlayer === NONE_VALUE && tobashiPlayer !== NONE_VALUE) ||
-              (tobiPlayer !== NONE_VALUE && tobashiPlayer === NONE_VALUE)
-            ) {
+            if ((tobiPlayers.length === 0 && tobashiPlayer !== NONE_VALUE) || (tobiPlayers.length > 0 && tobashiPlayer === NONE_VALUE)) {
               e.preventDefault();
               setClientError("飛び対象と飛ばし者は両方セットで選択してください。");
               return;
             }
 
-            if (tobiPlayer !== NONE_VALUE && tobiPlayer === tobashiPlayer) {
+            if (tobashiPlayer !== NONE_VALUE && tobiPlayers.includes(tobashiPlayer)) {
               e.preventDefault();
               setClientError("飛び対象と飛ばし者に同じプレイヤーは選べません。");
               return;
@@ -307,29 +253,34 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
             setClientError(null);
           }}
         >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label>卓種</Label>
-              <Select name="gameType" value={gameType} onValueChange={(value) => setGameType(value as GameType)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="卓種を選択してください" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3p">3人打ち</SelectItem>
-                  <SelectItem value="4p">4人打ち</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>卓種</Label>
+                <Select name="gameType" value={gameType} onValueChange={(value) => setGameType(value as GameType)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="卓種を選択してください" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3p">3人打ち</SelectItem>
+                    <SelectItem value="4p">4人打ち</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="gameDate">対局日</Label>
-              <Input id="gameDate" name="gameDate" type="date" defaultValue={today()} required />
+              <div className="space-y-2">
+                <Label htmlFor="gameDate">対局日</Label>
+                <Input id="gameDate" name="gameDate" type="date" defaultValue={today()} required />
+              </div>
             </div>
 
             {activeSlots.map((slot) => (
-              <div key={`slot-${slot}`} className="contents">
-                <div key={`player-${slot}`} className="space-y-2">
-                  <Label>{`プレイヤー${slot}`}</Label>
+              <div key={slot} className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                  <Label className="mb-2 block text-sm">
+                    プレイヤー{slot} <span className="text-destructive">*</span>
+                  </Label>
                   <PlayerSelect
                     name={`player${slot}`}
                     value={players[slot as keyof PlayerSelection]}
@@ -349,92 +300,127 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                   />
                 </div>
 
-                <div key={`score-${slot}`} className="space-y-2">
-                  <Label htmlFor={`score${slot}`}>
-                    {`最終スコア${slot}`}
-                    {autoFilledSlot === slot && (
-                      <span className="ml-2 text-xs font-normal text-emerald-600">（自動入力）</span>
-                    )}
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id={`score${slot}`}
-                      name={`score${slot}`}
-                      type="number"
-                      step="1"
-                      required
-                      value={scores[slot] ?? ""}
-                      onChange={(e) => handleScoreChange(slot, e.target.value)}
-                      onBlur={() => handleScoreBlur(slot)}
-                      className={
-                        autoFilledSlot === slot
-                          ? "border-emerald-300 bg-emerald-50 pr-10 sm:pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          : "pr-10 sm:pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      }
-                    />
-                    {scores[slot] ? (
-                      <button
-                        type="button"
-                        onClick={() => clearScore(slot)}
-                        aria-label={`最終スコア${slot}をクリア`}
-                        className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:right-9"
-                      >
-                        ×
-                      </button>
-                    ) : null}
-                    <div className="absolute right-1 top-1/2 hidden -translate-y-1/2 sm:flex sm:flex-col">
-                      <button
-                        type="button"
-                        onClick={() => stepScore(slot, 1)}
-                        aria-label={`最終スコア${slot}を1増やす`}
-                        className="inline-flex h-3 w-6 items-center justify-center rounded-t text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => stepScore(slot, -1)}
-                        aria-label={`最終スコア${slot}を1減らす`}
-                        className="inline-flex h-3 w-6 items-center justify-center rounded-b text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      >
-                        ▼
-                      </button>
+                  <div>
+                    <Label htmlFor={`score${slot}`} className="mb-2 block text-sm">
+                      スコア <span className="text-destructive">*</span>
+                      {autoFilledSlot === slot && (
+                        <span className="ml-2 text-xs font-normal text-emerald-600">（自動入力）</span>
+                      )}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id={`score${slot}`}
+                        name={`score${slot}`}
+                        type="number"
+                        step="1"
+                        required
+                        value={scores[slot] ?? ""}
+                        onChange={(e) => handleScoreChange(slot, e.target.value)}
+                        onBlur={() => handleScoreBlur(slot)}
+                        className={
+                          autoFilledSlot === slot
+                            ? "border-emerald-300 bg-emerald-50 pr-10 sm:pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            : "pr-10 sm:pr-16 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        }
+                      />
+                      {scores[slot] ? (
+                        <button
+                          type="button"
+                          onClick={() => clearScore(slot)}
+                          aria-label={`スコア${slot}をクリア`}
+                          className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:right-9"
+                        >
+                          ×
+                        </button>
+                      ) : null}
+                      <div className="absolute right-1 top-1/2 hidden -translate-y-1/2 sm:flex sm:flex-col">
+                        <button
+                          type="button"
+                          onClick={() => stepScore(slot, 1)}
+                          aria-label={`スコア${slot}を1増やす`}
+                          className="inline-flex h-3 w-6 items-center justify-center rounded-t text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => stepScore(slot, -1)}
+                          aria-label={`スコア${slot}を1減らす`}
+                          className="inline-flex h-3 w-6 items-center justify-center rounded-b text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          ▼
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+                <label className="flex items-center gap-2">
+                  <input
+                    name={`yakitori${slot}`}
+                    type="checkbox"
+                    className="h-4 w-4 rounded border border-input"
+                    checked={Boolean(yakitoriSlots[slot])}
+                    onChange={(event) =>
+                      setYakitoriSlots((current) => ({
+                        ...current,
+                        [slot]: event.target.checked,
+                      }))
+                    }
+                  />
+                  <span className="text-sm font-medium text-emerald-900">焼き鳥</span>
+                </label>
               </div>
             ))}
 
             <div className="space-y-2">
               <Label>飛び対象</Label>
-                <Select name="tobiPlayer" value={tobiPlayer} onValueChange={setTobiPlayer}>
-                <SelectTrigger>
-                  <SelectValue placeholder="なし" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>なし</SelectItem>
-                    {activePlayers.map((player) => {
-                      const isDisabled = player.name === tobashiPlayer && player.name !== tobiPlayer;
-                      return (
-                        <SelectItem key={`tobi-${player.name}`} value={player.name} disabled={isDisabled}>
-                          {player.name}
-                        </SelectItem>
-                      );
-                    })}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 rounded-md border border-border/70 bg-white/70 p-3">
+                {activePlayers.map((player) => {
+                  const checked = tobiPlayers.includes(player.name);
+                  const disabled = player.name === tobashiPlayer;
+                  return (
+                    <label key={`tobi-${player.name}`} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border border-input"
+                        checked={checked}
+                        disabled={disabled}
+                        onChange={(event) => {
+                          setTobiPlayers((current) => {
+                            if (event.target.checked) {
+                              return current.includes(player.name) ? current : [...current, player.name];
+                            }
+                            return current.filter((name) => name !== player.name);
+                          });
+                        }}
+                      />
+                      <span>{player.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <input type="hidden" name="tobiPlayers" value={tobiPlayers.join(",")} />
             </div>
 
             <div className="space-y-2">
               <Label>飛ばし者</Label>
-                <Select name="tobashiPlayer" value={tobashiPlayer} onValueChange={setTobashiPlayer}>
+                <Select
+                  name="tobashiPlayer"
+                  value={tobashiPlayer}
+                  onValueChange={(value) => {
+                    setTobashiPlayer(value);
+                    if (value !== NONE_VALUE) {
+                      setTobiPlayers((current) => current.filter((name) => name !== value));
+                    }
+                  }}
+                >
                 <SelectTrigger>
                   <SelectValue placeholder="なし" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE_VALUE}>なし</SelectItem>
                     {activePlayers.map((player) => {
-                      const isDisabled = player.name === tobiPlayer && player.name !== tobashiPlayer;
+                      const isDisabled = tobiPlayers.includes(player.name) && player.name !== tobashiPlayer;
                       return (
                         <SelectItem key={`tobashi-${player.name}`} value={player.name} disabled={isDisabled}>
                           {player.name}
@@ -445,84 +431,14 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
               </Select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label>焼き鳥</Label>
-              <div className="grid gap-3 rounded-md border border-border/70 bg-white/70 p-3 sm:p-4 md:grid-cols-2">
-                {activeSlots.map((slot) => {
-                  const playerName = players[slot as keyof PlayerSelection];
-
-                  return (
-                    <label key={`yakitori-${slot}-${playerName || "empty"}`} className="flex items-center gap-3 text-sm">
-                      <input
-                        name={`yakitori${slot}`}
-                        type="checkbox"
-                        className="h-4 w-4 rounded border border-input"
-                        checked={Boolean(yakitoriSlots[slot])}
-                        disabled={!playerName}
-                        onChange={(event) =>
-                          setYakitoriSlots((current) => ({
-                            ...current,
-                            [slot]: event.target.checked,
-                          }))
-                        }
-                      />
-                      <span>{playerName || `プレイヤー${slot}を先に選択してください`}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label>役満情報</Label>
-              <div className="space-y-3 rounded-md border border-border/70 bg-white/70 p-3 sm:p-4">
-                <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                  <Select value={selectedYakumanPlayer} onValueChange={setSelectedYakumanPlayer}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="プレイヤーを選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activePlayerNames.map((name) => (
-                        <SelectItem key={`yakuman-player-${name}`} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={selectedYakumanCode} onValueChange={setSelectedYakumanCode}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="役満名を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {yakumans.map((y) => (
-                        <SelectItem key={`yakuman-name-${y.code}`} value={y.code}>
-                          {y.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Button type="button" variant="outline" onClick={addYakumanSelection}>
-                    登録
-                  </Button>
-                </div>
-
-                {pendingYakumans.length > 0 ? (
-                  <div className="space-y-2">
-                    {pendingYakumans.map((entry, index) => (
-                      <div key={`${entry.playerName}-${entry.yakumanCode}-${index}`} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
-                        <span>{entry.playerName} / {entry.yakumanName}</span>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => removeYakumanSelection(index)}>
-                          削除
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">登録済みの役満はありません。</p>
-                )}
-              </div>
+            <div className="md:col-span-2">
+              <YakumanSelectionPanel
+                activePlayerNames={activePlayerNames}
+                yakumanOptions={yakumans}
+                value={pendingYakumans}
+                onChange={setPendingYakumans}
+                onErrorChange={setClientError}
+              />
               <input type="hidden" name="yakumanSelections" value={JSON.stringify(pendingYakumans)} />
             </div>
 
