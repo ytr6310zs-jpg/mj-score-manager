@@ -23,14 +23,14 @@ export async function saveScoreAction(
     gameType,
     players,
     scores: resolvedScores,
-    tobiPlayer,
+    tobiPlayers,
     tobashiPlayer,
     yakitoriPlayers,
     notes,
     total,
   } = validated.data;
 
-  const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayer, tobashiPlayer);
+  const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayers, tobashiPlayer);
   const rankedEntries = [...entries].sort((left, right) => left.rank - right.rank);
   const topPlayer = rankedEntries[0]?.player ?? "";
   const lastPlayer = rankedEntries[rankedEntries.length - 1]?.player ?? "";
@@ -49,7 +49,7 @@ export async function saveScoreAction(
     // プレイヤー名から players.id を一括解決する
     const allNames = Array.from(new Set([
       ...players,
-      ...(tobiPlayer ? [tobiPlayer] : []),
+      ...tobiPlayers,
       ...(tobashiPlayer ? [tobashiPlayer] : []),
       ...[...yakitoriPlayers],
     ]));
@@ -77,8 +77,8 @@ export async function saveScoreAction(
       top_player_id: nameToId.get(topPlayer) ?? null,
       last_player: lastPlayer,
       last_player_id: nameToId.get(lastPlayer) ?? null,
-      tobi_player: tobiPlayer ?? null,
-      tobi_player_id: tobiPlayer ? (nameToId.get(tobiPlayer) ?? null) : null,
+      tobi_player: tobiPlayers.length > 0 ? tobiPlayers.join(",") : null,
+      tobi_player_id: tobiPlayers.length === 1 ? (nameToId.get(tobiPlayers[0]) ?? null) : null,
       tobashi_player: tobashiPlayer ?? null,
       tobashi_player_id: tobashiPlayer ? (nameToId.get(tobashiPlayer) ?? null) : null,
       yakitori_players: [...yakitoriPlayers].join(","),

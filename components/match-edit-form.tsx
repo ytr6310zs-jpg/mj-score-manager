@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlayerSelect } from "@/components/ui/player-select";
+import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
 import type { MatchResult } from "@/lib/matches";
 import YAKUMANS from "@/lib/yakumans";
 
@@ -19,7 +20,6 @@ const initialState: EditMatchState = {
 };
 
 const NONE_VALUE = "__none__";
-const YAKUMAN_NONE_VALUE = "__yakuman_none__";
 
 type GameType = "3p" | "4p";
 
@@ -68,7 +68,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
     4: String(match.players[3]?.score ?? ""),
   });
   const [autoFilledSlot, setAutoFilledSlot] = useState<number | null>(null);
-  const [tobiPlayer, setTobiPlayer] = useState(match.tobiPlayer || NONE_VALUE);
+  const [tobiPlayers, setTobiPlayers] = useState<string[]>(
+    match.tobiPlayer
+      ? match.tobiPlayer
+          .split(",")
+          .map((name) => name.trim())
+          .filter(Boolean)
+      : []
+  );
   const [tobashiPlayer, setTobashiPlayer] = useState(match.tobashiPlayer || NONE_VALUE);
   const [yakitoriFlags, setYakitoriFlags] = useState<Record<number, boolean>>({
     1: match.players[0]?.isYakitori ?? false,
@@ -77,10 +84,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
     4: match.players[3]?.isYakitori ?? false,
   });
   const [notes, setNotes] = useState(match.notes);
-  const [yakumanCodeBySlot, setYakumanCodeBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
-  const [yakumanNameBySlot, setYakumanNameBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
-  const [yakumanPointsBySlot, setYakumanPointsBySlot] = useState<Record<number, string>>({ 1: "", 2: "", 3: "", 4: "" });
-  const [displayYakumans, setDisplayYakumans] = useState<YakumanOccurrence[]>(yakumans ?? []);
+  const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>(
+    (yakumans ?? []).map((entry) => ({
+      playerName: entry.player_name,
+      yakumanCode: entry.yakuman_code,
+      yakumanName: entry.yakuman_name,
+      points: entry.points,
+    }))
+  );
 
   const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
 
@@ -138,7 +149,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   }, [state.success, router]);
 
   useEffect(() => {
-    setDisplayYakumans(yakumans ?? []);
+    setPendingYakumans(
+      (yakumans ?? []).map((entry) => ({
+        playerName: entry.player_name,
+        yakumanCode: entry.yakuman_code,
+        yakumanName: entry.yakuman_name,
+        points: entry.points,
+      }))
+    );
   }, [yakumans]);
 
   useEffect(() => {
@@ -184,6 +202,24 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
     setDuplicatePlayerError(null);
   }, [activeSlots, players]);
 
+  const activePlayerNames = useMemo(
+    () => activeSlots.map((slot) => players[slot as keyof PlayerSelection]).filter(Boolean),
+    [activeSlots, players]
+  );
+
+  useEffect(() => {
+    const activePlayerSet = new Set(activePlayerNames);
+    setTobiPlayers((current) => current.filter((name) => activePlayerSet.has(name)));
+
+    if (tobashiPlayer !== NONE_VALUE && !activePlayerSet.has(tobashiPlayer)) {
+      setTobashiPlayer(NONE_VALUE);
+    }
+
+    if (tobashiPlayer !== NONE_VALUE) {
+      setTobiPlayers((current) => current.filter((name) => name !== tobashiPlayer));
+    }
+  }, [activePlayerNames, tobashiPlayer]);
+
   useEffect(() => {
     if (gameType === "3p") {
       setPlayers((current) => ({ ...current, 4: "" }));
@@ -208,21 +244,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
       form.append(`score${slot}`, scores[slot as keyof typeof scores]);
       form.append(`yakitori${slot}`, yakitoriFlags[slot] ? "on" : "off");
     });
-    form.append("tobiPlayer", tobiPlayer === NONE_VALUE ? "" : tobiPlayer);
+    form.append("tobiPlayers", tobiPlayers.join(","));
     form.append("tobashiPlayer", tobashiPlayer === NONE_VALUE ? "" : tobashiPlayer);
     form.append("notes", notes);
 
-    const activePlayerNames = new Set(
+    const activePlayerSet = new Set(
       activeSlots.map((slot) => players[slot as keyof PlayerSelection]).filter(Boolean)
     );
-    const yakumanSelections = displayYakumans
-      .filter((y) => activePlayerNames.has(y.player_name))
-      .map((y) => ({
-        playerName: y.player_name,
-        yakumanCode: y.yakuman_code,
-        yakumanName: y.yakuman_name,
-        points: y.points,
-      }));
+    const yakumanSelections = pendingYakumans.filter((y) => activePlayerSet.has(y.playerName));
     form.append("yakumanSelections", JSON.stringify(yakumanSelections));
     return form;
   };
@@ -243,7 +272,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 grid-cols-2">
         <div>
           <Label htmlFor="gameDate" className="mb-2 block">
             対局日 <span className="text-destructive">*</span>
@@ -286,7 +315,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                   value={players[slot as keyof PlayerSelection]}
                   onValueChange={(value) => {
                     setPlayers((prev) => ({ ...prev, [slot]: value }));
-                    if (value === tobiPlayer) setTobiPlayer(NONE_VALUE);
+                    setTobiPlayers((current) => current.filter((name) => name !== value));
                     if (value === tobashiPlayer) setTobashiPlayer(NONE_VALUE);
                   }}
                   options={playerList}
@@ -359,134 +388,66 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
               />
               <span className="text-sm font-medium text-emerald-900">焼き鳥</span>
             </label>
-            <div className="mt-3 space-y-2">
-              <h4 className="text-sm font-medium">役満を追加</h4>
-              <div className="grid gap-2 sm:grid-cols-1">
-                <Select value={yakumanCodeBySlot[slot] || YAKUMAN_NONE_VALUE} onValueChange={(v) => {
-                  const nextCode = v === YAKUMAN_NONE_VALUE ? "" : v;
-                  setYakumanCodeBySlot((p) => ({ ...p, [slot]: nextCode }));
-                  const found = YAKUMANS.find((y) => y.code === nextCode);
-                  setYakumanNameBySlot((p) => ({ ...p, [slot]: found?.name ?? "" }));
-                  setYakumanPointsBySlot((p) => ({ ...p, [slot]: String(found?.points ?? "") }));
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="役満を選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={YAKUMAN_NONE_VALUE}>選択しない</SelectItem>
-                    {YAKUMANS.map((y) => (
-                      <SelectItem key={y.code} value={y.code}>
-                        {y.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="pt-2">
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setClientError(null);
-                    const playerName = players[slot as keyof PlayerSelection];
-                    if (!playerName) {
-                      setClientError("プレイヤーを選択してください。役満を追加できません。");
-                      return;
-                    }
-                    const yakumanCode = yakumanCodeBySlot[slot] ?? "";
-                    const yakumanName = yakumanNameBySlot[slot] ?? "";
-                    if (!yakumanCode || !yakumanName) {
-                      setClientError("役満を選択してください。");
-                      return;
-                    }
-
-                    setDisplayYakumans((current) => [...current, {
-                      id: -Date.now(),
-                      player_id: 0,
-                      player_name: playerName,
-                      yakuman_code: yakumanCode,
-                      yakuman_name: yakumanName,
-                      points: yakumanPointsBySlot[slot] ? Number(yakumanPointsBySlot[slot]) : null,
-                      created_at: new Date().toISOString(),
-                    }]);
-
-                    setYakumanCodeBySlot((p) => ({ ...p, [slot]: "" }));
-                    setYakumanNameBySlot((p) => ({ ...p, [slot]: "" }));
-                    setYakumanPointsBySlot((p) => ({ ...p, [slot]: "" }));
-                  }}
-                >
-                  役満を追加
-                </Button>
-                <div className="mt-2 text-xs text-emerald-800">※ 役満の追加・削除は「対局を編集」で確定します。</div>
-              </div>
-            </div>
-            {/* existing yakumans for this match (if any) - show only those for this slot, display code only */}
-            {displayYakumans.length > 0 ? (
-              (() => {
-                const slotPlayerName = players[slot as keyof PlayerSelection];
-                const registered = displayYakumans.filter((y) => y.player_name === slotPlayerName);
-                if (registered.length === 0) return null;
-
-                return (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium">登録済みの役満</h4>
-                    <div className="space-y-2">
-                      {registered.map((y) => (
-                        <div key={y.id} className="flex items-center justify-between rounded border px-3 py-2">
-                          <div>
-                            <div className="text-sm text-muted-foreground">{y.yakuman_name}</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => {
-                                setDisplayYakumans((current) => current.filter((row) => row.id !== y.id));
-                              }}
-                            >
-                              削除
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()
-            ) : null}
           </div>
         ))}
       </div>
+
+      <YakumanSelectionPanel
+        className="space-y-2 border-b border-emerald-200 pb-4"
+        activePlayerNames={activePlayerNames}
+        yakumanOptions={YAKUMANS}
+        value={pendingYakumans}
+        onChange={setPendingYakumans}
+        onErrorChange={setClientError}
+        noteText="※ 役満の追加・削除は「対局を編集」で確定します。"
+      />
 
       <div className="space-y-2 border-b border-emerald-200 pb-4">
         <Label htmlFor="tobiPlayer" className="mb-2 block">
           飛び / 飛ばし
         </Label>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Select value={tobiPlayer} onValueChange={setTobiPlayer}>
-            <SelectTrigger id="tobiPlayer">
-              <SelectValue placeholder="飛び対象" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE_VALUE}>なし</SelectItem>
-              {playersToCheck.map((player) => {
-                const isDisabled = player === tobashiPlayer && player !== tobiPlayer;
-                return (
-                  <SelectItem key={`tobi-${player}`} value={player} disabled={isDisabled}>
-                    {player} が飛び
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <Select value={tobashiPlayer} onValueChange={setTobashiPlayer}>
+          <div id="tobiPlayer" className="space-y-2 rounded-md border border-border/70 bg-white/70 p-3">
+            {playersToCheck.map((player) => {
+              const checked = tobiPlayers.includes(player);
+              const disabled = player === tobashiPlayer;
+              return (
+                <label key={`tobi-${player}`} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border border-input"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      setTobiPlayers((current) => {
+                        if (event.target.checked) {
+                          return current.includes(player) ? current : [...current, player];
+                        }
+                        return current.filter((name) => name !== player);
+                      });
+                    }}
+                  />
+                  <span>{player} が飛び</span>
+                </label>
+              );
+            })}
+          </div>
+          <Select
+            value={tobashiPlayer}
+            onValueChange={(value) => {
+              setTobashiPlayer(value);
+              if (value !== NONE_VALUE) {
+                setTobiPlayers((current) => current.filter((name) => name !== value));
+              }
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="飛ばし者" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>なし</SelectItem>
               {playersToCheck.map((player) => {
-                const isDisabled = player === tobiPlayer && player !== tobashiPlayer;
+                const isDisabled = tobiPlayers.includes(player) && player !== tobashiPlayer;
                 return (
                   <SelectItem key={`tobashi-${player}`} value={player} disabled={isDisabled}>
                     {player} が飛ばし

@@ -46,7 +46,7 @@ export type ParsedMatchData = {
   activeSlots: number[];
   players: string[];
   scores: number[];
-  tobiPlayer: string | null;
+  tobiPlayers: string[];
   tobashiPlayer: string | null;
   yakitoriPlayers: Set<string>;
   notes: string;
@@ -96,7 +96,18 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
     };
   }
 
-  const tobiPlayer = parseOptionalPlayer(formData.get("tobiPlayer"));
+  const tobiPlayersRaw = parseString(formData.get("tobiPlayers"));
+  const tobiPlayers = tobiPlayersRaw
+    ? Array.from(new Set(
+      tobiPlayersRaw
+        .split(",")
+        .map((name) => name.trim())
+        .filter((name) => name && name !== NONE_VALUE)
+    ))
+    : (() => {
+      const single = parseOptionalPlayer(formData.get("tobiPlayer"));
+      return single ? [single] : [];
+    })();
   const tobashiPlayer = parseOptionalPlayer(formData.get("tobashiPlayer"));
   const yakitoriPlayers = new Set(
     activeSlots
@@ -105,11 +116,11 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
       .filter(Boolean)
   );
 
-  if ((tobiPlayer && !tobashiPlayer) || (!tobiPlayer && tobashiPlayer)) {
+  if ((tobiPlayers.length > 0 && !tobashiPlayer) || (tobiPlayers.length === 0 && tobashiPlayer)) {
     return { ok: false, message: "飛びと飛ばしは両方セットで指定してください。" };
   }
 
-  if (tobiPlayer && !players.includes(tobiPlayer)) {
+  if (tobiPlayers.some((player) => !players.includes(player))) {
     return { ok: false, message: "飛び対象は同卓プレイヤーから選択してください。" };
   }
 
@@ -117,7 +128,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
     return { ok: false, message: "飛ばし者は同卓プレイヤーから選択してください。" };
   }
 
-  if (tobiPlayer && tobashiPlayer && tobiPlayer === tobashiPlayer) {
+  if (tobashiPlayer && tobiPlayers.includes(tobashiPlayer)) {
     return { ok: false, message: "飛び対象と飛ばし者に同じプレイヤーは指定できません。" };
   }
 
@@ -131,7 +142,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
       activeSlots,
       players,
       scores: resolvedScores,
-      tobiPlayer,
+      tobiPlayers,
       tobashiPlayer,
       yakitoriPlayers,
       notes,
@@ -144,7 +155,7 @@ export function buildRankedEntries(
   players: string[],
   scores: number[],
   yakitoriPlayers: Set<string>,
-  tobiPlayer: string | null,
+  tobiPlayers: string[],
   tobashiPlayer: string | null
 ) {
   const ranked = players
@@ -166,7 +177,7 @@ export function buildRankedEntries(
     player,
     score: scores[index],
     rank: rankBySlot.get(index + 1) ?? players.length,
-    isTobi: tobiPlayer === player,
+    isTobi: tobiPlayers.includes(player),
     isTobashi: tobashiPlayer === player,
     isYakitori: yakitoriPlayers.has(player),
   })) as GameEntry[];
