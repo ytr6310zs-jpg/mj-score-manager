@@ -276,37 +276,36 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
 
             {activeSlots.map((slot) => (
               <div key={slot} className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div>
-                    <Label className="mb-2 block text-sm">
-                      プレイヤー{slot} <span className="text-destructive">*</span>
-                    </Label>
-                    <PlayerSelect
-                      name={`player${slot}`}
-                      value={players[slot as keyof PlayerSelection]}
-                      onValueChange={(value) =>
-                        setPlayers((current) => ({
-                          ...current,
-                          [slot]: value,
-                        }))
-                      }
-                      options={playerOptions}
-                      exclude={activeSlots
-                        .filter((s) => s !== slot)
-                        .map((s) => players[s as keyof PlayerSelection])
-                        .filter(Boolean)}
-                      onAddPlayer={handleAddPlayer}
-                      required
-                    />
-                  </div>
+                <div>
+                  <Label className="mb-2 block text-sm">
+                    プレイヤー{slot} <span className="text-destructive">*</span>
+                  </Label>
+                  <PlayerSelect
+                    name={`player${slot}`}
+                    value={players[slot as keyof PlayerSelection]}
+                    onValueChange={(value) =>
+                      setPlayers((current) => ({
+                        ...current,
+                        [slot]: value,
+                      }))
+                    }
+                    options={playerOptions}
+                    exclude={activeSlots
+                      .filter((s) => s !== slot)
+                      .map((s) => players[s as keyof PlayerSelection])
+                      .filter(Boolean)}
+                    onAddPlayer={handleAddPlayer}
+                    required
+                  />
+                </div>
 
-                  <div>
-                    <Label htmlFor={`score${slot}`} className="mb-2 block text-sm">
-                      スコア <span className="text-destructive">*</span>
-                      {autoFilledSlot === slot && (
-                        <span className="ml-2 text-xs font-normal text-emerald-600">（自動入力）</span>
-                      )}
-                    </Label>
+                <div>
+                  <Label htmlFor={`score${slot}`} className="mb-2 block text-sm">
+                    スコア <span className="text-destructive">*</span>
+                    {autoFilledSlot === slot && (
+                      <span className="ml-2 text-xs font-normal text-emerald-600">（自動入力）</span>
+                    )}
+                  </Label>
                     <div className="relative">
                       <Input
                         id={`score${slot}`}
@@ -352,7 +351,6 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
                         </button>
                       </div>
                     </div>
-                  </div>
                 </div>
                 <label className="flex items-center gap-2">
                   <input
