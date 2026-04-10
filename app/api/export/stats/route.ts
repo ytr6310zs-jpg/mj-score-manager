@@ -1,76 +1,35 @@
 import { fetchPlayerStats } from "@/lib/stats";
-
-function escapeCsv(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  const s = String(value);
-  if (s.includes(",") || s.includes("\n") || s.includes('"')) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
+import { resolveFilterParams } from "@/lib/filter-params";
+import { makeStatsResponse, parseMinGames } from "./handler";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const start = url.searchParams.get("start") ?? "";
-  const end = url.searchParams.get("end") ?? "";
+  const filterRaw = url.searchParams.get("filter");
+  const modeRaw = url.searchParams.get("mode");
+  const startRaw = url.searchParams.get("start");
+  const endRaw = url.searchParams.get("end");
+  const minGamesRaw = url.searchParams.get("minGames");
 
-  const { stats, error } = await fetchPlayerStats(start || undefined, end || undefined);
+  const hasDateFilterParam = [filterRaw, modeRaw, startRaw, endRaw].some(
+    (value) => value !== null && value !== ""
+  );
+
+  const resolved = hasDateFilterParam
+    ? resolveFilterParams({ filterRaw, modeRaw, startRaw, endRaw, minGamesRaw })
+    : { start: "", end: "", minGames: undefined };
+
+  const start = resolved.start;
+  const end = resolved.end;
+  const minGames = hasDateFilterParam ? resolved.minGames : parseMinGames(minGamesRaw);
+
+  const { stats, error } = await fetchPlayerStats(start || undefined, end || undefined, minGames);
   if (error) {
     return new Response(JSON.stringify({ error }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 
-  const headers = [
-    "name",
-    "rank",
-    "totalScore",
-    "games",
-    "topCount",
-    "lastCount",
-    "secondRate",
-    "thirdRate",
-    "tobashiCount",
-    "tobiCount",
-    "yakitoriCount",
-    "yakumanCount",
-    "topRate",
-    "lastAvoidanceRate",
-    "tobashiRate",
-    "tobiAvoidanceRate",
-    "yakitoriAvoidanceRate",
-    "setaiRate",
-  ];
-
-  const rows = [headers.join(",")];
-  for (const p of stats) {
-    rows.push([
-      escapeCsv(p.name),
-      escapeCsv(p.rank),
-      escapeCsv(p.totalScore),
-      escapeCsv(p.games),
-      escapeCsv(p.topCount),
-      escapeCsv(p.lastCount),
-      escapeCsv(p.secondRate),
-      escapeCsv(p.thirdRate),
-      escapeCsv(p.tobashiCount),
-      escapeCsv(p.tobiCount),
-      escapeCsv(p.yakitoriCount),
-      escapeCsv(p.yakumanCount),
-      escapeCsv(p.topRate),
-      escapeCsv(p.lastAvoidanceRate),
-      escapeCsv(p.tobashiRate),
-      escapeCsv(p.tobiAvoidanceRate),
-      escapeCsv(p.yakitoriAvoidanceRate),
-      escapeCsv(p.setaiRate),
-    ].join(","));
-  }
-
-  const csv = rows.join("\r\n");
-  const filename = `player-stats_${start || "all"}_${end || "all"}.csv`;
+  const { csv, headers } = makeStatsResponse(stats, { start: start || undefined, end: end || undefined });
   return new Response(csv, {
     status: 200,
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-    },
+    headers,
   });
 }

@@ -9,16 +9,18 @@ export interface FilterParamConfig {
   modeRaw: unknown;
   startRaw: unknown;
   endRaw: unknown;
+  minGamesRaw?: unknown;
 }
 
 export interface FilterParamResult {
-  filter: string; // 'year' | 'custom' | 'YYYY-MM-DD'
+  filter: string;
   start: string;
   end: string;
+  minGames?: number;
 }
 
 export function resolveFilterParams(config: FilterParamConfig): FilterParamResult {
-  const { filterRaw, modeRaw, startRaw, endRaw } = config;
+  const { filterRaw, modeRaw, startRaw, endRaw, minGamesRaw } = config;
 
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -26,19 +28,16 @@ export function resolveFilterParams(config: FilterParamConfig): FilterParamResul
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
 
-  // Helper: parse array or scalar values
   function normalize(raw: unknown): string | undefined {
     if (!raw) return undefined;
     if (Array.isArray(raw)) return (raw[0] as string) ?? undefined;
     return String(raw);
   }
 
-  // Helper: check if string is a date (YYYY-MM-DD)
-  function isDateString(s: string | undefined): boolean {
-    return !!s && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s);
+  function isDateString(value: string | undefined): boolean {
+    return !!value && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value);
   }
 
-  // Resolve filter value with priority: filter > mode > start/end
   let filter: string | undefined;
 
   const filterNorm = normalize(filterRaw);
@@ -55,7 +54,7 @@ export function resolveFilterParams(config: FilterParamConfig): FilterParamResul
       const endNorm = normalize(endRaw);
       if (startNorm && endNorm) {
         if (startNorm === endNorm && isDateString(startNorm)) {
-          filter = startNorm; // single date
+          filter = startNorm;
         } else {
           filter = "custom";
         }
@@ -63,10 +62,8 @@ export function resolveFilterParams(config: FilterParamConfig): FilterParamResul
     }
   }
 
-  // Default to year
   if (!filter) filter = "year";
 
-  // Compute start/end based on filter value
   let start: string;
   let end: string;
 
@@ -79,14 +76,25 @@ export function resolveFilterParams(config: FilterParamConfig): FilterParamResul
     start = startNorm ?? todayStr;
     end = endNorm ?? todayStr;
   } else if (isDateString(filter)) {
-    // single date
     start = filter;
     end = filter;
   } else {
-    // unknown filter value -> fallback to year
     start = yearStart;
     end = yearEnd;
   }
 
-  return { filter, start, end };
+  let minGames: number | undefined;
+  if (
+    minGamesRaw !== undefined &&
+    minGamesRaw !== null &&
+    String(Array.isArray(minGamesRaw) ? minGamesRaw[0] : minGamesRaw).trim() !== ""
+  ) {
+    const raw = Array.isArray(minGamesRaw) ? minGamesRaw[0] : minGamesRaw;
+    const parsed = Number(raw);
+    if (Number.isInteger(parsed) && parsed >= 0) {
+      minGames = parsed;
+    }
+  }
+
+  return { filter, start, end, minGames };
 }

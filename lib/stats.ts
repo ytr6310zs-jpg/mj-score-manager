@@ -1,4 +1,5 @@
 import { fetchMatchResults } from "./matches";
+import { sortAndAssignCompetitionRank } from "./stats-ranking";
 
 export type PlayerStats = {
   name: string;
@@ -37,7 +38,11 @@ type PlayerAccumulator = {
 
 // Removed unused helpers `toBool` and `toInt` to clean ESLint warnings.
 
-export async function fetchPlayerStats(startDate?: string, endDate?: string): Promise<{
+export async function fetchPlayerStats(
+  startDate?: string,
+  endDate?: string,
+  minGames?: number
+): Promise<{
   stats: PlayerStats[];
   error: string | null;
 }> {
@@ -82,17 +87,20 @@ export async function fetchPlayerStats(startDate?: string, endDate?: string): Pr
       }
     }
 
-    const sorted = Array.from(playerMap.entries())
+    const rows = Array.from(playerMap.entries())
       .filter(([, s]) => s.games > 0)
-      .sort(([, a], [, b]) => b.totalScore - a.totalScore);
+      .map(([name, s]) => ({ name, ...s }));
 
-    const stats: PlayerStats[] = sorted.map(([name, s], index) => {
+    const filteredRows = typeof minGames === "number" ? rows.filter((row) => row.games >= minGames) : rows;
+    const rankedRows = sortAndAssignCompetitionRank(filteredRows);
+
+    const stats: PlayerStats[] = rankedRows.map((s) => {
       const { games } = s;
       const middleCount = games - s.topCount - s.lastCount;
 
       return {
-        name,
-        rank: index + 1,
+        name: s.name,
+        rank: s.rank,
         totalScore: s.totalScore,
         games,
         topCount: s.topCount,

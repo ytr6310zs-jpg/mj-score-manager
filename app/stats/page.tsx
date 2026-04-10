@@ -7,7 +7,6 @@ import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { fetchPlayerStats } from "@/lib/stats";
 import StatsSortableTable from "@/components/stats-sortable-table";
-import type { PlayerStats } from "@/lib/stats";
 import { computeTopSets, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION } from "@/lib/metric-ranks";
 import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
@@ -61,16 +60,30 @@ type SearchParams = { [key: string]: string | string[] | undefined } | undefined
 
 export default async function StatsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const params = await (searchParams as Promise<SearchParams> | undefined);
+  const initialMinGamesRaw = Array.isArray(params?.minGames) ? params?.minGames[0] : params?.minGames;
+  const hasMinGamesParam = initialMinGamesRaw !== undefined;
 
-  const { filter, start, end } = resolveFilterParams({
+  const { filter, start, end, minGames } = resolveFilterParams({
     filterRaw: params?.filter,
     modeRaw: params?.mode,
     startRaw: params?.start,
     endRaw: params?.end,
+    minGamesRaw: params?.minGames,
   });
 
+  // Keep initial UI and server data consistent:
+  // when filter is year and minGames is not specified at all, default to 20.
+  const effectiveMinGames =
+    typeof minGames === "number" ? minGames : !hasMinGamesParam && filter === "year" ? 20 : undefined;
+  const initialMinGames =
+    initialMinGamesRaw !== undefined
+      ? initialMinGamesRaw
+      : filter === "year"
+        ? "20"
+        : "";
+
   const { dates: availableDates, error: datesError } = await fetchMatchDates();
-  const { stats, error } = await fetchPlayerStats(start, end);
+  const { stats, error } = await fetchPlayerStats(start, end, effectiveMinGames);
   const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
     start,
@@ -103,6 +116,8 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                   initialFilter={filter}
                   initialStart={start}
                   initialEnd={end}
+                  // pass the raw query string value so empty string (explicit none) is preserved
+                  initialMinGames={initialMinGames}
                   actionPath="/stats"
                   availableDates={datesError ? undefined : availableDates}
                 />
