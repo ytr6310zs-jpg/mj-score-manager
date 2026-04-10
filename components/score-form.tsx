@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
 import useYakumans from "@/lib/useYakumans";
 
 const initialState: SaveScoreState = {
@@ -19,12 +20,6 @@ const initialState: SaveScoreState = {
 };
 
 const NONE_VALUE = "__none__";
-
-type PendingYakumanSelection = {
-  playerName: string;
-  yakumanCode: string;
-  yakumanName: string;
-};
 
 type GameType = "3p" | "4p";
 
@@ -60,9 +55,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   const [tobashiPlayer, setTobashiPlayer] = useState(NONE_VALUE);
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
-  const [selectedYakumanPlayer, setSelectedYakumanPlayer] = useState("");
-  const [selectedYakumanCode, setSelectedYakumanCode] = useState("");
-  const [pendingYakumans, setPendingYakumans] = useState<PendingYakumanSelection[]>([]);
+  const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>([]);
 
   const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
   const { yakumans } = useYakumans();
@@ -86,8 +79,6 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
     setTobashiPlayer(NONE_VALUE);
     setYakitoriSlots({});
     setNotes("");
-    setSelectedYakumanPlayer("");
-    setSelectedYakumanCode("");
     setPendingYakumans([]);
     setClientError(null);
   }
@@ -179,50 +170,6 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
       setTobashiPlayer(NONE_VALUE);
     }
   }, [activePlayers, tobiPlayer, tobashiPlayer]);
-
-  useEffect(() => {
-    if (selectedYakumanPlayer && !activePlayerNames.includes(selectedYakumanPlayer)) {
-      setSelectedYakumanPlayer("");
-    }
-
-    setPendingYakumans((current) => {
-      const filtered = current.filter((entry) => activePlayerNames.includes(entry.playerName));
-      return filtered.length === current.length ? current : filtered;
-    });
-  }, [activePlayerNames, selectedYakumanPlayer]);
-
-  function addYakumanSelection() {
-    if (!selectedYakumanPlayer) {
-      setClientError("役満の対象プレイヤーを選択してください。");
-      return;
-    }
-
-    if (!selectedYakumanCode) {
-      setClientError("役満名を選択してください。");
-      return;
-    }
-
-    const found = yakumans.find((y) => y.code === selectedYakumanCode);
-    if (!found) {
-      setClientError("役満名の選択が不正です。");
-      return;
-    }
-
-    setPendingYakumans((current) => [
-      ...current,
-      {
-        playerName: selectedYakumanPlayer,
-        yakumanCode: found.code,
-        yakumanName: found.name,
-      },
-    ]);
-    setSelectedYakumanCode("");
-    setClientError(null);
-  }
-
-  function removeYakumanSelection(index: number) {
-    setPendingYakumans((current) => current.filter((_, i) => i !== index));
-  }
 
   useEffect(() => {
     const selectedPlayers = activeSlots
@@ -475,56 +422,14 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
               </div>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label>役満情報</Label>
-              <div className="space-y-3 rounded-md border border-border/70 bg-white/70 p-3 sm:p-4">
-                <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
-                  <Select value={selectedYakumanPlayer} onValueChange={setSelectedYakumanPlayer}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="プレイヤーを選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activePlayerNames.map((name) => (
-                        <SelectItem key={`yakuman-player-${name}`} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={selectedYakumanCode} onValueChange={setSelectedYakumanCode}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="役満名を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {yakumans.map((y) => (
-                        <SelectItem key={`yakuman-name-${y.code}`} value={y.code}>
-                          {y.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Button type="button" variant="outline" onClick={addYakumanSelection}>
-                    登録
-                  </Button>
-                </div>
-
-                {pendingYakumans.length > 0 ? (
-                  <div className="space-y-2">
-                    {pendingYakumans.map((entry, index) => (
-                      <div key={`${entry.playerName}-${entry.yakumanCode}-${index}`} className="flex items-center justify-between rounded border px-3 py-2 text-sm">
-                        <span>{entry.playerName} / {entry.yakumanName}</span>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => removeYakumanSelection(index)}>
-                          削除
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">登録済みの役満はありません。</p>
-                )}
-              </div>
+            <div className="md:col-span-2">
+              <YakumanSelectionPanel
+                activePlayerNames={activePlayerNames}
+                yakumanOptions={yakumans}
+                value={pendingYakumans}
+                onChange={setPendingYakumans}
+                onErrorChange={setClientError}
+              />
               <input type="hidden" name="yakumanSelections" value={JSON.stringify(pendingYakumans)} />
             </div>
 
