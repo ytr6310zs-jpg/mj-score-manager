@@ -308,22 +308,24 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
           }}
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label>卓種</Label>
-              <Select name="gameType" value={gameType} onValueChange={(value) => setGameType(value as GameType)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="卓種を選択してください" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3p">3人打ち</SelectItem>
-                  <SelectItem value="4p">4人打ち</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>卓種</Label>
+                <Select name="gameType" value={gameType} onValueChange={(value) => setGameType(value as GameType)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="卓種を選択してください" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3p">3人打ち</SelectItem>
+                    <SelectItem value="4p">4人打ち</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="gameDate">対局日</Label>
-              <Input id="gameDate" name="gameDate" type="date" defaultValue={today()} required />
+              <div className="space-y-2">
+                <Label htmlFor="gameDate">対局日</Label>
+                <Input id="gameDate" name="gameDate" type="date" defaultValue={today()} required />
+              </div>
             </div>
 
             {activeSlots.map((slot) => (
