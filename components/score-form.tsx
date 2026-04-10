@@ -253,8 +253,8 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
             setClientError(null);
           }}
         >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>卓種</Label>
                 <Select name="gameType" value={gameType} onValueChange={(value) => setGameType(value as GameType)}>
