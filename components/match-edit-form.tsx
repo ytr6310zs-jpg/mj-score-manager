@@ -68,7 +68,14 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
     4: String(match.players[3]?.score ?? ""),
   });
   const [autoFilledSlot, setAutoFilledSlot] = useState<number | null>(null);
-  const [tobiPlayer, setTobiPlayer] = useState(match.tobiPlayer || NONE_VALUE);
+  const [tobiPlayers, setTobiPlayers] = useState<string[]>(
+    match.tobiPlayer
+      ? match.tobiPlayer
+          .split(",")
+          .map((name) => name.trim())
+          .filter(Boolean)
+      : []
+  );
   const [tobashiPlayer, setTobashiPlayer] = useState(match.tobashiPlayer || NONE_VALUE);
   const [yakitoriFlags, setYakitoriFlags] = useState<Record<number, boolean>>({
     1: match.players[0]?.isYakitori ?? false,
@@ -201,6 +208,19 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   );
 
   useEffect(() => {
+    const activePlayerSet = new Set(activePlayerNames);
+    setTobiPlayers((current) => current.filter((name) => activePlayerSet.has(name)));
+
+    if (tobashiPlayer !== NONE_VALUE && !activePlayerSet.has(tobashiPlayer)) {
+      setTobashiPlayer(NONE_VALUE);
+    }
+
+    if (tobashiPlayer !== NONE_VALUE) {
+      setTobiPlayers((current) => current.filter((name) => name !== tobashiPlayer));
+    }
+  }, [activePlayerNames, tobashiPlayer]);
+
+  useEffect(() => {
     if (gameType === "3p") {
       setPlayers((current) => ({ ...current, 4: "" }));
       setScores((current) => ({ ...current, 4: "" }));
@@ -224,7 +244,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
       form.append(`score${slot}`, scores[slot as keyof typeof scores]);
       form.append(`yakitori${slot}`, yakitoriFlags[slot] ? "on" : "off");
     });
-    form.append("tobiPlayer", tobiPlayer === NONE_VALUE ? "" : tobiPlayer);
+    form.append("tobiPlayers", tobiPlayers.join(","));
     form.append("tobashiPlayer", tobashiPlayer === NONE_VALUE ? "" : tobashiPlayer);
     form.append("notes", notes);
 
@@ -295,7 +315,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
                   value={players[slot as keyof PlayerSelection]}
                   onValueChange={(value) => {
                     setPlayers((prev) => ({ ...prev, [slot]: value }));
-                    if (value === tobiPlayer) setTobiPlayer(NONE_VALUE);
+                    setTobiPlayers((current) => current.filter((name) => name !== value));
                     if (value === tobashiPlayer) setTobashiPlayer(NONE_VALUE);
                   }}
                   options={playerList}
@@ -387,30 +407,47 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
           飛び / 飛ばし
         </Label>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Select value={tobiPlayer} onValueChange={setTobiPlayer}>
-            <SelectTrigger id="tobiPlayer">
-              <SelectValue placeholder="飛び対象" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE_VALUE}>なし</SelectItem>
-              {playersToCheck.map((player) => {
-                const isDisabled = player === tobashiPlayer && player !== tobiPlayer;
-                return (
-                  <SelectItem key={`tobi-${player}`} value={player} disabled={isDisabled}>
-                    {player} が飛び
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <Select value={tobashiPlayer} onValueChange={setTobashiPlayer}>
+          <div id="tobiPlayer" className="space-y-2 rounded-md border border-border/70 bg-white/70 p-3">
+            {playersToCheck.map((player) => {
+              const checked = tobiPlayers.includes(player);
+              const disabled = player === tobashiPlayer;
+              return (
+                <label key={`tobi-${player}`} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border border-input"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      setTobiPlayers((current) => {
+                        if (event.target.checked) {
+                          return current.includes(player) ? current : [...current, player];
+                        }
+                        return current.filter((name) => name !== player);
+                      });
+                    }}
+                  />
+                  <span>{player} が飛び</span>
+                </label>
+              );
+            })}
+          </div>
+          <Select
+            value={tobashiPlayer}
+            onValueChange={(value) => {
+              setTobashiPlayer(value);
+              if (value !== NONE_VALUE) {
+                setTobiPlayers((current) => current.filter((name) => name !== value));
+              }
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="飛ばし者" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE_VALUE}>なし</SelectItem>
               {playersToCheck.map((player) => {
-                const isDisabled = player === tobiPlayer && player !== tobashiPlayer;
+                const isDisabled = tobiPlayers.includes(player) && player !== tobashiPlayer;
                 return (
                   <SelectItem key={`tobashi-${player}`} value={player} disabled={isDisabled}>
                     {player} が飛ばし
