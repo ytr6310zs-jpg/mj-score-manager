@@ -209,19 +209,7 @@ export async function editMatchAction(
       return { success: false, message: "役満情報の保存に失敗しました。" };
     }
 
-    // yakuman_selections から参照されるプレイヤー名をすべて集める
-    const yakumanPlayerNames = Array.from(
-      new Set(yakumanSelections.map((selection) => selection.playerName))
-    );
-    // アクティブなプレイヤーと焼き鳥対象プレイヤーをマージ
-    const allYakumanPlayerNames = Array.from(new Set([...players, ...yakumanPlayerNames]));
-
-    if (allYakumanPlayerNames.length === 0) {
-      // No yakuman players to resolve, stop here
-      return { success: true, message: "対局を編集しました。" };
-    }
-
-    const yakumanPlayerRows = await supabase.from("players").select("id,name").in("name", allYakumanPlayerNames);
+    const yakumanPlayerRows = await supabase.from("players").select("id,name").in("name", players);
     if (yakumanPlayerRows.error || !yakumanPlayerRows.data) {
       console.error("Edit match yakuman player lookup error:", yakumanPlayerRows.error);
       return { success: false, message: "役満情報の保存に失敗しました。" };
