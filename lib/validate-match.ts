@@ -112,7 +112,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
   const yakitoriPlayers = new Set(
     activeSlots
       .filter((slot) => formData.get(`yakitori${slot}`) === "on")
-      .map((slot, index) => players[index])
+      .map((slot) => players[slot - 1])
       .filter(Boolean)
   );
 

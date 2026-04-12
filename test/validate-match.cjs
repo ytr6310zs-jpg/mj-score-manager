@@ -41,6 +41,41 @@ function run() {
   assert.strictEqual(data.gameDate, '2026-04-06');
   assert.deepStrictEqual(data.players, ['A', 'B', 'C', 'D']);
   assert.strictEqual(data.total, 0);
+  assert.ok(data.yakitoriPlayers.has('A'), 'yakitori1 should map to player1');
+
+  // regression: yakitori2 should map to player2 (not player1)
+  fd = fdFrom({
+    gameDate: '2026-04-06',
+    gameType: '4p',
+    player1: 'A',
+    player2: 'B',
+    player3: 'C',
+    player4: 'D',
+    score1: '250',
+    score2: '100',
+    score3: '-200',
+    score4: '-150',
+    yakitori2: 'on',
+  });
+  res = validateAndParseMatchForm(fd);
+  assert.ok(res.ok, 'yakitori2 case should parse');
+  assert.deepStrictEqual(Array.from(res.data.yakitoriPlayers), ['B']);
+
+  // regression: yakitori3 should map to player3 in 3p
+  fd = fdFrom({
+    gameDate: '2026-04-06',
+    gameType: '3p',
+    player1: 'A',
+    player2: 'B',
+    player3: 'C',
+    score1: '150',
+    score2: '50',
+    score3: '-200',
+    yakitori3: 'on',
+  });
+  res = validateAndParseMatchForm(fd);
+  assert.ok(res.ok, 'yakitori3 case should parse');
+  assert.deepStrictEqual(Array.from(res.data.yakitoriPlayers), ['C']);
 
   // duplicate players
   fd = fdFrom({
