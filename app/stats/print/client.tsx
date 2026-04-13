@@ -2,6 +2,7 @@
 
 import PrintTrigger from "@/components/print-trigger";
 import "./print.css";
+import { Fragment } from "react";
 
 import type { MatchResult } from "@/lib/matches";
 import type { PlayerStats } from "@/lib/stats";
@@ -223,7 +224,7 @@ export default function ClientStatsPrintPage({
                         p ? `${p.score! >= 0 ? `+${p.score}` : p.score}` : "";
 
                       return (
-                        <>
+                        <Fragment key={`match-${m.createdAt ?? i}`}>
                           <tr key={`row-a-${m.createdAt ?? i}`} className="border-b compact-row align-top">
                             <td className="px-2 py-1 whitespace-nowrap">{m.date || "—"}</td>
                             <td className="px-2 py-1 text-center">{m.gameType.toUpperCase()}</td>
@@ -295,7 +296,7 @@ export default function ClientStatsPrintPage({
                               </td>
                             )}
                           </tr>
-                        </>
+                        </Fragment>
                       );
                     })}
                   </tbody>
