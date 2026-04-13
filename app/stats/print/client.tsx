@@ -127,10 +127,6 @@ function renderYakumanEvents(rows: YakumanEvent[], title: string) {
 
 export default function ClientStatsPrintPage({
   stats,
-  yakumanEvents,
-  highestScores,
-  lowestScores,
-  largestSpreads,
   matches,
   statsYearly,
   yakumanEventsYearly,
@@ -201,61 +197,7 @@ export default function ClientStatsPrintPage({
               </div>
             </section>
 
-            {/* 2. 参考集計 + 別表 */}
-            <section className="mb-6">
-              <h2 className="font-semibold mb-2 text-emerald-900">参考集計 + 別表</h2>
-
-              <section className="mb-4 rounded border p-3">
-                <h3 className="font-medium">今年の集計（20試合以上）</h3>
-                <div className="overflow-x-auto mt-2">
-                  <table className="min-w-full text-xs">
-                    <thead>
-                      <tr className="bg-emerald-50">
-                        <th className="px-2 py-1">順位</th>
-                        <th className="px-2 py-1">名前</th>
-                        <th className="px-2 py-1">対局数</th>
-                        <th className="px-2 py-1">合計点</th>
-                        <th className="px-2 py-1">トップ率</th>
-                        <th className="px-2 py-1">役満</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {statsYearly.length === 0 ? (
-                        <tr>
-                          <td className="px-2 py-2 text-muted-foreground" colSpan={6}>
-                            該当データがありません。
-                          </td>
-                        </tr>
-                      ) : (
-                        statsYearly.map((p) => (
-                          <tr key={`year-${p.name}`} className="border-t compact-row">
-                            <td className="px-2 py-1 text-center">{p.rank}</td>
-                            <td className="px-2 py-1">{p.name}</td>
-                            <td className="px-2 py-1 text-center">{p.games}</td>
-                            <td className="px-2 py-1 text-right">{p.totalScore}</td>
-                            <td className="px-2 py-1 text-right">{pct(p.topRate)}</td>
-                            <td className="px-2 py-1 text-center">{p.yakumanCount}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              <div className="grid gap-4 md:grid-cols-2 print-two-cols">
-                {renderYakumanEvents(yakumanEvents, `役満リスト（最新 ${yakumanEvents.length}件）`)}
-                {renderScoreRanks(highestScores, `最高得点ランキング（最新 ${highestScores.length}件）`)}
-                {renderScoreRanks(lowestScores, `最低得点ランキング（最新 ${lowestScores.length}件）`)}
-                {renderSpreadRanks(largestSpreads, `最大点差ランキング（最新 ${largestSpreads.length}件）`)}
-                {renderYakumanEvents(yakumanEventsYearly, `役満リスト（今年 ${yakumanEventsYearly.length}件）`)}
-                {renderScoreRanks(highestScoresYearly, `最高得点ランキング（今年 ${highestScoresYearly.length}件）`)}
-                {renderScoreRanks(lowestScoresYearly, `最低得点ランキング（今年 ${lowestScoresYearly.length}件）`)}
-                {renderSpreadRanks(largestSpreadsYearly, `最大点差ランキング（今年 ${largestSpreadsYearly.length}件）`)}
-              </div>
-            </section>
-
-            {/* 3. 対局履歴（1試合1行・圧縮） */}
+            {/* 2. 対局履歴（1試合2行表示） */}
             <section className="mb-6">
               <h2 className="font-semibold mb-2 text-emerald-900 no-break-after">対局履歴</h2>
               <div className="overflow-x-auto no-break-before">
@@ -268,45 +210,146 @@ export default function ClientStatsPrintPage({
                       <th className="px-2 py-1 text-left">2位</th>
                       <th className="px-2 py-1 text-left">3位</th>
                       {has4p && <th className="px-2 py-1 text-left">4位</th>}
-                      <th className="px-2 py-1 text-left">飛ばし</th>
-                      <th className="px-2 py-1 text-left">飛び</th>
-                      <th className="px-2 py-1 text-left">焼き鳥</th>
-                      <th className="px-2 py-1 text-left">役満</th>
                     </tr>
                   </thead>
                   <tbody>
                     {matches.map((m, i) => {
                       const sorted = [...m.players].sort((a, b) => a.rank - b.rank);
-                      const byRank = (rank: number) => sorted.find((p) => p.rank === rank);
-                      const rankLabel = (rank: number) => {
-                        const p = byRank(rank);
-                        return p ? `${p.name} (${p.score >= 0 ? `+${p.score}` : p.score})` : "—";
-                      };
-                      const tobashi = sorted.filter((p) => p.isTobashi).map((p) => p.name).join(", ") || "—";
-                      const tobi = sorted.filter((p) => p.isTobi).map((p) => p.name).join(", ") || "—";
-                      const yakitori = sorted.filter((p) => p.isYakitori).map((p) => p.name).join(", ") || "—";
-                      const yakumans =
-                        sorted
-                          .flatMap((p) => (p.yakumans ?? []).map((y) => `${p.name}:${y.name}`))
-                          .join(", ") || "—";
+                      const p1 = sorted.find((p) => p.rank === 1);
+                      const p2 = sorted.find((p) => p.rank === 2);
+                      const p3 = sorted.find((p) => p.rank === 3);
+                      const p4 = sorted.find((p) => p.rank === 4);
+                      const scoreLabel = (p?: { score?: number } | undefined) =>
+                        p ? `${p.score! >= 0 ? `+${p.score}` : p.score}` : "";
 
                       return (
-                        <tr key={`${m.createdAt}-${i}`} className="border-b compact-row align-top">
-                          <td className="px-2 py-1 whitespace-nowrap">{m.date || "—"}</td>
-                          <td className="px-2 py-1 text-center">{m.gameType.toUpperCase()}</td>
-                          <td className="px-2 py-1">{rankLabel(1)}</td>
-                          <td className="px-2 py-1">{rankLabel(2)}</td>
-                          <td className="px-2 py-1">{rankLabel(3)}</td>
-                          {has4p && <td className="px-2 py-1">{rankLabel(4)}</td>}
-                          <td className="px-2 py-1">{tobashi}</td>
-                          <td className="px-2 py-1">{tobi}</td>
-                          <td className="px-2 py-1">{yakitori}</td>
-                          <td className="px-2 py-1">{yakumans}</td>
-                        </tr>
+                        <>
+                          <tr key={`row-a-${m.createdAt ?? i}`} className="border-b compact-row align-top">
+                            <td className="px-2 py-1 whitespace-nowrap">{m.date || "—"}</td>
+                            <td className="px-2 py-1 text-center">{m.gameType.toUpperCase()}</td>
+                            <td className="px-2 py-1">{p1?.name || "—"} {p1 ? <span className="text-xs">{scoreLabel(p1)}</span> : null}</td>
+                            <td className="px-2 py-1">{p2?.name || "—"} {p2 ? <span className="text-xs">{scoreLabel(p2)}</span> : null}</td>
+                            <td className="px-2 py-1">{p3?.name || "—"} {p3 ? <span className="text-xs">{scoreLabel(p3)}</span> : null}</td>
+                            {has4p && <td className="px-2 py-1">{p4?.name || "—"} {p4 ? <span className="text-xs">{scoreLabel(p4)}</span> : null}</td>}
+                          </tr>
+
+                          <tr key={`row-b-${m.createdAt ?? i}`} className="compact-row">
+                            <td className="px-2 py-0.5" />
+                            <td className="px-2 py-0.5" />
+                            <td className="px-2 py-0.5 text-xs">
+                              {p1 && (
+                                <>
+                                  <div className="text-emerald-700/90">
+                                    {p1.isTobashi && <span className="mr-1">飛ばし</span>}
+                                    {p1.isTobi && <span className="mr-1">飛び</span>}
+                                    {p1.isYakitori && <span className="mr-1">焼き鳥</span>}
+                                  </div>
+                                  {p1.yakumans?.length ? (
+                                    <div className="text-sky-900">{p1.yakumans.map((y) => y.name).join(", ")}</div>
+                                  ) : null}
+                                </>
+                              )}
+                            </td>
+                            <td className="px-2 py-0.5 text-xs">
+                              {p2 && (
+                                <>
+                                  <div className="text-emerald-700/90">
+                                    {p2.isTobashi && <span className="mr-1">飛ばし</span>}
+                                    {p2.isTobi && <span className="mr-1">飛び</span>}
+                                    {p2.isYakitori && <span className="mr-1">焼き鳥</span>}
+                                  </div>
+                                  {p2.yakumans?.length ? (
+                                    <div className="text-sky-900">{p2.yakumans.map((y) => y.name).join(", ")}</div>
+                                  ) : null}
+                                </>
+                              )}
+                            </td>
+                            <td className="px-2 py-0.5 text-xs">
+                              {p3 && (
+                                <>
+                                  <div className="text-emerald-700/90">
+                                    {p3.isTobashi && <span className="mr-1">飛ばし</span>}
+                                    {p3.isTobi && <span className="mr-1">飛び</span>}
+                                    {p3.isYakitori && <span className="mr-1">焼き鳥</span>}
+                                  </div>
+                                  {p3.yakumans?.length ? (
+                                    <div className="text-sky-900">{p3.yakumans.map((y) => y.name).join(", ")}</div>
+                                  ) : null}
+                                </>
+                              )}
+                            </td>
+                            {has4p && (
+                              <td className="px-2 py-0.5 text-xs">
+                                {p4 && (
+                                  <>
+                                    <div className="text-emerald-700/90">
+                                      {p4.isTobashi && <span className="mr-1">飛ばし</span>}
+                                      {p4.isTobi && <span className="mr-1">飛び</span>}
+                                      {p4.isYakitori && <span className="mr-1">焼き鳥</span>}
+                                    </div>
+                                    {p4.yakumans?.length ? (
+                                      <div className="text-sky-900">{p4.yakumans.map((y) => y.name).join(", ")}</div>
+                                    ) : null}
+                                  </>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        </>
                       );
                     })}
                   </tbody>
                 </table>
+              </div>
+            </section>
+
+            {/* 3. 成績集計（今年・20試合以上） */}
+            <section className="mb-6">
+              <h2 className="font-semibold mb-2 text-emerald-900">成績集計（今年・20試合以上）</h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                  <thead>
+                    <tr className="bg-emerald-50">
+                      <th className="px-2 py-1">順位</th>
+                      <th className="px-2 py-1">名前</th>
+                      <th className="px-2 py-1">対局数</th>
+                      <th className="px-2 py-1">合計点</th>
+                      <th className="px-2 py-1">トップ率</th>
+                      <th className="px-2 py-1">役満</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {statsYearly.length === 0 ? (
+                      <tr>
+                        <td className="px-2 py-2 text-muted-foreground" colSpan={6}>
+                          該当データがありません。
+                        </td>
+                      </tr>
+                    ) : (
+                      statsYearly.map((p) => (
+                        <tr key={`year-${p.name}`} className="border-t compact-row">
+                          <td className="px-2 py-1 text-center">{p.rank}</td>
+                          <td className="px-2 py-1">{p.name}</td>
+                          <td className="px-2 py-1 text-center">{p.games}</td>
+                          <td className="px-2 py-1 text-right">{p.totalScore}</td>
+                          <td className="px-2 py-1 text-right">{pct(p.topRate)}</td>
+                          <td className="px-2 py-1 text-center">{p.yakumanCount}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* 4. 別表（今年・20試合以上） */}
+            <section className="mb-6">
+              <h2 className="font-semibold mb-2 text-emerald-900">別表（今年・20試合以上）</h2>
+              <div className="grid gap-4 md:grid-cols-2 print-two-cols">
+                {renderYakumanEvents(yakumanEventsYearly, `役満リスト（今年 ${yakumanEventsYearly.length}件）`)}
+                {renderScoreRanks(highestScoresYearly, `最高得点ランキング（今年 ${highestScoresYearly.length}件）`)}
+                {renderScoreRanks(lowestScoresYearly, `最低得点ランキング（今年 ${lowestScoresYearly.length}件）`)}
+                {renderSpreadRanks(largestSpreadsYearly, `最大点差ランキング（今年 ${largestSpreadsYearly.length}件）`)}
               </div>
             </section>
           </div>
