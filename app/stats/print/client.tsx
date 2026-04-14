@@ -23,6 +23,7 @@ type Props = {
   largestSpreadsYearly: SpreadRank[];
   periodLabel: string;
   minGamesLabel: string;
+  returnUrl: string;
 };
 
 export default function ClientStatsPrintPage({
@@ -39,6 +40,7 @@ export default function ClientStatsPrintPage({
   largestSpreadsYearly,
   periodLabel,
   minGamesLabel,
+  returnUrl,
 }: Props) {
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
@@ -48,9 +50,24 @@ export default function ClientStatsPrintPage({
             <p className="text-sm font-semibold text-slate-900">MAHJONG SCORE MANAGER</p>
             <p className="text-xs text-slate-600">成績集計 印刷プレビュー</p>
           </div>
-          <div className="text-xs text-slate-600">
-            この画面は印刷プレビューです。印刷時には表示されません。
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={returnUrl}
+              className="inline-flex items-center rounded bg-white px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100"
+            >
+              戻る
+            </a>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center rounded bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+            >
+              印刷
+            </button>
           </div>
+        </div>
+        <div className="mt-2 text-xs text-slate-600">
+          この画面は印刷プレビューです。印刷時には表示されません。
         </div>
       </div>
 

@@ -9,6 +9,21 @@ import ClientStatsPrintPage from "./client";
 
 type PrintSearchParams = { [key: string]: string | string[] | undefined } | undefined;
 
+function buildQueryString(params: PrintSearchParams) {
+  if (!params) return "";
+  const searchParams = new URLSearchParams();
+  for (const key of Object.keys(params)) {
+    const value = params[key];
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      value.forEach((v) => searchParams.append(key, v));
+    } else {
+      searchParams.append(key, value);
+    }
+  }
+  return searchParams.toString();
+}
+
 export default async function StatsPrintPage({ searchParams }: { searchParams?: Promise<PrintSearchParams> }) {
   // クエリ取得
   const params = await (searchParams as Promise<PrintSearchParams> | undefined);
@@ -49,6 +64,9 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
   let minGamesLabel = "試合数条件: 条件なし";
   if (minGames === 20) minGamesLabel = "試合数条件: 20試合以上";
 
+  const queryString = buildQueryString(params);
+  const returnUrl = `/stats${queryString ? `?${queryString}` : ""}`;
+
   return (
     <ClientStatsPrintPage
       stats={stats}
@@ -65,6 +83,7 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
       largestSpreadsYearly={largestSpreadsYearly}
       periodLabel={periodLabel}
       minGamesLabel={minGamesLabel}
+      returnUrl={returnUrl}
     />
   );
 }
