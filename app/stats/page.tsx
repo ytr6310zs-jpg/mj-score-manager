@@ -5,13 +5,14 @@ import { AppHeader } from "@/components/app-header";
 import CsvExportButton from "@/components/csv-export-button";
 import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
-import { fetchPlayerStats } from "@/lib/stats";
+import PdfExportButton from "@/components/pdf-export-button";
 import StatsSortableTable from "@/components/stats-sortable-table";
-import { computeTopSets, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION } from "@/lib/metric-ranks";
+import { resolveFilterParams } from "@/lib/filter-params";
+import { fetchMatchDates } from "@/lib/matches";
+import { computeTopSets, METRIC_DIRECTION, METRICS_TO_HIGHLIGHT } from "@/lib/metric-ranks";
+import { fetchPlayerStats } from "@/lib/stats";
 import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
-import { fetchMatchDates } from "@/lib/matches";
-import { resolveFilterParams } from "@/lib/filter-params";
 
 type RankSets = { first: string[]; second: string[]; third: string[] };
 
@@ -262,14 +263,19 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
               </>
             )}
 
-            {/* CSV 出力（表の下部右寄せ） */}
-            <div className="flex justify-end mt-3">
+            {/* 出力ボタン（CSV/PDF） */}
+            <div className="flex gap-2 justify-end mt-3">
               <CsvExportButton
                 apiPath="/api/export/stats"
                 className="rounded bg-emerald-600 px-3 text-sm text-white h-10 flex items-center justify-center"
               >
                 CSV 出力
               </CsvExportButton>
+              <PdfExportButton
+                className="rounded bg-emerald-600 px-3 text-sm text-white h-10 flex items-center justify-center"
+              >
+                PDF 出力
+              </PdfExportButton>
             </div>
 
           </div>
