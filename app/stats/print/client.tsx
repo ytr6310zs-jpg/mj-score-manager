@@ -1,13 +1,13 @@
 "use client";
 
 import PrintTrigger from "@/components/print-trigger";
-import "./print.css";
-import { StatsSummaryTable } from "@/components/stats-print/StatsSummaryTable";
 import { ExtraStatsTable } from "@/components/stats-print/ExtraStatsTable";
 import { MatchHistoryTable } from "@/components/stats-print/MatchHistoryTable";
+import { StatsSummaryTable } from "@/components/stats-print/StatsSummaryTable";
 import type { MatchResult } from "@/lib/matches";
 import type { PlayerStats } from "@/lib/stats";
 import type { ScoreRank, SpreadRank, YakumanEvent } from "@/lib/stats-subtables";
+import "./print.css";
 
 type Props = {
   stats: PlayerStats[];
@@ -40,8 +40,6 @@ export default function ClientStatsPrintPage({
   periodLabel,
   minGamesLabel,
 }: Props) {
-  const expectedPages = Math.max(1, Math.ceil((matches?.length ?? 0) / 28));
-
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <PrintTrigger />
