@@ -27,6 +27,9 @@ function buildQueryString(params: PrintSearchParams) {
 export default async function StatsPrintPage({ searchParams }: { searchParams?: Promise<PrintSearchParams> }) {
   // クエリ取得
   const params = await (searchParams as Promise<PrintSearchParams> | undefined);
+  const initialMinGamesRaw = Array.isArray(params?.minGames) ? params?.minGames[0] : params?.minGames;
+  const hasMinGamesParam = initialMinGamesRaw !== undefined;
+
   const { filter, start, end, minGames } = resolveFilterParams({
     filterRaw: params?.filter,
     modeRaw: params?.mode,
@@ -34,13 +37,17 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
     endRaw: params?.end,
     minGamesRaw: params?.minGames,
   });
+
+  // Stats page と同様に、URL に明示的な minGames が無い場合は
+  // filter === 'year' のときにサーバー側で 20 を既定値として使う
+  const effectiveMinGames = typeof minGames === "number" ? minGames : !hasMinGamesParam && filter === "year" ? 20 : undefined;
   // データ取得
-  const { stats } = await fetchPlayerStats(start, end, minGames);
+  const { stats } = await fetchPlayerStats(start, end, effectiveMinGames);
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
     start,
     end,
     5,
-    { minGames }
+    { minGames: effectiveMinGames }
   );
   const { matches } = await fetchMatchResults(start, end);
 
@@ -67,7 +74,7 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
     periodLabel = `対象期間: ${start} 〜 ${end}`;
   }
   let minGamesLabel = "試合数条件: 条件なし";
-  if (minGames === 20) minGamesLabel = "試合数条件: 20試合以上";
+  if (effectiveMinGames === 20) minGamesLabel = "試合数条件: 20試合以上";
 
   const queryString = buildQueryString(params);
   const returnUrl = `/stats${queryString ? `?${queryString}` : ""}`;
