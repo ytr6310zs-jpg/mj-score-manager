@@ -194,7 +194,21 @@ export default function ClientStatsPrintPage({
               </div>
             </section>
 
-            {/* 2. 対局履歴（1試合2行表示） */}
+            {/* 2. 別表 */}
+            <section className="mb-6">
+              <h2 className="font-semibold mb-2 text-emerald-900">別表</h2>
+              <div className="grid gap-4 md:grid-cols-2 print-two-cols">
+                {renderYakumanEvents(_yakumanEvents, `役満リスト（${_yakumanEvents.length}件）`)}
+                {renderScoreRanks(_highestScores, `最高得点ランキング（${_highestScores.length}件）`)}
+                {renderScoreRanks(_lowestScores, `最低得点ランキング（${_lowestScores.length}件）`)}
+                {renderSpreadRanks(_largestSpreads, `最大点差ランキング（${_largestSpreads.length}件）`)}
+              </div>
+            </section>
+
+            {/* 改ページ */}
+            <div className="break-after-page page-break-after-always" />
+
+            {/* 3. 対局履歴（1試合2行表示） */}
             <section className="mb-6">
               <h2 className="font-semibold mb-2 text-emerald-900 no-break-after">対局履歴</h2>
               <div className="overflow-x-auto no-break-before">
@@ -230,19 +244,18 @@ export default function ClientStatsPrintPage({
                                   <span className={`shrink-0 tabular-nums ${scoreClass(p1.score)}`}>{signedScore(p1.score)}</span>
                                 </div>
                                 <div className="mt-1 text-xs">
-                                  <div className="flex flex-wrap gap-1">
-                                    {[p1.isTobi && "飛び", p1.isTobashi && "飛ばし", p1.isYakitori && "焼き鳥"].filter(Boolean)
+                                  <div className="flex flex-wrap gap-1 items-center">
+                                    {[p1.isTobi && "飛び", p1.isTobashi && "飛ばし", p1.isYakitori && "焼き鳥"]
+                                      .filter(Boolean)
                                       .map((b, idx) => (
                                         <span key={idx} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">{b}</span>
                                       ))}
-                                  </div>
-                                  {p1.yakumans?.length ? (
-                                    <div className="mt-1">
-                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                    {p1.yakumans?.length ? (
+                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900 ml-1">
                                         {p1.yakumans.map((y) => y.name).join("、")}
                                       </span>
-                                    </div>
-                                  ) : null}
+                                    ) : null}
+                                  </div>
                                 </div>
                               </>
                             ) : (
@@ -258,19 +271,18 @@ export default function ClientStatsPrintPage({
                                   <span className={`shrink-0 tabular-nums ${scoreClass(p2.score)}`}>{signedScore(p2.score)}</span>
                                 </div>
                                 <div className="mt-1 text-xs">
-                                  <div className="flex flex-wrap gap-1">
-                                    {[p2.isTobi && "飛び", p2.isTobashi && "飛ばし", p2.isYakitori && "焼き鳥"].filter(Boolean)
+                                  <div className="flex flex-wrap gap-1 items-center">
+                                    {[p2.isTobi && "飛び", p2.isTobashi && "飛ばし", p2.isYakitori && "焼き鳥"]
+                                      .filter(Boolean)
                                       .map((b, idx) => (
                                         <span key={idx} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">{b}</span>
                                       ))}
-                                  </div>
-                                  {p2.yakumans?.length ? (
-                                    <div className="mt-1">
-                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                    {p2.yakumans?.length ? (
+                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900 ml-1">
                                         {p2.yakumans.map((y) => y.name).join("、")}
                                       </span>
-                                    </div>
-                                  ) : null}
+                                    ) : null}
+                                  </div>
                                 </div>
                               </>
                             ) : (
@@ -286,19 +298,18 @@ export default function ClientStatsPrintPage({
                                   <span className={`shrink-0 tabular-nums ${scoreClass(p3.score)}`}>{signedScore(p3.score)}</span>
                                 </div>
                                 <div className="mt-1 text-xs">
-                                  <div className="flex flex-wrap gap-1">
-                                    {[p3.isTobi && "飛び", p3.isTobashi && "飛ばし", p3.isYakitori && "焼き鳥"].filter(Boolean)
+                                  <div className="flex flex-wrap gap-1 items-center">
+                                    {[p3.isTobi && "飛び", p3.isTobashi && "飛ばし", p3.isYakitori && "焼き鳥"]
+                                      .filter(Boolean)
                                       .map((b, idx) => (
                                         <span key={idx} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">{b}</span>
                                       ))}
-                                  </div>
-                                  {p3.yakumans?.length ? (
-                                    <div className="mt-1">
-                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                    {p3.yakumans?.length ? (
+                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900 ml-1">
                                         {p3.yakumans.map((y) => y.name).join("、")}
                                       </span>
-                                    </div>
-                                  ) : null}
+                                    ) : null}
+                                  </div>
                                 </div>
                               </>
                             ) : (
@@ -315,19 +326,18 @@ export default function ClientStatsPrintPage({
                                     <span className={`shrink-0 tabular-nums ${scoreClass(p4.score)}`}>{signedScore(p4.score)}</span>
                                   </div>
                                   <div className="mt-1 text-xs">
-                                    <div className="flex flex-wrap gap-1">
-                                      {[p4.isTobi && "飛び", p4.isTobashi && "飛ばし", p4.isYakitori && "焼き鳥"].filter(Boolean)
+                                    <div className="flex flex-wrap gap-1 items-center">
+                                      {[p4.isTobi && "飛び", p4.isTobashi && "飛ばし", p4.isYakitori && "焼き鳥"]
+                                        .filter(Boolean)
                                         .map((b, idx) => (
                                           <span key={idx} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">{b}</span>
                                         ))}
-                                    </div>
-                                    {p4.yakumans?.length ? (
-                                      <div className="mt-1">
-                                        <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                      {p4.yakumans?.length ? (
+                                        <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900 ml-1">
                                           {p4.yakumans.map((y) => y.name).join("、")}
                                         </span>
-                                      </div>
-                                    ) : null}
+                                      ) : null}
+                                    </div>
                                   </div>
                                 </>
                               ) : (
@@ -343,25 +353,27 @@ export default function ClientStatsPrintPage({
               </div>
             </section>
 
-            {/* 3. 成績集計（今年・20試合以上） */}
+            {/* 4. 成績集計（今年・20試合以上） */}
             <section className="mb-6">
               <h2 className="font-semibold mb-2 text-emerald-900">成績集計（今年・20試合以上）</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full text-xs">
+                <table className="min-w-full text-xs border">
                   <thead>
-                    <tr className="bg-emerald-50">
+                    <tr className="bg-emerald-100">
                       <th className="px-2 py-1">順位</th>
                       <th className="px-2 py-1">名前</th>
                       <th className="px-2 py-1">対局数</th>
                       <th className="px-2 py-1">合計点</th>
                       <th className="px-2 py-1">トップ率</th>
+                      <th className="px-2 py-1">焼き鳥回避率</th>
+                      <th className="px-2 py-1">接待率</th>
                       <th className="px-2 py-1">役満</th>
                     </tr>
                   </thead>
                   <tbody>
                     {statsYearly.length === 0 ? (
                       <tr>
-                        <td className="px-2 py-2 text-muted-foreground" colSpan={6}>
+                        <td className="px-2 py-2 text-muted-foreground" colSpan={8}>
                           該当データがありません。
                         </td>
                       </tr>
@@ -373,6 +385,8 @@ export default function ClientStatsPrintPage({
                           <td className="px-2 py-1 text-center">{p.games}</td>
                           <td className="px-2 py-1 text-right">{p.totalScore}</td>
                           <td className="px-2 py-1 text-right">{pct(p.topRate)}</td>
+                          <td className="px-2 py-1 text-right">{pct(p.lastAvoidanceRate)}</td>
+                          <td className="px-2 py-1 text-right">{pct(p.tobashiRate)}</td>
                           <td className="px-2 py-1 text-center">{p.yakumanCount}</td>
                         </tr>
                       ))
