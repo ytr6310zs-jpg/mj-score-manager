@@ -204,6 +204,9 @@ export default function ClientStatsPrintPage({
                       <th className="px-2 py-1 text-left">対局日</th>
                       <th className="px-2 py-1 text-center">形式</th>
                       <th className="px-2 py-1 text-left">1位</th>
+                      <th className="px-2 py-1 text-left">2位</th>
+                      <th className="px-2 py-1 text-left">3位</th>
+                      {has4p && <th className="px-2 py-1 text-left">4位</th>}
                     </tr>
                   </thead>
                   <tbody>
