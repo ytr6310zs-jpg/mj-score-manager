@@ -52,10 +52,7 @@ export default function ClientStatsPrintPage({
             <h1 className="text-xl font-bold text-emerald-900">成績集計レポート</h1>
             <div className="text-sm mt-1 text-emerald-700/70">{periodLabel}</div>
             <div className="text-sm text-emerald-700/70">{minGamesLabel}</div>
-            <div className="mt-2 inline-flex items-center gap-3 rounded border border-emerald-100 bg-emerald-50/60 px-2 py-1 text-xs text-emerald-800">
-              <span>総件数: {matches?.length ?? 0}</span>
-              <span>想定ページ数(目安): {expectedPages}</span>
-            </div>
+            {/* summary counts removed per design */}
           </div>
 
           <div className="p-4">
@@ -72,6 +69,7 @@ export default function ClientStatsPrintPage({
 
             <MatchHistoryTable matches={matches ?? []} />
 
+            <div className="break-after-page page-break-after-always" />
             <StatsSummaryTable stats={statsYearly ?? []} title="成績集計（今年・20試合以上）" />
 
             <ExtraStatsTable
