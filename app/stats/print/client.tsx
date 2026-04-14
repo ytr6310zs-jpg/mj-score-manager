@@ -10,5 +10,80 @@ import type { PlayerStats } from "@/lib/stats";
 import type { ScoreRank, SpreadRank, YakumanEvent } from "@/lib/stats-subtables";
 
 type Props = {
-  }
+  stats: PlayerStats[];
   yakumanEvents: YakumanEvent[];
+  highestScores: ScoreRank[];
+  lowestScores: ScoreRank[];
+  largestSpreads: SpreadRank[];
+  matches: MatchResult[];
+  statsYearly: PlayerStats[];
+  yakumanEventsYearly: YakumanEvent[];
+  highestScoresYearly: ScoreRank[];
+  lowestScoresYearly: ScoreRank[];
+  largestSpreadsYearly: SpreadRank[];
+  periodLabel: string;
+  minGamesLabel: string;
+};
+
+export default function ClientStatsPrintPage({
+  stats,
+  yakumanEvents,
+  highestScores,
+  lowestScores,
+  largestSpreads,
+  matches,
+  statsYearly,
+  yakumanEventsYearly,
+  highestScoresYearly,
+  lowestScoresYearly,
+  largestSpreadsYearly,
+  periodLabel,
+  minGamesLabel,
+}: Props) {
+  const expectedPages = Math.max(1, Math.ceil((matches?.length ?? 0) / 28));
+
+  return (
+    <main className="mx-auto min-h-screen w-full px-4 py-10">
+      <PrintTrigger />
+
+      <div className="mx-auto max-w-screen-2xl space-y-6">
+        <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
+          <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
+            <h1 className="text-xl font-bold text-emerald-900">成績集計レポート</h1>
+            <div className="text-sm mt-1 text-emerald-700/70">{periodLabel}</div>
+            <div className="text-sm text-emerald-700/70">{minGamesLabel}</div>
+            <div className="mt-2 inline-flex items-center gap-3 rounded border border-emerald-100 bg-emerald-50/60 px-2 py-1 text-xs text-emerald-800">
+              <span>総件数: {matches?.length ?? 0}</span>
+              <span>想定ページ数(目安): {expectedPages}</span>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <StatsSummaryTable stats={stats ?? []} title="成績集計" />
+
+            <ExtraStatsTable
+              yakumanEvents={yakumanEvents ?? []}
+              highestScores={highestScores ?? []}
+              lowestScores={lowestScores ?? []}
+              largestSpreads={largestSpreads ?? []}
+            />
+
+            <div className="break-after-page page-break-after-always" />
+
+            <MatchHistoryTable matches={matches ?? []} />
+
+            <StatsSummaryTable stats={statsYearly ?? []} title="成績集計（今年・20試合以上）" />
+
+            <ExtraStatsTable
+              yakumanEvents={yakumanEventsYearly ?? []}
+              highestScores={highestScoresYearly ?? []}
+              lowestScores={lowestScoresYearly ?? []}
+              largestSpreads={largestSpreadsYearly ?? []}
+              titleSuffix="今年・20試合以上"
+            />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
