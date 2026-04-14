@@ -39,7 +39,7 @@ export const ExtraStatsTable: React.FC<ExtraStatsTableProps> = ({ yakumanEvents,
       </div>
       {/* Highest Scores */}
       <div className="rounded border p-3 bg-white/95">
-        <h3 className="font-semibold mb-2 text-emerald-900">最高得点ランキング（{highestScores.length}件）</h3>
+        <h3 className="font-semibold mb-2 text-emerald-900">最高得点ランキング（全 {highestScores.length}件）</h3>
         <table className="min-w-full text-xs">
           <thead>
             <tr className="bg-emerald-50">
@@ -61,7 +61,7 @@ export const ExtraStatsTable: React.FC<ExtraStatsTableProps> = ({ yakumanEvents,
       </div>
       {/* Lowest Scores */}
       <div className="rounded border p-3 bg-white/95">
-        <h3 className="font-semibold mb-2 text-emerald-900">最低得点ランキング（{lowestScores.length}件）</h3>
+        <h3 className="font-semibold mb-2 text-emerald-900">最低失点ランキング（全 {lowestScores.length}件）</h3>
         <table className="min-w-full text-xs">
           <thead>
             <tr className="bg-emerald-50">

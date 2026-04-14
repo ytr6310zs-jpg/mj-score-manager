@@ -29,7 +29,11 @@ export type SpreadRank = {
   gameType?: "3p" | "4p";
 };
 
-export function computeSubtablesFromMatches(matches: MatchResult[], topN?: number): {
+export function computeSubtablesFromMatches(
+  matches: MatchResult[],
+  topN?: number,
+  options?: { eligiblePlayers?: Set<string> }
+): {
   yakumanEvents: YakumanEvent[];
   highestScores: ScoreRank[];
   lowestScores: ScoreRank[];
@@ -39,7 +43,8 @@ export function computeSubtablesFromMatches(matches: MatchResult[], topN?: numbe
 export function fetchStatsSubtables(
   start?: string,
   end?: string,
-  topN?: number
+  topN?: number,
+  options?: { minGames?: number }
 ): Promise<{
   yakumanEvents: YakumanEvent[];
   highestScores: ScoreRank[];

@@ -89,7 +89,8 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
     start,
     end,
-    5
+    5,
+    { minGames: effectiveMinGames }
   );
 
   return (
@@ -314,7 +315,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
             </section>
 
             <section className="rounded border p-3">
-              <h3 className="font-medium">最高得点ランキング（最新 {highestScores.length}件）</h3>
+              <h3 className="font-medium">最高得点ランキング（全 {highestScores.length}件）</h3>
               {highestScores.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
               ) : (
@@ -344,7 +345,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <section className="rounded border p-3">
-              <h3 className="font-medium">最低得点ランキング（最新 {lowestScores.length}件）</h3>
+              <h3 className="font-medium">最低失点ランキング（全 {lowestScores.length}件）</h3>
               {lowestScores.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-2">該当データがありません。</p>
               ) : (

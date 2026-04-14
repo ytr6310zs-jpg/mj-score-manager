@@ -38,13 +38,15 @@ describe('computeSubtablesFromMatches', () => {
     assert.strictEqual(yakumanEvents[0].yakumanName, '大三元');
 
     // highest
+    assert.strictEqual(highestScores.length, 7);
     assert.strictEqual(highestScores[0].playerName, 'Alice');
     assert.strictEqual(highestScores[0].score, 30000);
     assert.strictEqual(highestScores[1].playerName, 'Eve');
 
-    // lowest (ties resolved by createdAt desc => Dave (2026-04-01) before Frank/Grace)
-    assert.strictEqual(lowestScores[0].playerName, 'Dave');
-    assert.strictEqual(lowestScores[0].score, -10000);
+    // lowest (player-level minima sorted by higher minima first -> Alice has min 30000)
+    assert.strictEqual(lowestScores.length, 7);
+    assert.strictEqual(lowestScores[0].playerName, 'Alice');
+    assert.strictEqual(lowestScores[0].score, 30000);
 
     // largest spread
     assert.strictEqual(largestSpreads[0].topPlayerName, 'Alice');

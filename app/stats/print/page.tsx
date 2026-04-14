@@ -36,7 +36,12 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
   });
   // データ取得
   const { stats } = await fetchPlayerStats(start, end, minGames);
-  const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(start, end, 5);
+  const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
+    start,
+    end,
+    5,
+    { minGames }
+  );
   const { matches } = await fetchMatchResults(start, end);
 
   // 追加: 今年かつ20試合以上の参考データ
@@ -50,7 +55,7 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
     highestScores: highestScoresYearly,
     lowestScores: lowestScoresYearly,
     largestSpreads: largestSpreadsYearly,
-  } = await fetchStatsSubtables(yearStart, yearEnd, 5);
+  } = await fetchStatsSubtables(yearStart, yearEnd, 5, { minGames: 20 });
 
   // ヘッダー用文言生成
   let periodLabel = "";
