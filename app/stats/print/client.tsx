@@ -28,6 +28,17 @@ function pct(rate: number): string {
   return `${(rate * 100).toFixed(1)}%`;
 }
 
+function signedScore(v: number | undefined): string {
+  if (v === undefined) return "";
+  return v > 0 ? `+${v}` : `${v}`;
+}
+
+function scoreClass(v: number | undefined) {
+  if (v === undefined) return "";
+  // use blue for positive, red for negative to make +/- more visible in print
+  return v >= 0 ? "text-sky-700" : "text-destructive";
+}
+
 function renderScoreRanks(rows: ScoreRank[], title: string) {
   return (
     <section className="rounded border p-3">
@@ -220,18 +231,54 @@ export default function ClientStatsPrintPage({
                       const p2 = sorted.find((p) => p.rank === 2);
                       const p3 = sorted.find((p) => p.rank === 3);
                       const p4 = sorted.find((p) => p.rank === 4);
-                      const scoreLabel = (p?: { score?: number } | undefined) =>
-                        p ? `${p.score! >= 0 ? `+${p.score}` : p.score}` : "";
 
                       return (
                         <Fragment key={`match-${m.createdAt ?? i}`}>
                           <tr key={`row-a-${m.createdAt ?? i}`} className="border-b compact-row align-top">
                             <td className="px-2 py-1 whitespace-nowrap">{m.date || "—"}</td>
                             <td className="px-2 py-1 text-center">{m.gameType.toUpperCase()}</td>
-                            <td className="px-2 py-1">{p1?.name || "—"} {p1 ? <span className="text-xs">{scoreLabel(p1)}</span> : null}</td>
-                            <td className="px-2 py-1">{p2?.name || "—"} {p2 ? <span className="text-xs">{scoreLabel(p2)}</span> : null}</td>
-                            <td className="px-2 py-1">{p3?.name || "—"} {p3 ? <span className="text-xs">{scoreLabel(p3)}</span> : null}</td>
-                            {has4p && <td className="px-2 py-1">{p4?.name || "—"} {p4 ? <span className="text-xs">{scoreLabel(p4)}</span> : null}</td>}
+                            <td className="px-2 py-1">
+                              {p1 ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate font-medium text-emerald-950">{p1.name}</span>
+                                  <span className={`shrink-0 tabular-nums ${scoreClass(p1.score)}`}>{signedScore(p1.score)}</span>
+                                </div>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td className="px-2 py-1">
+                              {p2 ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate font-medium text-emerald-950">{p2.name}</span>
+                                  <span className={`shrink-0 tabular-nums ${scoreClass(p2.score)}`}>{signedScore(p2.score)}</span>
+                                </div>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td className="px-2 py-1">
+                              {p3 ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate font-medium text-emerald-950">{p3.name}</span>
+                                  <span className={`shrink-0 tabular-nums ${scoreClass(p3.score)}`}>{signedScore(p3.score)}</span>
+                                </div>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            {has4p && (
+                              <td className="px-2 py-1">
+                                {p4 ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="truncate font-medium text-emerald-950">{p4.name}</span>
+                                    <span className={`shrink-0 tabular-nums ${scoreClass(p4.score)}`}>{signedScore(p4.score)}</span>
+                                  </div>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                            )}
                           </tr>
 
                           <tr key={`row-b-${m.createdAt ?? i}`} className="compact-row">
@@ -240,13 +287,21 @@ export default function ClientStatsPrintPage({
                             <td className="px-2 py-0.5 text-xs">
                               {p1 && (
                                 <>
-                                  <div className="text-emerald-700/90">
-                                    {p1.isTobashi && <span className="mr-1">飛ばし</span>}
-                                    {p1.isTobi && <span className="mr-1">飛び</span>}
-                                    {p1.isYakitori && <span className="mr-1">焼き鳥</span>}
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {[p1.isTobi && "飛び", p1.isTobashi && "飛ばし", p1.isYakitori && "焼き鳥"]
+                                      .filter(Boolean)
+                                      .map((b, idx) => (
+                                        <span key={idx} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">
+                                          {b}
+                                        </span>
+                                      ))}
                                   </div>
                                   {p1.yakumans?.length ? (
-                                    <div className="text-sky-900">{p1.yakumans.map((y) => y.name).join(", ")}</div>
+                                    <div className="mt-1">
+                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                        {p1.yakumans.map((y) => y.name).join("、")}
+                                      </span>
+                                    </div>
                                   ) : null}
                                 </>
                               )}
@@ -254,13 +309,21 @@ export default function ClientStatsPrintPage({
                             <td className="px-2 py-0.5 text-xs">
                               {p2 && (
                                 <>
-                                  <div className="text-emerald-700/90">
-                                    {p2.isTobashi && <span className="mr-1">飛ばし</span>}
-                                    {p2.isTobi && <span className="mr-1">飛び</span>}
-                                    {p2.isYakitori && <span className="mr-1">焼き鳥</span>}
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {[p2.isTobi && "飛び", p2.isTobashi && "飛ばし", p2.isYakitori && "焼き鳥"]
+                                      .filter(Boolean)
+                                      .map((b, idx) => (
+                                        <span key={idx} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">
+                                          {b}
+                                        </span>
+                                      ))}
                                   </div>
                                   {p2.yakumans?.length ? (
-                                    <div className="text-sky-900">{p2.yakumans.map((y) => y.name).join(", ")}</div>
+                                    <div className="mt-1">
+                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                        {p2.yakumans.map((y) => y.name).join("、")}
+                                      </span>
+                                    </div>
                                   ) : null}
                                 </>
                               )}
@@ -268,13 +331,21 @@ export default function ClientStatsPrintPage({
                             <td className="px-2 py-0.5 text-xs">
                               {p3 && (
                                 <>
-                                  <div className="text-emerald-700/90">
-                                    {p3.isTobashi && <span className="mr-1">飛ばし</span>}
-                                    {p3.isTobi && <span className="mr-1">飛び</span>}
-                                    {p3.isYakitori && <span className="mr-1">焼き鳥</span>}
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {[p3.isTobi && "飛び", p3.isTobashi && "飛ばし", p3.isYakitori && "焼き鳥"]
+                                      .filter(Boolean)
+                                      .map((b, idx) => (
+                                        <span key={idx} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">
+                                          {b}
+                                        </span>
+                                      ))}
                                   </div>
                                   {p3.yakumans?.length ? (
-                                    <div className="text-sky-900">{p3.yakumans.map((y) => y.name).join(", ")}</div>
+                                    <div className="mt-1">
+                                      <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                        {p3.yakumans.map((y) => y.name).join("、")}
+                                      </span>
+                                    </div>
                                   ) : null}
                                 </>
                               )}
@@ -283,13 +354,21 @@ export default function ClientStatsPrintPage({
                               <td className="px-2 py-0.5 text-xs">
                                 {p4 && (
                                   <>
-                                    <div className="text-emerald-700/90">
-                                      {p4.isTobashi && <span className="mr-1">飛ばし</span>}
-                                      {p4.isTobi && <span className="mr-1">飛び</span>}
-                                      {p4.isYakitori && <span className="mr-1">焼き鳥</span>}
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {[p4.isTobi && "飛び", p4.isTobashi && "飛ばし", p4.isYakitori && "焼き鳥"]
+                                        .filter(Boolean)
+                                        .map((b, idx) => (
+                                          <span key={idx} className="rounded bg-amber-100 px-1 py-0.5 text-[11px] font-semibold text-amber-900">
+                                            {b}
+                                          </span>
+                                        ))}
                                     </div>
                                     {p4.yakumans?.length ? (
-                                      <div className="text-sky-900">{p4.yakumans.map((y) => y.name).join(", ")}</div>
+                                      <div className="mt-1">
+                                        <span className="inline-flex rounded border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-900">
+                                          {p4.yakumans.map((y) => y.name).join("、")}
+                                        </span>
+                                      </div>
                                     ) : null}
                                   </>
                                 )}
