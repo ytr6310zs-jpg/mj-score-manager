@@ -1,3 +1,4 @@
+import type { MatchQueryOptions } from "./matches";
 import { fetchMatchResults } from "./matches";
 import { sortAndAssignCompetitionRank } from "./stats-ranking";
 
@@ -41,13 +42,14 @@ type PlayerAccumulator = {
 export async function fetchPlayerStats(
   startDate?: string,
   endDate?: string,
-  minGames?: number
+  minGames?: number,
+  options: MatchQueryOptions = {}
 ): Promise<{
   stats: PlayerStats[];
   error: string | null;
 }> {
   try {
-    const { matches, error } = await fetchMatchResults(startDate, endDate);
+    const { matches, error } = await fetchMatchResults(startDate, endDate, options);
     if (error) return { stats: [], error };
 
     const playerMap = new Map<string, PlayerAccumulator>();

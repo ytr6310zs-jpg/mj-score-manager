@@ -19,6 +19,11 @@ export default function AdminIndexPage() {
 
               <ul className="space-y-2">
                 <li>
+                  <Link href="/admin/tournaments" className="text-primary underline">
+                    大会管理
+                  </Link>
+                </li>
+                <li>
                   <Link href="/admin/players" className="text-primary underline">
                     プレイヤー管理
                   </Link>

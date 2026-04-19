@@ -22,11 +22,18 @@ describe('stats export handler rules', () => {
       start: '2026-01-01',
       end: '2026-12-31',
       minGames: 20,
+      tournamentId: undefined,
     });
 
     const noMinUrl = new URL('http://localhost/api/export/stats?start=2026-01-01&end=2026-12-31&minGames=');
     const noMinParams = resolveStatsExportParams(noMinUrl);
     assert.strictEqual(noMinParams.minGames, undefined);
+  });
+
+  it('resolves tournamentId when provided', () => {
+    const url = new URL('http://localhost/api/export/stats?start=2026-01-01&end=2026-12-31&tournamentId=3');
+    const params = resolveStatsExportParams(url);
+    assert.strictEqual(params.tournamentId, 3);
   });
 
   it('builds CSV payload and response headers', () => {

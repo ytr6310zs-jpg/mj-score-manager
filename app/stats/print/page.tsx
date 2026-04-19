@@ -2,6 +2,7 @@ import { resolveFilterParams } from "@/lib/filter-params";
 import { fetchMatchResults } from "@/lib/matches";
 import { fetchPlayerStats } from "@/lib/stats";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
+import { fetchTournamentById } from "@/lib/tournaments";
 
 
 
@@ -30,39 +31,42 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
   const initialMinGamesRaw = Array.isArray(params?.minGames) ? params?.minGames[0] : params?.minGames;
   const hasMinGamesParam = initialMinGamesRaw !== undefined;
 
-  const { filter, start, end, minGames } = resolveFilterParams({
+  const { filter, start, end, minGames, tournamentId } = resolveFilterParams({
     filterRaw: params?.filter,
     modeRaw: params?.mode,
     startRaw: params?.start,
     endRaw: params?.end,
     minGamesRaw: params?.minGames,
+    tournamentIdRaw: params?.tournamentId,
   });
 
   // Stats page と同様に、URL に明示的な minGames が無い場合は
   // filter === 'year' のときにサーバー側で 20 を既定値として使う
   const effectiveMinGames = typeof minGames === "number" ? minGames : !hasMinGamesParam && filter === "year" ? 20 : undefined;
   // データ取得
-  const { stats } = await fetchPlayerStats(start, end, effectiveMinGames);
+  const { stats } = await fetchPlayerStats(start, end, effectiveMinGames, { tournamentId });
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
     start,
     end,
     5,
-    { minGames: effectiveMinGames }
+    { minGames: effectiveMinGames, tournamentId }
   );
-  const { matches } = await fetchMatchResults(start, end);
+  const { matches } = await fetchMatchResults(start, end, { tournamentId });
 
   // 追加: 今年かつ20試合以上の参考データ
   const now = new Date();
   const year = now.getFullYear();
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
-  const { stats: statsYearly } = await fetchPlayerStats(yearStart, yearEnd, 20);
+  const { stats: statsYearly } = await fetchPlayerStats(yearStart, yearEnd, 20, { tournamentId });
   const {
     yakumanEvents: yakumanEventsYearly,
     highestScores: highestScoresYearly,
     lowestScores: lowestScoresYearly,
     largestSpreads: largestSpreadsYearly,
-  } = await fetchStatsSubtables(yearStart, yearEnd, 5, { minGames: 20 });
+  } = await fetchStatsSubtables(yearStart, yearEnd, 5, { minGames: 20, tournamentId });
+
+  const tournament = typeof tournamentId === "number" ? await fetchTournamentById(tournamentId) : null;
 
   // ヘッダー用文言生成
   let periodLabel = "";
@@ -75,6 +79,7 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
   }
   let minGamesLabel = "試合数条件: 条件なし";
   if (effectiveMinGames === 20) minGamesLabel = "試合数条件: 20試合以上";
+  const tournamentLabel = tournament?.name ? `対象大会: ${tournament.name}` : "対象大会: 全大会";
 
   const queryString = buildQueryString(params);
   const returnUrl = `/stats${queryString ? `?${queryString}` : ""}`;
@@ -94,6 +99,7 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
       lowestScoresYearly={lowestScoresYearly}
       largestSpreadsYearly={largestSpreadsYearly}
       periodLabel={periodLabel}
+      tournamentLabel={tournamentLabel}
       minGamesLabel={minGamesLabel}
       returnUrl={returnUrl}
     />

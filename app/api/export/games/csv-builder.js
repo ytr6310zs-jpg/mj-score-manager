@@ -55,7 +55,7 @@ export function buildGamesCsv(matches, opts = {}) {
     const base = [
       escapeCsv(matchId),
       escapeCsv(m.date ?? ""),
-      escapeCsv("") /* tournament */,
+      escapeCsv(m.tournamentName ?? "") /* tournament */,
       escapeCsv("") /* venue */,
       escapeCsv("") /* round_number */,
       escapeCsv("") /* table */,

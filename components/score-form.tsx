@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { saveScoreAction, type SaveScoreState } from "@/app/actions";
 import { addPlayerAction } from "@/app/player-actions";
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
+import { getLastTournamentId, setLastTournamentId } from "@/lib/tournament-preference";
+import type { TournamentOption } from "@/lib/tournaments";
 import useYakumans from "@/lib/useYakumans";
 
 const initialState: SaveScoreState = {
@@ -25,6 +27,7 @@ type GameType = "3p" | "4p";
 
 type ScoreFormProps = {
   players: string[];
+  tournaments: TournamentOption[];
 };
 
 type PlayerSelection = {
@@ -38,10 +41,11 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function ScoreForm({ players: playerList }: ScoreFormProps) {
+export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) {
   const [state, formAction, pending] = useActionState(saveScoreAction, initialState);
   const [clientError, setClientError] = useState<string | null>(null);
   const [duplicatePlayerError, setDuplicatePlayerError] = useState<string | null>(null);
+  const [tournamentId, setTournamentId] = useState<string>(tournaments[0] ? String(tournaments[0].id) : "");
   const [gameType, setGameType] = useState<GameType>("3p");
   const [players, setPlayers] = useState<PlayerSelection>({
     1: "",
@@ -56,6 +60,7 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
   const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>([]);
+  const skipInitialPersistRef = useRef(true);
 
   const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
   const { yakumans } = useYakumans();
@@ -188,6 +193,43 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
   }, [activeSlots, players]);
 
   useEffect(() => {
+    if (tournaments.length === 0) {
+      setTournamentId((current) => (current === "" ? current : ""));
+      return;
+    }
+
+    const availableIds = new Set(tournaments.map((tournament) => tournament.id));
+    const storedId = getLastTournamentId();
+    setTournamentId((current) => {
+      const currentId = Number(current);
+
+      let nextTournamentId = "";
+      if (storedId && availableIds.has(storedId)) {
+        nextTournamentId = String(storedId);
+      } else if (Number.isInteger(currentId) && availableIds.has(currentId)) {
+        nextTournamentId = String(currentId);
+      } else {
+        nextTournamentId = String(tournaments[0].id);
+      }
+
+      return nextTournamentId === current ? current : nextTournamentId;
+    });
+  }, [tournaments]);
+
+  useEffect(() => {
+    if (!tournamentId) {
+      return;
+    }
+
+    if (skipInitialPersistRef.current) {
+      skipInitialPersistRef.current = false;
+      return;
+    }
+
+    setLastTournamentId(Number(tournamentId));
+  }, [tournamentId]);
+
+  useEffect(() => {
     if (!state.success) {
       return;
     }
@@ -208,6 +250,12 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
           action={formAction}
           className="space-y-6"
           onSubmit={(e) => {
+            if (!tournamentId) {
+              e.preventDefault();
+              setClientError("大会を選択してください。");
+              return;
+            }
+
             const slots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
             const selectedPlayers = slots.map(
               (slot) => players[slot as keyof PlayerSelection]
@@ -254,7 +302,23 @@ export function ScoreForm({ players: playerList }: ScoreFormProps) {
           }}
         >
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2 sm:col-span-3">
+                <Label>大会</Label>
+                <Select name="tournamentId" value={tournamentId} onValueChange={setTournamentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="大会を選択してください" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tournaments.map((tournament) => (
+                      <SelectItem key={tournament.id} value={String(tournament.id)}>
+                        {tournament.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>卓種</Label>
                 <Select name="gameType" value={gameType} onValueChange={(value) => setGameType(value as GameType)}>

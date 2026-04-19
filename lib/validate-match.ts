@@ -41,6 +41,7 @@ function parseScore(value: FormDataEntryValue | null) {
 }
 
 export type ParsedMatchData = {
+  tournamentId: number;
   gameDate: string;
   gameType: GameType;
   activeSlots: number[];
@@ -54,6 +55,12 @@ export type ParsedMatchData = {
 };
 
 export function validateAndParseMatchForm(formData: FormData): { ok: true; data: ParsedMatchData } | { ok: false; message: string } {
+  const tournamentIdRaw = parseString(formData.get("tournamentId"));
+  const tournamentId = Number(tournamentIdRaw);
+  if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
+    return { ok: false, message: "大会を選択してください" };
+  }
+
   const gameDate = parseString(formData.get("gameDate"));
   if (!gameDate) {
     return { ok: false, message: "対局日を入力してください" };
@@ -137,6 +144,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
   return {
     ok: true,
     data: {
+      tournamentId,
       gameDate,
       gameType,
       activeSlots,
