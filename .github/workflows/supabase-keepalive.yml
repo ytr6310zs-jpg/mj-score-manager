@@ -25,26 +25,27 @@ jobs:
     environment: "Preview – mj-score-manager-tfvp"
 
     steps:
-      - name: Resolve target URL and ping
+      - name: Ping Supabase REST API (staging)
         env:
-          SECRET_APP_URL: ${{ secrets.APP_URL }}
-          STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
-          PREVIEW_APP_URL: ${{ secrets.PREVIEW_APP_URL }}
-          KEEPALIVE_PING_PATH: ${{ vars.KEEPALIVE_PING_PATH }}
+          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
         run: |
           set -euo pipefail
 
-          BASE_URL="${SECRET_APP_URL:-${STAGING_APP_URL:-${PREVIEW_APP_URL:-}}}"
-
-          if [ -z "$BASE_URL" ]; then
-            echo "APP_URL is not configured for staging." >&2
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "STAGING_SUPABASE_URL or STAGING_SUPABASE_ANON_KEY is not configured." >&2
             exit 1
           fi
 
-          PING_PATH="${KEEPALIVE_PING_PATH:-/api/yakumans}"
-          PING_URL="${BASE_URL%/}${PING_PATH}"
+          PING_URL="${SUPABASE_URL%/}/rest/v1/players?select=count&limit=1"
 
-          STATUS_CODE=$(curl -sS -o /tmp/keepalive-body.txt -w "%{http_code}" --max-time 20 --retry 2 --retry-delay 2 "$PING_URL")
+          STATUS_CODE=$(curl -sS \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -o /tmp/keepalive-body.txt \
+            -w "%{http_code}" \
+            --max-time 20 --retry 2 --retry-delay 2 \
+            "$PING_URL")
 
           if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
             echo "Keepalive ping succeeded for staging (HTTP $STATUS_CODE)."
@@ -63,25 +64,27 @@ jobs:
     environment: "Production – mj-score-manager-tfvp"
 
     steps:
-      - name: Resolve target URL and ping
+      - name: Ping Supabase REST API (prod)
         env:
-          SECRET_APP_URL: ${{ secrets.APP_URL }}
-          PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
-          KEEPALIVE_PING_PATH: ${{ vars.KEEPALIVE_PING_PATH }}
+          SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.PROD_SUPABASE_ANON_KEY }}
         run: |
           set -euo pipefail
 
-          BASE_URL="${SECRET_APP_URL:-${PROD_APP_URL:-}}"
-
-          if [ -z "$BASE_URL" ]; then
-            echo "APP_URL is not configured for prod." >&2
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "PROD_SUPABASE_URL or PROD_SUPABASE_ANON_KEY is not configured." >&2
             exit 1
           fi
 
-          PING_PATH="${KEEPALIVE_PING_PATH:-/api/yakumans}"
-          PING_URL="${BASE_URL%/}${PING_PATH}"
+          PING_URL="${SUPABASE_URL%/}/rest/v1/players?select=count&limit=1"
 
-          STATUS_CODE=$(curl -sS -o /tmp/keepalive-body.txt -w "%{http_code}" --max-time 20 --retry 2 --retry-delay 2 "$PING_URL")
+          STATUS_CODE=$(curl -sS \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -o /tmp/keepalive-body.txt \
+            -w "%{http_code}" \
+            --max-time 20 --retry 2 --retry-delay 2 \
+            "$PING_URL")
 
           if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
             echo "Keepalive ping succeeded for prod (HTTP $STATUS_CODE)."

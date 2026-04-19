@@ -147,15 +147,14 @@ Supabase Free プランでプロジェクトの休止を避けるため、GitHub
 - 実行タイミング: 12時間ごと + 手動実行（workflow_dispatch）
 - 既定の ping 先: `/api/yakumans`
 
-必要な Actions secrets（環境またはリポジトリ）:
+必要な Actions secrets（各環境スコープに登録）:
 
-- `APP_URL`（環境スコープで設定する場合の推奨キー）
-- `STAGING_APP_URL` または `PREVIEW_APP_URL`（staging のフォールバック）
-- `PROD_APP_URL`（prod のフォールバック）
+- `STAGING_SUPABASE_URL` — staging 用 Supabase プロジェクト URL（例: `https://xxxx.supabase.co`）
+- `STAGING_SUPABASE_ANON_KEY` — staging 用 Supabase anon key
+- `PROD_SUPABASE_URL` — prod 用 Supabase プロジェクト URL
+- `PROD_SUPABASE_ANON_KEY` — prod 用 Supabase anon key
 
-任意の Actions variables:
-
-- `KEEPALIVE_PING_PATH`（例: `/api/health`。未設定時は `/api/yakumans`）
+> **備考:** アプリ URL 経由ではなく Supabase REST API に直接 ping するため、Vercel の Deployment Protection（preview 環境の認証制限）の影響を受けません。
 
 ## スプレッドシート（補助スクリプト）について
 
