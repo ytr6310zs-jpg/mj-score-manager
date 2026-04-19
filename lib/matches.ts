@@ -20,6 +20,8 @@ export type MatchPlayer = {
 
 export type MatchResult = {
   id?: number;
+  tournamentId: number | null;
+  tournamentName: string;
   date: string;
   gameType: "3p" | "4p";
   playerCount: number;
@@ -37,6 +39,10 @@ export type MatchResult = {
   notes: string;
   createdAt: string;
   players: MatchPlayer[];
+};
+
+export type MatchQueryOptions = {
+  tournamentId?: number;
 };
 
 function toBool(value: unknown): boolean {
@@ -67,7 +73,7 @@ function parseEpoch(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export async function fetchMatchResults(startDate?: string, endDate?: string): Promise<{
+export async function fetchMatchResults(startDate?: string, endDate?: string, options: MatchQueryOptions = {}): Promise<{
   matches: MatchResult[];
   error: string | null;
 }> {
@@ -84,9 +90,10 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const selection = `id,date,game_type,player_count,player1,player2,player3,player4,player1_id,player2_id,player3_id,player4_id,score1,score2,score3,score4,rank1,rank2,rank3,rank4,is_tobi1,is_tobi2,is_tobi3,is_tobi4,is_tobashi1,is_tobashi2,is_tobashi3,is_tobashi4,is_yakitori1,is_yakitori2,is_yakitori3,is_yakitori4,score_total,top_player,top_player_id,last_player,last_player_id,tobi_player,tobi_player_id,tobashi_player,tobashi_player_id,yakitori_players,yakitori_player_ids,notes,created_at`;
+    const selection = `id,tournament_id,tournaments(name),date,game_type,player_count,player1,player2,player3,player4,player1_id,player2_id,player3_id,player4_id,score1,score2,score3,score4,rank1,rank2,rank3,rank4,is_tobi1,is_tobi2,is_tobi3,is_tobi4,is_tobashi1,is_tobashi2,is_tobashi3,is_tobashi4,is_yakitori1,is_yakitori2,is_yakitori3,is_yakitori4,score_total,top_player,top_player_id,last_player,last_player_id,tobi_player,tobi_player_id,tobashi_player,tobashi_player_id,yakitori_players,yakitori_player_ids,notes,created_at`;
 
     let qb = supabase.from("games").select(selection);
+    if (typeof options.tournamentId === "number") qb = qb.eq("tournament_id", options.tournamentId);
     if (startDate) qb = qb.gte("date", startDate);
     if (endDate) qb = qb.lte("date", endDate);
     qb = qb.order("date", { ascending: false }).order("created_at", { ascending: false });
@@ -132,9 +139,13 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
       const yakitoriPlayerIds: number[] = Array.isArray(rawYakitoriIds)
         ? (rawYakitoriIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
         : [];
+      const rawTournament = row["tournaments"] as { name?: unknown } | Array<{ name?: unknown }> | null | undefined;
+      const tournamentRelation = Array.isArray(rawTournament) ? rawTournament[0] : rawTournament;
 
       return {
         id: Number(row["id"] ?? 0),
+        tournamentId: toNullableId(row["tournament_id"]),
+        tournamentName: tournamentRelation?.name ? String(tournamentRelation.name) : "",
         date: toString(row["date"]),
         gameType: String(row["game_type"] ?? "") === "4p" ? ("4p" as const) : ("3p" as const),
         playerCount,
@@ -254,7 +265,7 @@ export async function fetchMatchResults(startDate?: string, endDate?: string): P
   }
 }
 
-export async function fetchMatchDates(): Promise<{ dates: string[]; error: string | null }> {
+export async function fetchMatchDates(options: MatchQueryOptions = {}): Promise<{ dates: string[]; error: string | null }> {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
 
@@ -265,7 +276,11 @@ export async function fetchMatchDates(): Promise<{ dates: string[]; error: strin
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const { data, error } = await supabase.from("games").select("date").order("date", { ascending: false });
+    let query = supabase.from("games").select("date");
+    if (typeof options.tournamentId === "number") {
+      query = query.eq("tournament_id", options.tournamentId);
+    }
+    const { data, error } = await query.order("date", { ascending: false });
     if (error || !data) {
       console.error("fetchMatchDates supabase error:", error);
       return { dates: [], error: "対局日の取得に失敗しました。Supabase の設定を確認してください。" };

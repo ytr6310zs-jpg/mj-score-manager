@@ -1,7 +1,7 @@
 "use server";
 
+import { buildRankedEntries, validateAndParseMatchForm } from "@/lib/validate-match";
 import { createClient } from "@supabase/supabase-js";
-import { validateAndParseMatchForm, buildRankedEntries } from "@/lib/validate-match";
 export type DeleteMatchState = {
   success: boolean;
   message: string;
@@ -97,6 +97,7 @@ export async function editMatchAction(
   }
 
   const {
+    tournamentId,
     gameDate,
     gameType,
     players,
@@ -125,6 +126,15 @@ export async function editMatchAction(
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
+    const { data: tournamentRows, error: tournamentError } = await supabase
+      .from("tournaments")
+      .select("id")
+      .eq("id", tournamentId)
+      .limit(1);
+    if (tournamentError || !tournamentRows || tournamentRows.length === 0) {
+      return { success: false, message: "選択された大会が見つかりません。" };
+    }
+
     // プレイヤー名から players.id を一括解決する
     const allNames = Array.from(new Set([
       ...players,
@@ -148,6 +158,7 @@ export async function editMatchAction(
     type RowValue = string | number | boolean | null;
 
     const updatePayload: Record<string, RowValue> = {
+      tournament_id: tournamentId,
       date: gameDate,
       game_type: gameType,
       player_count: players.length,

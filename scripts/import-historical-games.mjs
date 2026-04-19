@@ -617,6 +617,16 @@ async function createDataStore({ supabaseUrl, supabaseKey, databaseUrl }) {
         if (error) throw new Error(`existing games check error: ${JSON.stringify(error)}`);
         return data ?? [];
       },
+      async fetchDefaultTournamentId() {
+        const { data, error } = await supabase
+          .from("tournaments")
+          .select("id")
+          .eq("name", "大会1")
+          .limit(1);
+        if (error) throw new Error(`default tournament fetch error: ${JSON.stringify(error)}`);
+        if (!data || data.length === 0) throw new Error("default tournament `大会1` not found");
+        return Number(data[0].id);
+      },
       async insertGames(rows) {
         if (rows.length === 0) return [];
         const { data, error } = await supabase.from("games").insert(rows).select("id,notes");
@@ -676,6 +686,11 @@ async function createDataStore({ supabaseUrl, supabaseKey, databaseUrl }) {
       async fetchImportedGames() {
         const res = await client.query("SELECT id,notes FROM public.games WHERE notes LIKE $1", [`${IMPORT_NOTE_PREFIX}:%`]);
         return res.rows;
+      },
+      async fetchDefaultTournamentId() {
+        const res = await client.query("SELECT id FROM public.tournaments WHERE name = $1 LIMIT 1", ["大会1"]);
+        if (!res.rows || res.rows.length === 0) throw new Error("default tournament `大会1` not found");
+        return Number(res.rows[0].id);
       },
       async insertGames(rows) {
         if (rows.length === 0) return [];
@@ -750,6 +765,7 @@ async function main() {
     );
 
     const players = await store.fetchPlayersByNames(allNames);
+    const defaultTournamentId = await store.fetchDefaultTournamentId();
     const nameToId = new Map((players ?? []).map((p) => [String(p.name), Number(p.id)]));
     const unresolved = allNames.filter((name) => !nameToId.has(name));
     if (unresolved.length > 0) {
@@ -775,7 +791,7 @@ async function main() {
     const insertedPendingGames = [];
     for (const game of plannedGames) {
       const existingGameId = existingByNoteKey.get(String(game.noteKey)) ?? null;
-      const row = { ...game.row };
+      const row = { ...game.row, tournament_id: defaultTournamentId };
       for (const entry of game.entries) {
         row[`player${entry.slot}`] = entry.player;
         row[`player${entry.slot}_id`] = nameToId.get(entry.player) ?? null;

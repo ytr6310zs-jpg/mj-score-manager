@@ -139,6 +139,21 @@ npm run build
 - スキーマの正本は `supabase/migrations/` を使う
 - local の検証は local Supabase 上で完結させる
 
+## Supabase Free プラン向け Keepalive
+
+Supabase Free プランでプロジェクトの休止を避けるため、GitHub Actions で `staging` / `prod` の両環境に定期 ping を送るワークフローを追加しています。
+
+- ワークフロー: `.github/workflows/supabase-keepalive.yml`
+- 実行タイミング: 12時間ごと + 手動実行（workflow_dispatch）
+- 既定の ping 先: `/api/yakumans`
+
+必要な Actions secrets（既存の secrets を流用）:
+
+- `STAGING_DATABASE_URL` — staging 用 Postgres 接続文字列（他ワークフローと共用）
+- `PROD_DATABASE_URL` — prod 用 Postgres 接続文字列（他ワークフローと共用）
+
+新規 secret の追加は不要です。`psql "SELECT 1;"` で DB に直接クエリを投げるため、Vercel の Deployment Protection の影響も受けません。
+
 ## スプレッドシート（補助スクリプト）について
 
 アプリ本体は Supabase の `games` / `players` テーブルをデータソースとして動作します。Google スプレッドシートは移行・エクスポート・検証用の補助スクリプトでのみ利用します。スプレッドシート関連のスクリプトは `scripts/sheets/` にまとまっています。

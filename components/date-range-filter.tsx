@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  getDefaultMinGamesForFilter,
-  getLoadingIndicatorPlacement,
-  shouldAutoSubmitOnMinGamesChange,
-  shouldShowMinGames,
+    getDefaultMinGamesForFilter,
+    getLoadingIndicatorPlacement,
+    shouldAutoSubmitOnMinGamesChange,
+    shouldShowMinGames,
 } from "@/components/date-range-filter-rules";
+import { getLastTournamentId, setLastTournamentId } from "@/lib/tournament-preference";
+import type { TournamentOption } from "@/lib/tournaments";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Props = {
   initialMode?: "today" | "thisYear" | "range";
@@ -17,6 +19,8 @@ type Props = {
   availableDates?: string[];
   initialMinGames?: string;
   showMinGames?: boolean;
+  tournaments?: TournamentOption[];
+  initialTournamentId?: string;
 };
 
 export default function DateRangeFilter({
@@ -28,6 +32,8 @@ export default function DateRangeFilter({
   availableDates,
   initialMinGames,
   showMinGames = true,
+  tournaments = [],
+  initialTournamentId,
 }: Props) {
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -63,8 +69,12 @@ export default function DateRangeFilter({
   const [start, setStart] = useState<string>(initial.start ?? "");
   const [end, setEnd] = useState<string>(initial.end ?? "");
   const [minGames, setMinGames] = useState<string>(initialMinGames ?? defaultMin);
+  const [tournamentId, setTournamentId] = useState<string>(
+    initialTournamentId ?? (tournaments[0] ? String(tournaments[0].id) : "")
+  );
   const [isDisabled, setIsDisabled] = useState(true);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const tournamentInitRef = useRef(false);
 
   useEffect(() => {
     setIsDisabled(false);
@@ -77,8 +87,48 @@ export default function DateRangeFilter({
     setEnd(init.end ?? "");
     const def = getDefaultMinGamesForFilter(init.filter);
     setMinGames(initialMinGames ?? def);
+    setTournamentId(initialTournamentId ?? (tournaments[0] ? String(tournaments[0].id) : ""));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFilter, initialMode, initialStart, initialEnd, initialMinGames]);
+  }, [initialFilter, initialMode, initialStart, initialEnd, initialMinGames, initialTournamentId, tournaments]);
+
+  useEffect(() => {
+    if (initialTournamentId) {
+      setLastTournamentId(Number(initialTournamentId));
+    }
+  }, [initialTournamentId]);
+
+  useEffect(() => {
+    if (tournamentInitRef.current) return;
+    if (initialTournamentId) {
+      tournamentInitRef.current = true;
+      return;
+    }
+    if (tournaments.length === 0) return;
+
+    tournamentInitRef.current = true;
+    const availableIds = new Set(tournaments.map((tournament) => tournament.id));
+    const storedTournamentId = getLastTournamentId();
+    const resolvedTournamentId =
+      storedTournamentId && availableIds.has(storedTournamentId)
+        ? storedTournamentId
+        : tournaments[0].id;
+
+    setTournamentId(String(resolvedTournamentId));
+    setLastTournamentId(resolvedTournamentId);
+    setIsDisabled(true);
+
+    const params = new URLSearchParams();
+    params.set("filter", filter);
+    params.set("start", start);
+    params.set("end", end);
+    params.set("tournamentId", String(resolvedTournamentId));
+    if (shouldShowMinGames(showMinGames, filter) && minGames) {
+      params.set("minGames", minGames);
+    }
+
+    const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
+    window.location.href = target;
+  }, [actionPath, end, filter, initialTournamentId, minGames, showMinGames, start, tournaments]);
 
   const showInvalidDateFlash = useCallback(() => {
     try {
@@ -134,9 +184,40 @@ export default function DateRangeFilter({
       params.set("start", start);
       params.set("end", end);
       params.set("minGames", value);
+      if (tournamentId) {
+        params.set("tournamentId", tournamentId);
+      }
       const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
       window.location.href = target;
     }
+  }
+
+  function handleTournamentChange(value: string) {
+    setTournamentId(value);
+    if (value) {
+      setLastTournamentId(Number(value));
+    }
+
+    const nextFilter = filter !== "year" && filter !== "custom" ? "year" : filter;
+    const nextStart = nextFilter === "year" ? yearStart : start;
+    const nextEnd = nextFilter === "year" ? yearEnd : end;
+
+    setFilter(nextFilter);
+    setStart(nextStart);
+    setEnd(nextEnd);
+    setIsDisabled(true);
+
+    const params = new URLSearchParams();
+    params.set("filter", nextFilter);
+    params.set("start", nextStart);
+    params.set("end", nextEnd);
+    params.set("tournamentId", value);
+    if (shouldShowMinGames(showMinGames, nextFilter) && minGames) {
+      params.set("minGames", minGames);
+    }
+
+    const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
+    window.location.href = target;
   }
 
   function handleStartChange(value: string) {
@@ -164,6 +245,23 @@ export default function DateRangeFilter({
   return (
     <form ref={formRef} method="get" action={actionPath} onSubmit={handleSubmit} className="mb-2 flex w-full flex-col gap-2">
       <div className="flex w-full flex-wrap items-center gap-2">
+        {tournaments.length > 0 ? (
+          <select
+            name="tournamentId"
+            value={tournamentId}
+            onChange={(e) => handleTournamentChange(e.target.value)}
+            disabled={isDisabled}
+            className="h-10 w-auto rounded border p-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="大会フィルタ"
+          >
+            {tournaments.map((tournament) => (
+              <option key={tournament.id} value={String(tournament.id)}>
+                {tournament.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
+
         <div className="flex items-center gap-2">
           <select
             name="filter"
@@ -253,6 +351,7 @@ export default function DateRangeFilter({
       </div>
 
       <input name="filter" type="hidden" value={filter} />
+      <input name="tournamentId" type="hidden" value={tournamentId} />
       <input
         name="minGames"
         type="hidden"

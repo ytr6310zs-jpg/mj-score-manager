@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { fetchMatchResults } from "@/lib/matches";
+import { NextResponse } from "next/server";
 
 function escapeCsv(value: unknown): string {
   if (value === null || value === undefined) return "";
@@ -14,8 +14,12 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const start = url.searchParams.get("start") ?? "";
   const end = url.searchParams.get("end") ?? "";
+  const tournamentIdRaw = url.searchParams.get("tournamentId") ?? "";
+  const tournamentId = tournamentIdRaw ? Number(tournamentIdRaw) : undefined;
 
-  const { matches, error } = await fetchMatchResults(start || undefined, end || undefined);
+  const { matches, error } = await fetchMatchResults(start || undefined, end || undefined, {
+    tournamentId: Number.isInteger(tournamentId) ? tournamentId : undefined,
+  });
   if (error) {
     return NextResponse.json({ error }, { status: 500 });
   }
@@ -23,6 +27,7 @@ export async function GET(req: Request) {
   const headers = [
     "対局ID",
     "createdAt",
+    "tournamentName",
     "date",
     "gameType",
     "player1",
@@ -46,6 +51,7 @@ export async function GET(req: Request) {
     const base = [
       escapeCsv(m.createdAt),
       escapeCsv(m.createdAt),
+      escapeCsv(m.tournamentName ?? ""),
       escapeCsv(m.date ?? ""),
       escapeCsv(m.gameType),
     ];

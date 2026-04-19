@@ -10,6 +10,7 @@ export interface FilterParamConfig {
   startRaw: unknown;
   endRaw: unknown;
   minGamesRaw?: unknown;
+  tournamentIdRaw?: unknown;
 }
 
 export interface FilterParamResult {
@@ -17,10 +18,13 @@ export interface FilterParamResult {
   start: string;
   end: string;
   minGames?: number;
+  tournamentId?: number;
 }
 
+import { parseTournamentId } from "./tournament-filter-query.js";
+
 export function resolveFilterParams(config: FilterParamConfig): FilterParamResult {
-  const { filterRaw, modeRaw, startRaw, endRaw, minGamesRaw } = config;
+  const { filterRaw, modeRaw, startRaw, endRaw, minGamesRaw, tournamentIdRaw } = config;
 
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -96,5 +100,7 @@ export function resolveFilterParams(config: FilterParamConfig): FilterParamResul
     }
   }
 
-  return { filter, start, end, minGames };
+  const tournamentId = parseTournamentId(tournamentIdRaw);
+
+  return { filter, start, end, minGames, tournamentId };
 }

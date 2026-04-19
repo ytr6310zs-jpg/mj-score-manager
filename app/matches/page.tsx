@@ -7,8 +7,9 @@ import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { MatchDeleteButton } from "@/components/match-delete-button";
 import { buttonVariants } from "@/components/ui/button";
-import { fetchMatchResults, fetchMatchDates, type MatchPlayer } from "@/lib/matches";
 import { resolveFilterParams } from "@/lib/filter-params";
+import { fetchMatchDates, fetchMatchResults, type MatchPlayer } from "@/lib/matches";
+import { fetchTournamentOptions } from "@/lib/tournaments";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -40,10 +41,19 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
     modeRaw: params?.mode,
     startRaw: params?.start,
     endRaw: params?.end,
+    tournamentIdRaw: params?.tournamentId,
+  });
+  const { tournamentId } = resolveFilterParams({
+    filterRaw: params?.filter,
+    modeRaw: params?.mode,
+    startRaw: params?.start,
+    endRaw: params?.end,
+    tournamentIdRaw: params?.tournamentId,
   });
 
-  const { dates: availableDates, error: datesError } = await fetchMatchDates();
-  const { matches, error } = await fetchMatchResults(start, end);
+  const tournaments = await fetchTournamentOptions();
+  const { dates: availableDates, error: datesError } = await fetchMatchDates({ tournamentId });
+  const { matches, error } = await fetchMatchResults(start, end, { tournamentId });
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
@@ -69,9 +79,11 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                   initialFilter={filter}
                   initialStart={start}
                   initialEnd={end}
+                  initialTournamentId={tournamentId ? String(tournamentId) : undefined}
                   showMinGames={false}
                   actionPath="/matches"
                   availableDates={datesError ? undefined : availableDates}
+                  tournaments={tournaments}
                 />
               </div>
             </div>

@@ -3,13 +3,11 @@ export const dynamic = "force-dynamic";
 import { createClient } from "@supabase/supabase-js";
 
 import { AppHeader } from "@/components/app-header";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 
-import { editPlayerFormAction } from "@/app/player-actions";
 import { PlayerAddForm } from "@/components/player-add-form";
 import { PlayerDeleteButton } from "@/components/player-delete-button";
+import { PlayerEditForm } from "@/components/player-edit-form";
 
 type PlayerRow = {
   id: number;
@@ -66,19 +64,12 @@ export default async function PlayersAdminPage() {
                     {players.map((p) => (
                       <tr key={p.id} className="border-b">
                         <td className="py-2">
-                          {/* edit form holds the name input; save button is rendered in the operations column and targets this form via `form` attr */}
-                          <form id={`edit-player-${p.id}`} action={editPlayerFormAction} className="flex gap-2 items-center">
-                            <input name="id" type="hidden" value={String(p.id)} />
-                            <Input name="name" defaultValue={p.name} />
-                          </form>
+                          <PlayerEditForm id={p.id} initialName={p.name} />
                         </td>
                         <td className="py-2 text-sm text-muted-foreground">
                           {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
                         </td>
-                        <td className="py-2 flex items-center gap-2">
-                          {/* save button targets the edit form by id */}
-                          <Button type="submit" form={`edit-player-${p.id}`} size="sm">保存</Button>
-                          {/* client-side delete button */}
+                        <td className="py-2">
                           <PlayerDeleteButton id={p.id} />
                         </td>
                       </tr>

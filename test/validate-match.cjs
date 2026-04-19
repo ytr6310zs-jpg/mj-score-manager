@@ -4,9 +4,13 @@ const assert = require('node:assert/strict');
 require('ts-node').register({ transpileOnly: true, preferTsExts: true });
 
 const { validateAndParseMatchForm } = require('../lib/validate-match.ts');
+const { resolveFilterParams } = require('../lib/filter-params.ts');
 
 function fdFrom(obj) {
   const fd = new FormData();
+  if (obj.tournamentId === undefined) {
+    fd.append('tournamentId', '1');
+  }
   for (const [k, v] of Object.entries(obj)) {
     if (Array.isArray(v)) {
       for (const item of v) fd.append(k, String(item));
@@ -147,6 +151,26 @@ function run() {
   res = validateAndParseMatchForm(fd);
   assert.ok(!res.ok, 'out-of-range score should fail');
   assert.ok(/スコア/.test(res.message || ''), 'score-range message');
+
+  // tournament filter parser contract (used by matches/stats/print)
+  const params = resolveFilterParams({
+    filterRaw: 'year',
+    modeRaw: undefined,
+    startRaw: '2026-01-01',
+    endRaw: '2026-12-31',
+    minGamesRaw: '20',
+    tournamentIdRaw: '5',
+  });
+  assert.strictEqual(params.tournamentId, 5, 'tournamentId should be parsed as positive integer');
+
+  const invalidTournament = resolveFilterParams({
+    filterRaw: 'year',
+    modeRaw: undefined,
+    startRaw: '2026-01-01',
+    endRaw: '2026-12-31',
+    tournamentIdRaw: 'abc',
+  });
+  assert.strictEqual(invalidTournament.tournamentId, undefined, 'invalid tournamentId should be ignored');
 
   return 0;
 }

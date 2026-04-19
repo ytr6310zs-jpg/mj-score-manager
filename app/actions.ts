@@ -19,6 +19,7 @@ export async function saveScoreAction(
   }
 
   const {
+    tournamentId,
     gameDate,
     gameType,
     players,
@@ -46,6 +47,15 @@ export async function saveScoreAction(
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
+    const { data: tournamentRows, error: tournamentError } = await supabase
+      .from("tournaments")
+      .select("id")
+      .eq("id", tournamentId)
+      .limit(1);
+    if (tournamentError || !tournamentRows || tournamentRows.length === 0) {
+      return { success: false, message: "選択された大会が見つかりません。" };
+    }
+
     // プレイヤー名から players.id を一括解決する
     const allNames = Array.from(new Set([
       ...players,
@@ -69,6 +79,7 @@ export async function saveScoreAction(
     type RowValue = string | number | boolean | null;
 
     const row: Record<string, RowValue> = {
+      tournament_id: tournamentId,
       date: gameDate,
       game_type: gameType,
       player_count: players.length,
