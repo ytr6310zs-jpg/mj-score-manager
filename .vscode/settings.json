@@ -6,7 +6,11 @@
             "approve": true,
             "matchCommandLine": true
         },
-        "git checkout": true
+        "git checkout": true,
+        "/^npm run build && node --test test/stats-subtables\\.test\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     },
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
