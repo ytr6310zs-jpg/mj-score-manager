@@ -25,36 +25,21 @@ jobs:
     environment: "Preview – mj-score-manager-tfvp"
 
     steps:
-      - name: Ping Supabase REST API (staging)
+      - name: Ping Supabase DB (staging)
         env:
-          SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: |
           set -euo pipefail
 
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
-            echo "STAGING_SUPABASE_URL or STAGING_SUPABASE_ANON_KEY is not configured." >&2
+          DB_URL="${STAGING_DATABASE_URL:-}"
+          if [ -z "$DB_URL" ]; then
+            echo "STAGING_DATABASE_URL is not configured." >&2
             exit 1
           fi
 
-          PING_URL="${SUPABASE_URL%/}/rest/v1/players?select=count&limit=1"
-
-          STATUS_CODE=$(curl -sS \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            -o /tmp/keepalive-body.txt \
-            -w "%{http_code}" \
-            --max-time 20 --retry 2 --retry-delay 2 \
-            "$PING_URL")
-
-          if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
-            echo "Keepalive ping succeeded for staging (HTTP $STATUS_CODE)."
-            exit 0
-          fi
-
-          echo "Keepalive ping failed for staging (HTTP $STATUS_CODE)." >&2
-          head -c 500 /tmp/keepalive-body.txt >&2 || true
-          exit 1
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          psql "$DB_URL" -c "SELECT 1;" > /dev/null
+          echo "Keepalive ping succeeded for staging."
 
   keepalive-prod:
     name: Keepalive (prod)
@@ -64,33 +49,18 @@ jobs:
     environment: "Production – mj-score-manager-tfvp"
 
     steps:
-      - name: Ping Supabase REST API (prod)
+      - name: Ping Supabase DB (prod)
         env:
-          SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.PROD_SUPABASE_ANON_KEY }}
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
         run: |
           set -euo pipefail
 
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
-            echo "PROD_SUPABASE_URL or PROD_SUPABASE_ANON_KEY is not configured." >&2
+          DB_URL="${PROD_DATABASE_URL:-}"
+          if [ -z "$DB_URL" ]; then
+            echo "PROD_DATABASE_URL is not configured." >&2
             exit 1
           fi
 
-          PING_URL="${SUPABASE_URL%/}/rest/v1/players?select=count&limit=1"
-
-          STATUS_CODE=$(curl -sS \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            -o /tmp/keepalive-body.txt \
-            -w "%{http_code}" \
-            --max-time 20 --retry 2 --retry-delay 2 \
-            "$PING_URL")
-
-          if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
-            echo "Keepalive ping succeeded for prod (HTTP $STATUS_CODE)."
-            exit 0
-          fi
-
-          echo "Keepalive ping failed for prod (HTTP $STATUS_CODE)." >&2
-          head -c 500 /tmp/keepalive-body.txt >&2 || true
-          exit 1
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          psql "$DB_URL" -c "SELECT 1;" > /dev/null
+          echo "Keepalive ping succeeded for prod."
