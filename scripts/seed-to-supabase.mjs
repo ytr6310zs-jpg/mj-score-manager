@@ -41,9 +41,20 @@ const SAMPLE_GAMES = [
 ];
 
 async function main(){
+  const { data: tournamentRows, error: tournamentError } = await supabase
+    .from('tournaments')
+    .select('id')
+    .eq('name', '大会1')
+    .limit(1);
+  if (tournamentError || !tournamentRows || tournamentRows.length === 0) {
+    console.error('Default tournament `大会1` not found. Run migrations first.');
+    process.exit(1);
+  }
+  const defaultTournamentId = Number(tournamentRows[0].id);
+
   console.log('Inserting', SAMPLE_GAMES.length, 'sample rows to Supabase `games` table...');
   for (const g of SAMPLE_GAMES){
-    const { data, error } = await supabase.from('games').insert([g]);
+    const { data, error } = await supabase.from('games').insert([{ ...g, tournament_id: defaultTournamentId }]);
     if (error){
       console.error('Insert error:', error);
       process.exit(1);

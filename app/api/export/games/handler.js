@@ -1,4 +1,15 @@
+import { resolveTournamentIdFromUrl } from "../../../../lib/tournament-filter-query.js";
 import { buildGamesCsv } from "./csv-builder.js";
+
+export function resolveGamesExportParams(url) {
+  const start = url.searchParams.get("start") ?? "";
+  const end = url.searchParams.get("end") ?? "";
+  return {
+    start,
+    end,
+    tournamentId: resolveTournamentIdFromUrl(url),
+  };
+}
 
 /**
  * Build response payload for games export from matches array.

@@ -7,6 +7,7 @@ import { MatchEditForm } from "@/components/match-edit-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchMatchResults } from "@/lib/matches";
 import { fetchPlayerNames } from "@/lib/players-sheet";
+import { fetchTournamentOptions } from "@/lib/tournaments";
 import { createClient } from "@supabase/supabase-js";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default async function MatchEditPage({ params }: EditPageProps) {
 
   const { matches, error: matchError } = await fetchMatchResults();
   const players = await fetchPlayerNames();
+  const tournaments = await fetchTournamentOptions();
 
   if (matchError) {
     return (
@@ -106,7 +108,7 @@ export default async function MatchEditPage({ params }: EditPageProps) {
             <CardDescription>対局データを編集して更新します</CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-            <MatchEditForm match={match} players={players} createdAt={decodedCreatedAt} yakumans={yakumans} />
+            <MatchEditForm match={match} players={players} tournaments={tournaments} createdAt={decodedCreatedAt} yakumans={yakumans} />
           </CardContent>
         </Card>
       </div>

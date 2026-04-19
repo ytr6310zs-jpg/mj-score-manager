@@ -8,7 +8,7 @@
  */
 
 import { readFileSync } from "fs";
-import { join, dirname } from "path";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -338,6 +338,16 @@ async function main(){
 
   const { createClient } = await import('@supabase/supabase-js');
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+  const { data: tournamentRows, error: tournamentError } = await supabase
+    .from('tournaments')
+    .select('id')
+    .eq('name', '大会1')
+    .limit(1);
+  if (tournamentError || !tournamentRows || tournamentRows.length === 0) {
+    console.error('Default tournament `大会1` not found. Run migrations first.');
+    process.exit(1);
+  }
+  const defaultTournamentId = Number(tournamentRows[0].id);
 
   // Insert a subset of sample games (same as previous behavior: slice(5))
   const newGames = SAMPLE_GAMES.slice(5).map(g => {
@@ -383,7 +393,7 @@ async function main(){
   });
 
   for(const [i,row] of newGames.entries()){
-    const { error } = await supabase.from('games').insert([row]);
+    const { error } = await supabase.from('games').insert([{ ...row, tournament_id: defaultTournamentId }]);
     if(error){
       console.error('Insert error at', i, error);
       process.exit(1);

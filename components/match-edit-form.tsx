@@ -1,17 +1,19 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 
 import { editMatchAction, type EditMatchState } from "@/app/match-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlayerSelect } from "@/components/ui/player-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
 import type { MatchResult } from "@/lib/matches";
+import { setLastTournamentId } from "@/lib/tournament-preference";
+import type { TournamentOption } from "@/lib/tournaments";
 import YAKUMANS from "@/lib/yakumans";
 
 const initialState: EditMatchState = {
@@ -43,16 +45,20 @@ interface YakumanOccurrence {
 interface MatchEditFormProps {
   match: MatchResult;
   players: string[];
+  tournaments: TournamentOption[];
   createdAt: string;
   yakumans?: YakumanOccurrence[];
 }
 
-export function MatchEditForm({ match, players: playerList, createdAt, yakumans }: MatchEditFormProps) {
+export function MatchEditForm({ match, players: playerList, tournaments, createdAt, yakumans }: MatchEditFormProps) {
   const router = useRouter();
   const [state, formAction] = useActionState(editMatchAction, initialState);
   const [pending, startTransition] = useTransition();
   const [clientError, setClientError] = useState<string | null>(null);
   const [duplicatePlayerError, setDuplicatePlayerError] = useState<string | null>(null);
+  const [tournamentId, setTournamentId] = useState<string>(
+    match.tournamentId ? String(match.tournamentId) : tournaments[0] ? String(tournaments[0].id) : ""
+  );
   const [gameType, setGameType] = useState<GameType>(match.gameType);
   const [gameDate, setGameDate] = useState(match.date);
   const [players, setPlayers] = useState<PlayerSelection>({
@@ -141,6 +147,17 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
     }
     setClientError(null);
   }
+
+  useEffect(() => {
+    if (!tournamentId && tournaments[0]) {
+      setTournamentId(String(tournaments[0].id));
+    }
+  }, [tournamentId, tournaments]);
+
+  useEffect(() => {
+    if (!tournamentId) return;
+    setLastTournamentId(Number(tournamentId));
+  }, [tournamentId]);
 
   useEffect(() => {
     if (state.success) {
@@ -237,6 +254,7 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   const createFormData = () => {
     const form = new FormData();
     form.append("createdAt", createdAt);
+    form.append("tournamentId", tournamentId);
     form.append("gameDate", gameDate);
     form.append("gameType", gameType);
     activeSlots.forEach((slot) => {
@@ -259,6 +277,10 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setClientError(null);
+    if (!tournamentId) {
+      setClientError("大会を選択してください。");
+      return;
+    }
     if (duplicatePlayerError) {
       setClientError(duplicatePlayerError);
       return;
@@ -272,7 +294,24 @@ export function MatchEditForm({ match, players: playerList, createdAt, yakumans 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-4 grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <Label htmlFor="tournamentId" className="mb-2 block">
+            大会 <span className="text-destructive">*</span>
+          </Label>
+          <Select value={tournamentId} onValueChange={setTournamentId}>
+            <SelectTrigger id="tournamentId">
+              <SelectValue placeholder="大会を選択してください" />
+            </SelectTrigger>
+            <SelectContent>
+              {tournaments.map((tournament) => (
+                <SelectItem key={tournament.id} value={String(tournament.id)}>
+                  {tournament.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div>
           <Label htmlFor="gameDate" className="mb-2 block">
             対局日 <span className="text-destructive">*</span>

@@ -1,3 +1,4 @@
+import { resolveTournamentIdFromUrl } from "../../../../lib/tournament-filter-query.js";
 import { buildStatsCsv } from "./csv-builder.js";
 
 export function parseMinGames(raw) {
@@ -15,10 +16,12 @@ export function resolveStatsExportParams(url) {
   const start = url.searchParams.get("start") ?? "";
   const end = url.searchParams.get("end") ?? "";
   const minGamesRaw = url.searchParams.get("minGames");
+  const tournamentId = resolveTournamentIdFromUrl(url);
   return {
     start,
     end,
     minGames: parseMinGames(minGamesRaw),
+    tournamentId,
   };
 }
 

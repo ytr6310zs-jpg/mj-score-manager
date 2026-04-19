@@ -15,9 +15,13 @@ export default function CsvExportButton({ apiPath, className, children }: Props)
     const minGamesInput =
       document.querySelector<HTMLInputElement>('input[name="minGames"]') ??
       document.querySelector<HTMLSelectElement>('select[name="minGames"]');
+    const tournamentInput =
+      document.querySelector<HTMLInputElement>('input[name="tournamentId"]') ??
+      document.querySelector<HTMLSelectElement>('select[name="tournamentId"]');
     const start = startInput?.value ?? "";
     const end = endInput?.value ?? "";
     const minGames = minGamesInput?.value ?? "";
+    const tournamentId = tournamentInput?.value ?? "";
 
     // validate range: if invalid, show flash and prevent navigation
     if (start && end && start > end) {
@@ -34,6 +38,9 @@ export default function CsvExportButton({ apiPath, className, children }: Props)
     params.set("end", end ?? "");
     if (minGames) {
       params.set("minGames", minGames);
+    }
+    if (tournamentId) {
+      params.set("tournamentId", tournamentId);
     }
 
     const url = apiPath + "?" + params.toString();

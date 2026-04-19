@@ -22,6 +22,7 @@ type Props = {
   lowestScoresYearly: ScoreRank[];
   largestSpreadsYearly: SpreadRank[];
   periodLabel: string;
+  tournamentLabel: string;
   minGamesLabel: string;
   returnUrl: string;
 };
@@ -39,6 +40,7 @@ export default function ClientStatsPrintPage({
   lowestScoresYearly,
   largestSpreadsYearly,
   periodLabel,
+  tournamentLabel,
   minGamesLabel,
   returnUrl,
 }: Props) {
@@ -79,6 +81,7 @@ export default function ClientStatsPrintPage({
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
             <h1 className="text-xl font-bold text-emerald-900">成績集計レポート</h1>
+            <div className="text-sm mt-1 text-emerald-700/70">{tournamentLabel}</div>
             <div className="text-sm mt-1 text-emerald-700/70">{periodLabel}</div>
             <div className="text-sm text-emerald-700/70">{minGamesLabel}</div>
             {/* summary counts removed per design */}

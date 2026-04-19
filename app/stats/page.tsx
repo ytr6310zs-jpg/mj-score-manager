@@ -13,6 +13,7 @@ import { computeTopSets, METRIC_DIRECTION, METRICS_TO_HIGHLIGHT } from "@/lib/me
 import { fetchPlayerStats } from "@/lib/stats";
 import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
+import { fetchTournamentOptions } from "@/lib/tournaments";
 
 type RankSets = { first: string[]; second: string[]; third: string[] };
 
@@ -64,12 +65,13 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
   const initialMinGamesRaw = Array.isArray(params?.minGames) ? params?.minGames[0] : params?.minGames;
   const hasMinGamesParam = initialMinGamesRaw !== undefined;
 
-  const { filter, start, end, minGames } = resolveFilterParams({
+  const { filter, start, end, minGames, tournamentId } = resolveFilterParams({
     filterRaw: params?.filter,
     modeRaw: params?.mode,
     startRaw: params?.start,
     endRaw: params?.end,
     minGamesRaw: params?.minGames,
+    tournamentIdRaw: params?.tournamentId,
   });
 
   // Keep initial UI and server data consistent:
@@ -83,14 +85,15 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
         ? "20"
         : "";
 
-  const { dates: availableDates, error: datesError } = await fetchMatchDates();
-  const { stats, error } = await fetchPlayerStats(start, end, effectiveMinGames);
+  const tournaments = await fetchTournamentOptions();
+  const { dates: availableDates, error: datesError } = await fetchMatchDates({ tournamentId });
+  const { stats, error } = await fetchPlayerStats(start, end, effectiveMinGames, { tournamentId });
   const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
   const { yakumanEvents, highestScores, lowestScores, largestSpreads } = await fetchStatsSubtables(
     start,
     end,
     5,
-    { minGames: effectiveMinGames }
+    { minGames: effectiveMinGames, tournamentId }
   );
 
   return (
@@ -118,10 +121,12 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                   initialFilter={filter}
                   initialStart={start}
                   initialEnd={end}
+                  initialTournamentId={tournamentId ? String(tournamentId) : undefined}
                   // pass the raw query string value so empty string (explicit none) is preserved
                   initialMinGames={initialMinGames}
                   actionPath="/stats"
                   availableDates={datesError ? undefined : availableDates}
+                  tournaments={tournaments}
                 />
               </div>
             </div>
