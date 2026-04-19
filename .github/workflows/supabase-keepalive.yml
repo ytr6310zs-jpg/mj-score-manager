@@ -1,0 +1,66 @@
+name: Supabase Keepalive Ping
+
+on:
+  schedule:
+    # Run every 12 hours to keep free-tier projects active.
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Manual run target (all | staging | prod)'
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - staging
+          - prod
+
+jobs:
+  keepalive-staging:
+    name: Keepalive (staging)
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == 'staging' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: "Preview – mj-score-manager-tfvp"
+
+    steps:
+      - name: Ping Supabase DB (staging)
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+
+          DB_URL="${STAGING_DATABASE_URL:-}"
+          if [ -z "$DB_URL" ]; then
+            echo "STAGING_DATABASE_URL is not configured." >&2
+            exit 1
+          fi
+
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          psql "$DB_URL" -c "SELECT 1;" > /dev/null
+          echo "Keepalive ping succeeded for staging."
+
+  keepalive-prod:
+    name: Keepalive (prod)
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == 'prod' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: "Production – mj-score-manager-tfvp"
+
+    steps:
+      - name: Ping Supabase DB (prod)
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+
+          DB_URL="${PROD_DATABASE_URL:-}"
+          if [ -z "$DB_URL" ]; then
+            echo "PROD_DATABASE_URL is not configured." >&2
+            exit 1
+          fi
+
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          psql "$DB_URL" -c "SELECT 1;" > /dev/null
+          echo "Keepalive ping succeeded for prod."
