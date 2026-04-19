@@ -1,0 +1,79 @@
+name: Supabase Keepalive Ping
+
+on:
+  schedule:
+    # Run every 12 hours to keep free-tier projects active.
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Manual run target (all | staging | prod)'
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - staging
+          - prod
+
+jobs:
+  keepalive:
+    name: Keepalive (${{ matrix.target }})
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == matrix.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: staging
+            environment_name: "Preview – mj-score-manager-tfvp"
+          - target: prod
+            environment_name: "Production – mj-score-manager-tfvp"
+
+    environment: ${{ matrix.environment_name }}
+
+    steps:
+      - name: Resolve target URL and ping
+        env:
+          TARGET: ${{ matrix.target }}
+          SECRET_APP_URL: ${{ secrets.APP_URL }}
+          STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
+          PREVIEW_APP_URL: ${{ secrets.PREVIEW_APP_URL }}
+          PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
+          KEEPALIVE_PING_PATH: ${{ vars.KEEPALIVE_PING_PATH }}
+        run: |
+          set -euo pipefail
+
+          case "$TARGET" in
+            staging)
+              BASE_URL="${SECRET_APP_URL:-${STAGING_APP_URL:-${PREVIEW_APP_URL:-}}}"
+              ;;
+            prod)
+              BASE_URL="${SECRET_APP_URL:-${PROD_APP_URL:-}}"
+              ;;
+            *)
+              echo "Unsupported target: $TARGET" >&2
+              exit 1
+              ;;
+          esac
+
+          if [ -z "$BASE_URL" ]; then
+            echo "APP_URL is not configured for target '$TARGET'." >&2
+            exit 1
+          fi
+
+          PING_PATH="${KEEPALIVE_PING_PATH:-/api/yakumans}"
+          PING_URL="${BASE_URL%/}${PING_PATH}"
+
+          STATUS_CODE=$(curl -sS -o /tmp/keepalive-body.txt -w "%{http_code}" --max-time 20 --retry 2 --retry-delay 2 "$PING_URL")
+
+          if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
+            echo "Keepalive ping succeeded for $TARGET (HTTP $STATUS_CODE)."
+            exit 0
+          fi
+
+          echo "Keepalive ping failed for $TARGET (HTTP $STATUS_CODE)." >&2
+          echo "Response preview:" >&2
+          head -c 500 /tmp/keepalive-body.txt >&2 || true
+          exit 1
