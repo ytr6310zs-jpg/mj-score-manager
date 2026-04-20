@@ -1,0 +1,220 @@
+name: Reset and Seed Players
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target environment (staging | prod)'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - prod
+      confirmation:
+        description: 'Type RESET AND SEED to confirm destructive reset'
+        required: true
+        default: ''
+      run_seed_only:
+        description: 'If true, skip reset and migrate and only run seed'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  reset_and_seed:
+    runs-on: ubuntu-latest
+    environment: "${{ github.event.inputs.target == 'prod' && 'Production – mj-score-manager-tfvp' || 'Preview – mj-score-manager-tfvp' }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate inputs
+        env:
+          TARGET: ${{ github.event.inputs.target }}
+          CONFIRMATION: ${{ github.event.inputs.confirmation }}
+          RUN_SEED_ONLY: ${{ github.event.inputs.run_seed_only }}
+        run: |
+          set -euo pipefail
+          if [ "$TARGET" != "staging" ] && [ "$TARGET" != "prod" ]; then
+            echo "target must be staging or prod" >&2
+            exit 1
+          fi
+          if [ "$RUN_SEED_ONLY" != "true" ] && [ "$CONFIRMATION" != "RESET AND SEED" ]; then
+            echo "Confirmation mismatch. To proceed you must set 'confirmation' input to exactly 'RESET AND SEED' or set run_seed_only=true." >&2
+            exit 1
+          fi
+          echo "Inputs OK"
+
+      - name: Resolve DATABASE_URL and APP_URL
+        env:
+          TARGET: ${{ github.event.inputs.target }}
+          SECRET_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_APP_URL: ${{ secrets.APP_URL }}
+          PREVIEW_DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          PREVIEW_APP_URL: ${{ secrets.PREVIEW_APP_URL }}
+          STAGING_APP_URL: ${{ secrets.STAGING_APP_URL }}
+          PROD_APP_URL: ${{ secrets.PROD_APP_URL }}
+        run: |
+          set -euo pipefail
+          DB_URL="${SECRET_DATABASE_URL:-}"
+          APP_URL_VAL="${SECRET_APP_URL:-}"
+
+          if [ "$TARGET" = "prod" ]; then
+            if [ -z "$DB_URL" ]; then
+              DB_URL="${PROD_DATABASE_URL:-}"
+            fi
+            if [ -z "$APP_URL_VAL" ]; then
+              APP_URL_VAL="${PROD_APP_URL:-}"
+            fi
+          else
+            if [ -z "$DB_URL" ]; then
+              DB_URL="${STAGING_DATABASE_URL:-${PREVIEW_DATABASE_URL:-}}"
+            fi
+            if [ -z "$APP_URL_VAL" ]; then
+              APP_URL_VAL="${STAGING_APP_URL:-${PREVIEW_APP_URL:-}}"
+            fi
+          fi
+
+          if [ -z "$DB_URL" ]; then
+            echo "Could not resolve DATABASE_URL for target=$TARGET" >&2
+            exit 1
+          fi
+
+          echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"
+          echo "APP_URL=$APP_URL_VAL" >> "$GITHUB_ENV"
+
+      - name: Dump backup (artifact)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL not set, skipping backup"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          pg_dump --dbname="$DATABASE_URL" -Fc -f migration-backup.dump || true
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-backup
+          path: migration-backup.dump
+
+      - name: "Optional: write CA bundle (base64) to file"
+        env:
+          DB_CA_BUNDLE_BASE64: ${{ secrets.DB_CA_BUNDLE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DB_CA_BUNDLE_BASE64:-}" ]; then
+            echo "DB_CA_BUNDLE_BASE64 is empty, skipping."
+            exit 0
+          fi
+          echo "$DB_CA_BUNDLE_BASE64" | base64 -d > /tmp/db-ca.pem
+
+      - name: Prepare SUPABASE_DB_URL
+        run: |
+          set -euo pipefail
+          SUPABASE_DB_URL=$(node -e "const u=new URL(process.argv[1]); if(!u.searchParams.get('sslmode')) u.searchParams.set('sslmode','require'); u.username=decodeURIComponent(u.username||''); u.password=decodeURIComponent(u.password||''); console.log(u.toString());" "$DATABASE_URL")
+          echo "SUPABASE_DB_URL=$SUPABASE_DB_URL" >> "$GITHUB_ENV"
+
+      - name: Reset database (destructive)
+        if: ${{ github.event.inputs.run_seed_only != 'true' }}
+        env:
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
+          fi
+          npx supabase@2.84.2 db reset --db-url "$SUPABASE_DB_URL" --yes
+
+      - name: Run migrations via Supabase CLI
+        if: ${{ github.event.inputs.run_seed_only != 'true' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ env.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/db-ca.pem ]; then
+            export NODE_EXTRA_CA_CERTS=/tmp/db-ca.pem
+            export PGSSLROOTCERT=/tmp/db-ca.pem
+          fi
+          npx supabase@2.84.2 db push --db-url "$SUPABASE_DB_URL"
+
+      - name: Seed players via psql
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" <<'SQL'
+          INSERT INTO public.players (name) VALUES
+            ('杉原'),('沢尾望'),('沢尾徹平'),('山本有美'),('横山'),('前田'),('村上'),
+            ('田宮'),('谷口'),('加藤'),('福本'),('西村'),('山本恭大'),('長谷川彩未'),
+            ('長谷川柊太'),('太雅'),('松原'),('市川'),('徳岡'),('但田')
+          ON CONFLICT (name) DO NOTHING;
+          SQL
+          echo "Seed complete."
+
+      - name: Seed yakuman types via psql
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" <<'SQL'
+          INSERT INTO public.yakuman_types (code, name, points, description, sort_order) VALUES
+            ('DA','大三元',32000,'大三元 (Dai Sangen)',10),
+            ('DS','大四喜',32000,'大四喜 (Dai Suushi)',11),
+            ('TS','天和',32000,'天和 (Tenhou)',5),
+            ('CH','地和',32000,'地和 (Chiho)',6),
+            ('KY','国士無双',32000,'国士無双 (Kokushi Musou)',12),
+            ('SS','四暗刻',32000,'四暗刻 (Su Anko)',13),
+            ('ZN','純正九蓮宝燈',32000,'純正九蓮宝燈 (Junsei Chuuren Poutou)',14),
+            ('CHUUREN','九連宝燈',32000,'九連宝燈 (Chuuren Poutou)',15),
+            ('SUUKANTSU','四槓子',32000,'四槓子 (Suu Kantsu)',16),
+            ('S4','小四喜',32000,'小四喜 (Shou Suushi / Little Four Winds)',17),
+            ('CHINROUTOU','清老頭',32000,'清老頭 (Chinroutou)',18),
+            ('RYUISOU','緑一色',32000,'緑一色 (Ryuuisou, all green)',19),
+            ('TSUUIISOU','字一色',32000,'字一色 (Tsuuiisou, all honors)',20),
+            ('RENHOU','人和',32000,'人和 (Renhou - local rule)',21),
+            ('KZ','数え役満',32000,'数え役満 (Kazoe Yakuman)',8),
+            ('ST','四暗刻単騎',32000,'四暗刻単騎 (Su Anko Tanki)',22)
+          ON CONFLICT (code) DO NOTHING;
+          SQL
+          echo "Yakuman type seed complete."
+
+      - name: Verify players inserted
+        run: |
+          set -euo pipefail
+          PSQL_URL="$DATABASE_URL"
+          echo "Checking players count and presence of specified names..."
+          COUNT=$(psql "$PSQL_URL" -tAc "SELECT count(*) FROM players;")
+          echo "players_count=${COUNT}"
+          MISSING=$(psql "$PSQL_URL" -tA -c "SELECT name FROM (VALUES ('杉原'),('沢尾望'),('沢尾徹平'),('山本有美'),('横山'),('前田'),('村上'),('田宮'),('谷口'),('加藤'),('福本'),('西村'),('山本恭大'),('長谷川彩未'),('長谷川柊太'),('太雅'),('松原'),('市川'),('徳岡'),('但田')) AS v(name) WHERE NOT EXISTS (SELECT 1 FROM players p WHERE p.name = v.name);")
+          if [ -n "$MISSING" ]; then
+            echo "Missing players:" >&2
+            echo "$MISSING" >&2
+            exit 1
+          fi
+          echo "All specified players present."
+
+      - name: Verify yakuman types inserted
+        run: |
+          set -euo pipefail
+          PSQL_URL="$DATABASE_URL"
+          echo "Checking yakuman_types required codes..."
+          MISSING=$(psql "$PSQL_URL" -tA -c "SELECT code FROM (VALUES ('DA'),('DS'),('TS'),('CH'),('KY'),('SS'),('ZN'),('CHUUREN'),('SUUKANTSU'),('S4'),('CHINROUTOU'),('RYUISOU'),('TSUUIISOU'),('RENHOU'),('KZ'),('ST')) AS v(code) WHERE NOT EXISTS (SELECT 1 FROM yakuman_types y WHERE y.code = v.code);")
+          if [ -n "$MISSING" ]; then
+            echo "Missing yakuman types:" >&2
+            echo "$MISSING" >&2
+            exit 1
+          fi
+          echo "All required yakuman types present."
