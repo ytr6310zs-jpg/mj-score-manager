@@ -31,6 +31,7 @@ export async function xxxAction(
 - `formData.get()` の値は必ず `String(...).trim()` してから使う。
 - 不正値は早期リターン: `return { success: false, message: "..." }`.
 - 複雑なバリデーションロジックは `lib/validate-*.ts` に切り出す。
+- 数値・日付・ID は `Number(...)` / `Date` の変換後に範囲チェックまで行う。
 
 ## Supabase クライアント初期化
 
@@ -57,8 +58,10 @@ const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession
 
 - 変更した route に対してのみ `revalidatePath("/route")` を呼ぶ。
 - 無関係な route を巻き込まない。
+- 作成・更新・削除の mutation 後は、一覧や統計など影響する表示の再検証漏れがないか確認する。
 
 ## セキュリティ
 
 - `SUPABASE_SERVICE_ROLE_KEY` は Server Action / サーバーサイドのみで使う。クライアントへ露出させない。
 - 管理系操作（プレイヤー追加・削除等）は認証チェックを冒頭で行う。
+- 認可要件がある action は「誰が実行可能か」を関数冒頭で明示する。

@@ -4,11 +4,15 @@ applyTo: "lib/**/*.ts"
 
 # Supabase / ドメインロジック規約
 
+この規約は `lib/` 配下のうち **DBアクセスを行う関数** に適用する。
+`"use client"` を含むクライアント専用ユーティリティには該当しない。
+
 ## クライアント生成
 
 - `lib/` の関数は `createClient(url, key, { auth: { persistSession: false } })` を使う。
 - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` は関数呼び出し時に検証し、不足なら早期エラーを返す。
 - クライアントインスタンスは関数スコープ内で生成する（モジュールスコープでの保持は避ける）。
+- サービスロールキーはサーバー専用。クライアントからのアクセスは anon key + RLS 前提で設計する。
 
 ## クエリパターン
 
@@ -19,7 +23,7 @@ applyTo: "lib/**/*.ts"
 ## 型安全
 
 - Supabase から取得した生データは `unknown` として受け取り、型ガードで絞り込む。
-- `as` でのキャストは使わない。
+- `as` でのキャストは最小限にし、境界（API/DB 応答）では型ガードを優先する。
 
 ## ドメインロジックの配置ルール
 
@@ -50,4 +54,4 @@ export async function fetchXxx(): Promise<{ result: Xxx[]; error: string | null 
 ## ゲームモード
 
 - `game_type` は `'3p'` または `'4p'` のみ。他の値を許容しない。
-- 三人打ちでは `player4` / `score4` / `rank4` 等は `null` になる。これを前提にした null チェックを行う。
+- 三人打ちでは `player4` / `score4` / `rank4` 等が `null` または空値になり得る。これを前提にガードする。
