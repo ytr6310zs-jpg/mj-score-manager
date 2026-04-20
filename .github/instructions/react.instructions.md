@@ -4,45 +4,29 @@ applyTo: "**/*.tsx"
 
 # React / Next.js コーディング規約
 
-## コンポーネント分類
+優先度定義:
+- MUST: 原則必須。例外は理由をPRに記載する。
+- SHOULD: 原則推奨。要件や既存実装との整合で逸脱可。
 
-- `app/` 配下はデフォルトで **Server Component**。`"use client"` は最小限の境界にのみ付与する。
-- インタラクション（`useState`, `useEffect`, イベントハンドラ, ブラウザ API）が必要な場合のみ `"use client"` を付与する。
-- `"use client"` コンポーネントは原則 `components/` に置く。`app/**/page.tsx` から直接利用してよいが、状態管理や副作用は UI コンポーネント側に閉じ込める。
+## MUST
 
-## データ取得
-
+- `app/` 配下はデフォルトで Server Component とし、`"use client"` は必要最小限の境界にのみ付与する。
 - 初期表示に必要なデータは Server Component で取得し、`lib/` の非同期関数を呼ぶ。
+- フォーム送信は `useActionState` + Server Action パターンを使う。
+- `pending` フラグは `useActionState` の戻り値から取得し、送信ボタンの `disabled` 制御に使う。
+- `any` は使わない。`unknown` と型ガードを使う。
+- ページには `export const metadata` を定義し、タイトルと説明を明示する。
+- ルーティングは `next/link` を使う。
+
+## SHOULD
+
+- `"use client"` コンポーネントは原則 `components/` に置き、状態管理や副作用をUIコンポーネント側に閉じ込める。
 - `useEffect` での fetch はブラウザ依存データ（ローカルストレージ、ユーザー操作後の再取得など）に限定する。
 - ページレベルのデータ取得は `app/**/page.tsx` に集約し、props で子コンポーネントへ渡す。
 - `export const dynamic = "force-dynamic"` はリアルタイム性が必要なページにのみ付与する。
-
-## フォームと状態管理
-
-- フォーム送信は `useActionState` + Server Action パターンを使う。
-- `pending` フラグは `useActionState` の戻り値から取得し、ボタンの `disabled` に使う。
-- グローバル状態管理ライブラリは導入しない（Context は最小限）。
-
-## 型
-
-- `as` キャストは使わない。型ガード関数または `satisfies` を使う。
+- `as` キャストは最小限にし、型ガード関数または `satisfies` を優先する。
 - コンポーネント props は `type Props = { ... }` で定義し、インライン型は避ける。
-- `any` は使わない。`unknown` + 型ガードを使う。
-
-## 命名
-
-- コンポーネント: PascalCase。ファイル名はコンポーネント名と一致させる。
-- hooks: `use` プレフィックス (例: `useYakumans`)。
-- Server Actions: `~Action` サフィックス (例: `saveScoreAction`)。
-
-## UI コンポーネント
-
+- コンポーネントは PascalCase、hooks は `use` プレフィックス、Server Action は `Action` サフィックスを使う。
 - `components/ui/` の共通コンポーネント (`Button`, `Card`, `Input` 等) を優先して使う。
-- Tailwind クラスは既存パターンを踏襲する（`mx-auto max-w-screen-2xl space-y-6` 等）。
-- 新規 UI 要素を追加する前に `components/ui/` に既存実装がないか確認する。
-
-## Next.js 固有
-
-- ページには `export const metadata` を定義し、タイトルと説明を明示する。
-- ルーティングは `next/link` を使い、`<a>` の直接利用は避ける。
+- Tailwind クラスは既存パターンを踏襲する。
 - 画像表示は原則 `next/image` を優先する（要件上困難な場合のみ例外）。

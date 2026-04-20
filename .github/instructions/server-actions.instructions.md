@@ -4,64 +4,26 @@ applyTo: "app/**/*-actions.ts"
 
 # Server Actions 規約
 
-## 必須ファイル先頭ディレクティブ
+優先度定義:
+- MUST: 原則必須。例外は理由をPRに記載する。
+- SHOULD: 原則推奨。要件や既存実装との整合で逸脱可。
 
-```ts
-"use server";
-```
+## MUST
 
-## 関数シグネチャパターン
+- ファイル先頭に `"use server"` を置く。
+- `formData.get()` の値は文字列化・trim 後に扱う。
+- 数値・日付・ID は変換後に範囲チェックまで行う。
+- 不正入力は早期リターンする（例: `{ success: false, message: "..." }`）。
+- `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` の存在を検証してから Supabase クライアントを生成する。
+- Supabase 呼び出し結果の `error` を必ず確認する。
+- ユーザー向けメッセージに内部エラー詳細（SQLエラー等）を含めない。
+- `SUPABASE_SERVICE_ROLE_KEY` はサーバーサイドのみで使用する。
 
-`useActionState` と組み合わせる場合:
+## SHOULD
 
-```ts
-export type XxxState = {
-  success: boolean;
-  message: string;
-};
-
-export async function xxxAction(
-  _prevState: XxxState,
-  formData: FormData
-): Promise<XxxState> { ... }
-```
-
-## バリデーション
-
-- `formData.get()` の値は必ず `String(...).trim()` してから使う。
-- 不正値は早期リターン: `return { success: false, message: "..." }`.
+- `useActionState` と組み合わせる action は `XxxState` を返すパターンで統一する。
 - 複雑なバリデーションロジックは `lib/validate-*.ts` に切り出す。
-- 数値・日付・ID は `Number(...)` / `Date` の変換後に範囲チェックまで行う。
-
-## Supabase クライアント初期化
-
-Server Action 内での標準パターン:
-
-```ts
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  return { success: false, message: "Supabase 連携用の環境変数が不足しています。" };
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
-```
-
-## エラーハンドリング
-
-- `try/catch` で Supabase エラーをラップし、`console.error` でログを残す。
-- ユーザー向けメッセージに内部エラー詳細（SQL エラー等）を含めない。
-- `supabase` の戻り値は必ず `error` フィールドを確認する。
-
-## キャッシュ無効化
-
-- 変更した route に対してのみ `revalidatePath("/route")` を呼ぶ。
-- 無関係な route を巻き込まない。
-- 作成・更新・削除の mutation 後は、一覧や統計など影響する表示の再検証漏れがないか確認する。
-
-## セキュリティ
-
-- `SUPABASE_SERVICE_ROLE_KEY` は Server Action / サーバーサイドのみで使う。クライアントへ露出させない。
-- 管理系操作（プレイヤー追加・削除等）は認証チェックを冒頭で行う。
-- 認可要件がある action は「誰が実行可能か」を関数冒頭で明示する。
+- `try/catch` で例外を補足し、`console.error` でログを残す。
+- mutation 後は影響する route のみ `revalidatePath` で再検証する。
+- 管理系操作は認証チェックを関数冒頭で行う。
+- 認可要件がある action は、実行可能主体を関数冒頭で明示する。
