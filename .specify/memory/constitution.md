@@ -1,50 +1,61 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# MJ Score Manager Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Domain-First Accuracy
+麻雀スコア（四人打ち・三人打ち）の業務ルールを最優先し、UI/実装都合でドメイン定義を歪めない。
+- 集計・順位・役満関連ロジックは再利用可能な `lib/` に寄せる。
+- 仕様変更時は既存データとの互換性・移行影響を明示する。
+- 曖昧な要件は実装前に仕様へ明文化する。
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Spec-Driven Development as Default
+機能追加・仕様変更は原則として Spec Kit フロー（`spec.md` → `plan.md` → `tasks.md`）で進める。
+- 既存機能の改修でも、必要に応じてリバースエンジニアリングで仕様を更新する。
+- 大きな変更は設計合意を得てから実装する。
+- 実装後は仕様とのドリフトを最小化し、必要に応じて仕様を追随更新する。
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Security and Data Protection (Non-Negotiable)
+機密情報と認証情報をコード・ログ・コミット・PR本文に含めない。
+- `.env*` 差分は常に確認し、機密値をコミットしない。
+- Server Action/API は入力バリデーションとエラーハンドリングを厳格に行う。
+- 認証・認可・権限に関わる変更では、リスクと影響範囲をPRに明記する。
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Quality Gates Before Commit
+品質ゲートを満たさない変更はコミットしない。
+- 必須: `npm run build` 成功。
+- 推奨: `npm run lint`、`npm test` 実施。
+- 失敗時は原因を修正し、再実行してから次工程へ進む。
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Minimal, Traceable, Maintainable Changes
+変更は最小差分で、意図と根拠を追跡可能にする。
+- 無関係なリファクタ・整形は避ける。
+- 既存命名・UIパターン・構成方針を尊重する。
+- 重大変更（データ構造/公開I/F）は移行手順と互換性影響を文書化する。
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technical and Operational Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- Primary stack: Next.js + React + TypeScript
+- Data layer: Supabase (PostgreSQL)
+- Package/runtime constraints: Node `>=20.19.0 <21`, npm `>=10.8.2 <11`
+- Spec artifacts location:
+  - Spec Kit artifacts: `.specify/specs/<feature>/`
+  - App feature specs: `.github/specs/`
+  - Daily operation rules: `.github/copilot-instructions.md`
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Workflow and Review Policy
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Git操作・ブランチ・コミット・PRの具体的手順は `.github/copilot-instructions.md` を参照。
+
+SDD フロー固有のルール:
+1. Spec Kit を用いて `spec.md` → `plan.md` → `tasks.md` の順に整備し、必要なら clarify/analyze を実施する。
+2. 実装時は `tasks.md` の順序と依存関係を守る。
+3. 実装完了後は `spec.md` との乖離（ドリフト）がないかを確認し、必要なら仕様を追随更新する。
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- 本 Constitution は本リポジトリにおける開発判断の最上位規約とする。
+- 具体的な日次運用ルールは `.github/copilot-instructions.md` を参照し、矛盾時は本 Constitution を優先する。
+- 改定時は変更理由・影響範囲・移行方針を同一コミットまたは同一PRで提示する。
+- すべてのPRレビューは本 Constitution への適合を確認する。
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-04-20 | **Last Amended**: 2026-04-20
