@@ -1,4 +1,5 @@
 {
+    "chat.mcp.autoStart": false,
     "chat.tools.terminal.autoApprove": {
         "true": true,
         "gh": true,
