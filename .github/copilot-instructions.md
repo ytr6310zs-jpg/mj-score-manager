@@ -16,6 +16,8 @@
 * **Push制限:** `git push` の自動実行を許可します。ユーザーの明示的な依頼がない場合でも、作業ブランチを作成して変更をリモートへ push してよい。
 * **コミット許可:** 自動コミット・自動 push を行う際も、コミット前に `npm run build` を実行しビルドが成功していることを確認すること。可能であれば `npm run lint` と `npm test` も実行し、機密情報の有無を自動チェックすること。
 * **ブランチ戦略:** 機能実装時は機能ブランチを作成して実施する。ブランチの粒度に迷う場合は必ず指示を仰ぐこと。
+* **ブランチ命名規則:** Issue に紐づく作業は Issue 番号をブランチ名に含めること。既定の命名は `feature/issue-<番号>-<要約>`、不具合修正は `fix/issue-<番号>-<要約>` とし、Issue を持たない軽微な運用変更のみ `chore/<要約>` を許可する。
+* **ブランチ命名例:** `feature/issue-175-sdd-foundation`、`fix/issue-152-yakitori-registration`、`chore/team-vscode-settings`
 * **新規作業時のブランチ:** 新たな作業の依頼であると判断できる場合は必ず機能ブランチを作成してください。
 * **PR作成:** PR作成には `gh` コマンドを使用する。GitKraken 連携には依存しない。PR作成はユーザーの許可なしで行ってよい。ただし、マージ先が特に指定されていない場合は `develop` ブランチをデフォルトのマージ先としてください。
 
@@ -52,3 +54,8 @@ chmod +x .husky/pre-commit
 ```
 
 このセクションはリポジトリ運用に直結するため、変更する際は事前にチーム合意を取ってください。
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

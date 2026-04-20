@@ -1,0 +1,265 @@
+# Auto-extracted specs
+
+Generated at: 2026-04-20T05:44:28.146Z
+
+## Package
+- name: mj-score-manager 
+- version: 0.1.0 
+
+## Scripts
+- dev: next dev
+- prepare: husky install
+- build: next build
+- start: next start
+- lint: next lint
+- seeds: node scripts/seed-to-supabase.mjs
+- seed:players: node scripts/seed-players.mjs
+- seed:historical:dry: node scripts/import-historical-games.mjs
+- seed:historical: node scripts/import-historical-games.mjs --apply
+- test: node --test && node -r ts-node/register test/validate-match.cjs
+- check:required-files: bash -c "if [ ! -f .github/copilot-instructions.md ]; then echo '".github/copilot-instructions.md" が存在しません。コミットを中止します。'; exit 1; fi"
+- supabase:init: npx supabase@2.84.2 init
+- supabase:start: npx supabase@2.84.2 start
+- supabase:status: npx supabase@2.84.2 status
+- supabase:reset: npx supabase@2.84.2 db reset
+- supabase:db:push: npx supabase@2.84.2 db push --db-url "$DATABASE_URL"
+- check:local-db: node scripts/check-local-supabase.mjs
+- dev:local: npm run check:local-db && next dev
+- check:local-pages: node scripts/local-healthcheck.mjs
+- verify:local: npm run dev:local & sleep 3; npm run check:local-pages
+
+## Tables (from SQL files)
+- public
+
+## Exported functions / types (sample)
+- .next/server/app/page.js
+  - exports: middleware, fetchCache
+- .next/server/chunks/873.js
+  - exports: middleware, fetchCache
+- .next/server/middleware.js
+  - exports: middleware
+- .next/server/pages/_error.js
+  - exports: middleware
+- .next/types/app/admin/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/admin/players/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/admin/tournaments/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/admin/yakumans/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/api/export/games/route.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/api/export/matches/route.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/api/export/stats/route.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/api/yakumans/route.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/layout.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/login/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/matches/[createdAt]/edit/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/matches/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/stats/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/app/stats/print/page.ts
+  - types: PageProps, LayoutProps
+- .next/types/cache-life.d.ts
+  - exports: unstable_cacheLife
+- .next/types/routes.d.ts
+  - exports: GET, Page, Layout
+  - types: ParamsOf
+- app/actions.ts
+  - exports: saveScoreAction
+  - types: SaveScoreState
+- app/admin/page.tsx
+  - exports: AdminIndexPage
+- app/admin/players/page.tsx
+  - exports: dynamic
+- app/admin/tournaments/page.tsx
+  - exports: dynamic
+- app/admin/yakumans/page.tsx
+  - exports: dynamic
+- app/api/export/games/csv-builder.d.ts
+  - exports: buildGamesCsv
+- app/api/export/games/csv-builder.js
+  - exports: buildGamesCsv
+- app/api/export/games/handler.d.ts
+  - exports: makeGamesResponse
+- app/api/export/games/handler.js
+  - exports: resolveGamesExportParams, makeGamesResponse
+- app/api/export/games/route.ts
+  - exports: GET
+- app/api/export/matches/handler.js
+  - exports: resolveMatchesExportParams
+- app/api/export/matches/route.ts
+  - exports: GET
+- app/api/export/stats/csv-builder.d.ts
+  - exports: buildStatsCsv
+- app/api/export/stats/csv-builder.js
+  - exports: buildStatsCsv
+- app/api/export/stats/handler.d.ts
+  - exports: makeStatsResponse, parseMinGames, resolveStatsExportParams
+- app/api/export/stats/handler.js
+  - exports: parseMinGames, resolveStatsExportParams, makeStatsResponse
+- app/api/export/stats/handler.ts
+  - exports: parseMinGames, resolveStatsExportParams, makeStatsResponse
+- app/api/export/stats/route.ts
+  - exports: GET
+- app/api/yakumans/route.ts
+  - exports: GET
+- app/layout.tsx
+  - exports: metadata, RootLayout
+- app/login/actions.ts
+  - exports: loginAction, logoutAction
+- app/login/login-form.tsx
+  - exports: LoginForm
+- app/login/page.tsx
+  - exports: LoginPage
+- app/match-actions.ts
+  - exports: deleteMatchAction, editMatchAction
+  - types: DeleteMatchState, EditMatchState
+- app/matches/[createdAt]/edit/page.tsx
+  - exports: metadata, dynamic
+- app/matches/page.tsx
+  - exports: metadata, dynamic
+- app/page.tsx
+  - exports: dynamic
+- app/player-actions.ts
+  - exports: addPlayerAction, deletePlayerAction, editPlayerAction, addPlayerFormAction, editPlayerFormAction, deletePlayerFormAction
+  - types: AddPlayerState, DeletePlayerState, EditPlayerState
+- app/stats/page.tsx
+  - exports: metadata, dynamic
+- app/stats/print/client.tsx
+  - exports: ClientStatsPrintPage
+- app/stats/print/query.d.ts
+  - exports: buildStatsPrintPath
+- app/stats/print/query.js
+  - exports: buildStatsPrintPath
+- app/tournament-actions.ts
+  - exports: addTournamentAction, editTournamentAction, deleteTournamentAction, addTournamentFormAction, editTournamentFormAction, deleteTournamentFormAction
+  - types: TournamentActionState
+- app/yakuman-actions.ts
+  - exports: addYakumanAction, deleteYakumanAction
+  - types: YakumanActionState
+- app/yakuman-types-actions.ts
+  - exports: addYakumanTypeAction, editYakumanTypeAction, deleteYakumanTypeAction, addYakumanTypeFormAction, editYakumanTypeFormAction, deleteYakumanTypeFormAction
+  - types: YakumanTypeActionState
+- components/app-header.tsx
+  - exports: AppHeader
+- components/csv-export-button.tsx
+  - exports: CsvExportButton
+- components/date-filter.tsx
+  - exports: DateFilter
+- components/date-range-filter-rules.js
+  - exports: getDefaultMinGamesForFilter, shouldShowMinGames, shouldAutoSubmitOnMinGamesChange, getLoadingIndicatorPlacement
+- components/date-range-filter-rules.ts
+  - exports: getDefaultMinGamesForFilter, shouldShowMinGames, shouldAutoSubmitOnMinGamesChange, getLoadingIndicatorPlacement
+- components/date-range-filter.tsx
+  - exports: DateRangeFilter
+- components/flash-message.tsx
+  - exports: FlashMessage
+- components/match-delete-button.tsx
+  - exports: MatchDeleteButton
+- components/match-edit-form.tsx
+  - exports: MatchEditForm
+- components/pdf-export-button.tsx
+  - exports: PdfExportButton
+- components/player-add-form.tsx
+  - exports: PlayerAddForm
+- components/player-delete-button.tsx
+  - exports: PlayerDeleteButton
+- components/player-edit-form.tsx
+  - exports: PlayerEditForm
+- components/print-trigger.tsx
+  - exports: PrintTrigger
+- components/score-form.tsx
+  - exports: ScoreForm
+- components/stats-print/ExtraStatsTable.tsx
+  - exports: ExtraStatsTable
+- components/stats-print/MatchHistoryTable.tsx
+  - exports: MatchHistoryTable
+- components/stats-print/StatsSummaryTable.tsx
+  - exports: StatsSummaryTable
+- components/stats-sortable-table.tsx
+  - exports: StatsSortableTable
+- components/tournament-add-form.tsx
+  - exports: TournamentAddForm
+- components/tournament-delete-button.tsx
+  - exports: TournamentDeleteButton
+- components/tournament-edit-form.tsx
+  - exports: TournamentEditForm
+- components/ui/button.tsx
+  - types: ButtonProps
+- components/ui/player-select.tsx
+  - exports: PlayerSelect
+- components/yakuman-add-form.tsx
+  - exports: YakumanAddForm
+- components/yakuman-delete-button.tsx
+  - exports: YakumanDeleteButton
+- components/yakuman-selection-panel.tsx
+  - exports: YakumanSelectionPanel
+  - types: YakumanOption, YakumanSelectionEntry
+- lib/auth.ts
+  - exports: createAuthToken, verifyAuthToken, AUTH_COOKIE_NAME, LOGIN_FAILURE_COOKIE_NAME, LOGIN_LOCK_COOKIE_NAME, SESSION_MAX_AGE_SECONDS, MAX_LOGIN_FAILURES, LOGIN_LOCK_SECONDS
+- lib/filter-params.ts
+  - exports: resolveFilterParams
+  - types: FilterParamConfig, FilterParamResult
+- lib/insert-yakuman.ts
+  - exports: insertYakumanOccurrences, insertYakumanTypes
+- lib/matches.ts
+  - exports: fetchMatchResults, fetchMatchDates
+  - types: YakumanOccurrence, MatchPlayer, MatchResult, MatchQueryOptions
+- lib/metric-ranks.d.ts
+  - exports: computeTopSets, METRIC_DIRECTION, METRICS_TO_HIGHLIGHT
+  - types: RankSets
+- lib/metric-ranks.js
+  - exports: computeTopSets, METRIC_DIRECTION, METRICS_TO_HIGHLIGHT
+- lib/mfa.ts
+  - exports: normalizeOtpCode, verifyTotpCode
+- lib/players-sheet.ts
+  - exports: fetchPlayerNames, PLAYER_MASTER_SHEET_TITLE
+- lib/players.ts
+  - exports: PLAYERS
+- lib/stats-rank-theme.ts
+  - exports: RANK_BADGE, RANK_ROW_BG
+- lib/stats-ranking.d.ts
+  - exports: sortAndAssignCompetitionRank
+  - types: ScoreRow, RankedScoreRow
+- lib/stats-ranking.js
+  - exports: sortAndAssignCompetitionRank
+- lib/stats-subtables.d.ts
+  - exports: computeSubtablesFromMatches, fetchStatsSubtables
+  - types: YakumanEvent, ScoreRank, SpreadRank
+- lib/stats-subtables.js
+  - exports: computeSubtablesFromMatches, fetchStatsSubtables
+- lib/stats.ts
+  - exports: fetchPlayerStats
+  - types: PlayerStats
+- lib/tournament-filter-query.d.ts
+  - exports: parseTournamentId, resolveTournamentIdFromUrl
+- lib/tournament-filter-query.js
+  - exports: parseTournamentId, resolveTournamentIdFromUrl
+- lib/tournament-preference.ts
+  - exports: getLastTournamentId, setLastTournamentId, LAST_TOURNAMENT_STORAGE_KEY
+- lib/tournaments.ts
+  - exports: fetchTournaments, fetchTournamentOptions, fetchTournamentById, fetchDefaultTournament, countGamesByTournamentId
+  - types: TournamentRow, TournamentOption
+- lib/useYakumans.ts
+  - exports: useYakumans
+- lib/utils.ts
+  - exports: cn
+- lib/validate-match.ts
+  - exports: validateAndParseMatchForm, buildRankedEntries
+  - types: GameType, GameEntry, ParsedMatchData
+- lib/yakumans.ts
+  - exports: YAKUMANS
+  - types: YakumanDef
+- middleware.ts
+  - exports: middleware, config

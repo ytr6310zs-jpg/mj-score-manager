@@ -1,0 +1,2136 @@
+{
+  "generatedAt": "2026-04-20T05:44:28.146Z",
+  "package": {
+    "name": "mj-score-manager",
+    "version": "0.1.0",
+    "scripts": {
+      "dev": "next dev",
+      "prepare": "husky install",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint",
+      "seeds": "node scripts/seed-to-supabase.mjs",
+      "seed:players": "node scripts/seed-players.mjs",
+      "seed:historical:dry": "node scripts/import-historical-games.mjs",
+      "seed:historical": "node scripts/import-historical-games.mjs --apply",
+      "test": "node --test && node -r ts-node/register test/validate-match.cjs",
+      "check:required-files": "bash -c \"if [ ! -f .github/copilot-instructions.md ]; then echo '\".github/copilot-instructions.md\" が存在しません。コミットを中止します。'; exit 1; fi\"",
+      "supabase:init": "npx supabase@2.84.2 init",
+      "supabase:start": "npx supabase@2.84.2 start",
+      "supabase:status": "npx supabase@2.84.2 status",
+      "supabase:reset": "npx supabase@2.84.2 db reset",
+      "supabase:db:push": "npx supabase@2.84.2 db push --db-url \"$DATABASE_URL\"",
+      "check:local-db": "node scripts/check-local-supabase.mjs",
+      "dev:local": "npm run check:local-db && next dev",
+      "check:local-pages": "node scripts/local-healthcheck.mjs",
+      "verify:local": "npm run dev:local & sleep 3; npm run check:local-pages"
+    },
+    "dependencies": {
+      "@radix-ui/react-label": "^2.1.0",
+      "@radix-ui/react-select": "^2.1.1",
+      "@supabase/supabase-js": "^2.100.1",
+      "class-variance-authority": "^0.7.0",
+      "clsx": "^2.1.1",
+      "google-auth-library": "^9.14.2",
+      "google-spreadsheet": "^4.1.2",
+      "lucide-react": "^0.468.0",
+      "next": "15.5.14",
+      "otplib": "^13.4.0",
+      "pg": "^8.20.0",
+      "react": "19.0.0",
+      "react-dom": "19.0.0",
+      "tailwind-merge": "^2.5.4",
+      "zod": "^3.24.1"
+    },
+    "devDependencies": {
+      "@types/node": "^22.10.2",
+      "@types/react": "^19.0.2",
+      "@types/react-dom": "^19.0.2",
+      "autoprefixer": "^10.4.20",
+      "eslint": "^9.17.0",
+      "eslint-config-next": "15.5.14",
+      "husky": "^8.0.0",
+      "postcss": "^8.4.49",
+      "tailwindcss": "^3.4.16",
+      "ts-node": "^10.9.2",
+      "typescript": "^5.7.2"
+    },
+    "engines": {
+      "node": ">=20.19.0 <21",
+      "npm": ">=10.8.2 <11"
+    }
+  },
+  "files": [
+    {
+      "path": ".eslintrc.json",
+      "ext": ".json",
+      "size": 73
+    },
+    {
+      "path": ".next/app-build-manifest.json",
+      "ext": ".json",
+      "size": 5968
+    },
+    {
+      "path": ".next/app-path-routes-manifest.json",
+      "ext": ".json",
+      "size": 606
+    },
+    {
+      "path": ".next/build-manifest.json",
+      "ext": ".json",
+      "size": 995
+    },
+    {
+      "path": ".next/cache/next-devtools-config.json",
+      "ext": ".json",
+      "size": 2
+    },
+    {
+      "path": ".next/diagnostics/build-diagnostics.json",
+      "ext": ".json",
+      "size": 93
+    },
+    {
+      "path": ".next/diagnostics/framework.json",
+      "ext": ".json",
+      "size": 38
+    },
+    {
+      "path": ".next/export-marker.json",
+      "ext": ".json",
+      "size": 111
+    },
+    {
+      "path": ".next/images-manifest.json",
+      "ext": ".json",
+      "size": 905
+    },
+    {
+      "path": ".next/next-minimal-server.js.nft.json",
+      "ext": ".json",
+      "size": 6461
+    },
+    {
+      "path": ".next/next-server.js.nft.json",
+      "ext": ".json",
+      "size": 42186
+    },
+    {
+      "path": ".next/package.json",
+      "ext": ".json",
+      "size": 20
+    },
+    {
+      "path": ".next/prerender-manifest.json",
+      "ext": ".json",
+      "size": 2196
+    },
+    {
+      "path": ".next/react-loadable-manifest.json",
+      "ext": ".json",
+      "size": 2
+    },
+    {
+      "path": ".next/required-server-files.json",
+      "ext": ".json",
+      "size": 8971
+    },
+    {
+      "path": ".next/routes-manifest.json",
+      "ext": ".json",
+      "size": 2715
+    },
+    {
+      "path": ".next/server/app/_not-found/page.js",
+      "ext": ".js",
+      "size": 16568
+    },
+    {
+      "path": ".next/server/app/_not-found/page.js.nft.json",
+      "ext": ".json",
+      "size": 3868
+    },
+    {
+      "path": ".next/server/app/_not-found/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 9954
+    },
+    {
+      "path": ".next/server/app/admin/page.js",
+      "ext": ".js",
+      "size": 17783
+    },
+    {
+      "path": ".next/server/app/admin/page.js.nft.json",
+      "ext": ".json",
+      "size": 3983
+    },
+    {
+      "path": ".next/server/app/admin/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 10154
+    },
+    {
+      "path": ".next/server/app/admin/players/page.js",
+      "ext": ".js",
+      "size": 26437
+    },
+    {
+      "path": ".next/server/app/admin/players/page.js.nft.json",
+      "ext": ".json",
+      "size": 4204
+    },
+    {
+      "path": ".next/server/app/admin/players/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 10695
+    },
+    {
+      "path": ".next/server/app/admin/tournaments/page.js",
+      "ext": ".js",
+      "size": 27139
+    },
+    {
+      "path": ".next/server/app/admin/tournaments/page.js.nft.json",
+      "ext": ".json",
+      "size": 4204
+    },
+    {
+      "path": ".next/server/app/admin/tournaments/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 10719
+    },
+    {
+      "path": ".next/server/app/admin/yakumans/page.js",
+      "ext": ".js",
+      "size": 39596
+    },
+    {
+      "path": ".next/server/app/admin/yakumans/page.js.nft.json",
+      "ext": ".json",
+      "size": 4179
+    },
+    {
+      "path": ".next/server/app/admin/yakumans/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 10544
+    },
+    {
+      "path": ".next/server/app/api/export/games/route.js",
+      "ext": ".js",
+      "size": 13820
+    },
+    {
+      "path": ".next/server/app/api/export/games/route.js.nft.json",
+      "ext": ".json",
+      "size": 4175
+    },
+    {
+      "path": ".next/server/app/api/export/games/route_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 9968
+    },
+    {
+      "path": ".next/server/app/api/export/matches/route.js",
+      "ext": ".js",
+      "size": 13135
+    },
+    {
+      "path": ".next/server/app/api/export/matches/route.js.nft.json",
+      "ext": ".json",
+      "size": 4175
+    },
+    {
+      "path": ".next/server/app/api/export/matches/route_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 9972
+    },
+    {
+      "path": ".next/server/app/api/export/stats/route.js",
+      "ext": ".js",
+      "size": 17200
+    },
+    {
+      "path": ".next/server/app/api/export/stats/route.js.nft.json",
+      "ext": ".json",
+      "size": 4147
+    },
+    {
+      "path": ".next/server/app/api/export/stats/route_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 9968
+    },
+    {
+      "path": ".next/server/app/api/yakumans/route.js",
+      "ext": ".js",
+      "size": 7800
+    },
+    {
+      "path": ".next/server/app/api/yakumans/route.js.nft.json",
+      "ext": ".json",
+      "size": 4016
+    },
+    {
+      "path": ".next/server/app/api/yakumans/route_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 9960
+    },
+    {
+      "path": ".next/server/app/login/page.js",
+      "ext": ".js",
+      "size": 26731
+    },
+    {
+      "path": ".next/server/app/login/page.js.nft.json",
+      "ext": ".json",
+      "size": 3917
+    },
+    {
+      "path": ".next/server/app/login/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 10046
+    },
+    {
+      "path": ".next/server/app/matches/[createdAt]/edit/page.js",
+      "ext": ".js",
+      "size": 45982
+    },
+    {
+      "path": ".next/server/app/matches/[createdAt]/edit/page.js.nft.json",
+      "ext": ".json",
+      "size": 4437
+    },
+    {
+      "path": ".next/server/app/matches/[createdAt]/edit/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 11568
+    },
+    {
+      "path": ".next/server/app/matches/page.js",
+      "ext": ".js",
+      "size": 32928
+    },
+    {
+      "path": ".next/server/app/matches/page.js.nft.json",
+      "ext": ".json",
+      "size": 4049
+    },
+    {
+      "path": ".next/server/app/matches/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 11086
+    },
+    {
+      "path": ".next/server/app/page.js",
+      "ext": ".js",
+      "size": 101891,
+      "exports": [
+        "middleware",
+        "fetchCache"
+      ]
+    },
+    {
+      "path": ".next/server/app/page.js.nft.json",
+      "ext": ".json",
+      "size": 3869
+    },
+    {
+      "path": ".next/server/app/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 9889
+    },
+    {
+      "path": ".next/server/app/stats/page.js",
+      "ext": ".js",
+      "size": 41201
+    },
+    {
+      "path": ".next/server/app/stats/page.js.nft.json",
+      "ext": ".json",
+      "size": 4005
+    },
+    {
+      "path": ".next/server/app/stats/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 10874
+    },
+    {
+      "path": ".next/server/app/stats/print/page.js",
+      "ext": ".js",
+      "size": 43970
+    },
+    {
+      "path": ".next/server/app/stats/print/page.js.nft.json",
+      "ext": ".json",
+      "size": 4079
+    },
+    {
+      "path": ".next/server/app/stats/print/page_client-reference-manifest.js",
+      "ext": ".js",
+      "size": 11055
+    },
+    {
+      "path": ".next/server/app-paths-manifest.json",
+      "ext": ".json",
+      "size": 774
+    },
+    {
+      "path": ".next/server/chunks/122.js",
+      "ext": ".js",
+      "size": 11710
+    },
+    {
+      "path": ".next/server/chunks/153.js",
+      "ext": ".js",
+      "size": 20134
+    },
+    {
+      "path": ".next/server/chunks/206.js",
+      "ext": ".js",
+      "size": 8388
+    },
+    {
+      "path": ".next/server/chunks/361.js",
+      "ext": ".js",
+      "size": 226372
+    },
+    {
+      "path": ".next/server/chunks/457.js",
+      "ext": ".js",
+      "size": 189202
+    },
+    {
+      "path": ".next/server/chunks/506.js",
+      "ext": ".js",
+      "size": 70323
+    },
+    {
+      "path": ".next/server/chunks/508.js",
+      "ext": ".js",
+      "size": 189202
+    },
+    {
+      "path": ".next/server/chunks/540.js",
+      "ext": ".js",
+      "size": 87830
+    },
+    {
+      "path": ".next/server/chunks/611.js",
+      "ext": ".js",
+      "size": 69014
+    },
+    {
+      "path": ".next/server/chunks/692.js",
+      "ext": ".js",
+      "size": 33857
+    },
+    {
+      "path": ".next/server/chunks/804.js",
+      "ext": ".js",
+      "size": 16141
+    },
+    {
+      "path": ".next/server/chunks/814.js",
+      "ext": ".js",
+      "size": 169966
+    },
+    {
+      "path": ".next/server/chunks/873.js",
+      "ext": ".js",
+      "size": 125370,
+      "exports": [
+        "middleware",
+        "fetchCache"
+      ]
+    },
+    {
+      "path": ".next/server/edge-runtime-webpack.js",
+      "ext": ".js",
+      "size": 1504
+    },
+    {
+      "path": ".next/server/functions-config-manifest.json",
+      "ext": ".json",
+      "size": 37
+    },
+    {
+      "path": ".next/server/interception-route-rewrite-manifest.js",
+      "ext": ".js",
+      "size": 48
+    },
+    {
+      "path": ".next/server/middleware-build-manifest.js",
+      "ext": ".js",
+      "size": 921
+    },
+    {
+      "path": ".next/server/middleware-manifest.json",
+      "ext": ".json",
+      "size": 950
+    },
+    {
+      "path": ".next/server/middleware-react-loadable-manifest.js",
+      "ext": ".js",
+      "size": 36
+    },
+    {
+      "path": ".next/server/middleware.js",
+      "ext": ".js",
+      "size": 105533,
+      "exports": [
+        "middleware"
+      ]
+    },
+    {
+      "path": ".next/server/next-font-manifest.js",
+      "ext": ".js",
+      "size": 106
+    },
+    {
+      "path": ".next/server/next-font-manifest.json",
+      "ext": ".json",
+      "size": 77
+    },
+    {
+      "path": ".next/server/pages/_app.js",
+      "ext": ".js",
+      "size": 3361
+    },
+    {
+      "path": ".next/server/pages/_app.js.nft.json",
+      "ext": ".json",
+      "size": 509
+    },
+    {
+      "path": ".next/server/pages/_document.js",
+      "ext": ".js",
+      "size": 373
+    },
+    {
+      "path": ".next/server/pages/_document.js.nft.json",
+      "ext": ".json",
+      "size": 3908
+    },
+    {
+      "path": ".next/server/pages/_error.js",
+      "ext": ".js",
+      "size": 79967,
+      "exports": [
+        "middleware"
+      ]
+    },
+    {
+      "path": ".next/server/pages/_error.js.nft.json",
+      "ext": ".json",
+      "size": 3906
+    },
+    {
+      "path": ".next/server/pages-manifest.json",
+      "ext": ".json",
+      "size": 128
+    },
+    {
+      "path": ".next/server/server-reference-manifest.js",
+      "ext": ".js",
+      "size": 8814
+    },
+    {
+      "path": ".next/server/server-reference-manifest.json",
+      "ext": ".json",
+      "size": 7889
+    },
+    {
+      "path": ".next/server/webpack-runtime.js",
+      "ext": ".js",
+      "size": 1481
+    },
+    {
+      "path": ".next/static/FpqQ9DfucA8P1CnravkhK/_buildManifest.js",
+      "ext": ".js",
+      "size": 1010
+    },
+    {
+      "path": ".next/static/FpqQ9DfucA8P1CnravkhK/_ssgManifest.js",
+      "ext": ".js",
+      "size": 80
+    },
+    {
+      "path": ".next/static/chunks/176-b06c1d1e6e69b017.js",
+      "ext": ".js",
+      "size": 8799
+    },
+    {
+      "path": ".next/static/chunks/255-38b49df12a94ee57.js",
+      "ext": ".js",
+      "size": 172500
+    },
+    {
+      "path": ".next/static/chunks/290-8dbc20987724da08.js",
+      "ext": ".js",
+      "size": 90200
+    },
+    {
+      "path": ".next/static/chunks/498-fefb525de001a53d.js",
+      "ext": ".js",
+      "size": 13965
+    },
+    {
+      "path": ".next/static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "ext": ".js",
+      "size": 173019
+    },
+    {
+      "path": ".next/static/chunks/672-f3b451af910a629a.js",
+      "ext": ".js",
+      "size": 21263
+    },
+    {
+      "path": ".next/static/chunks/746-1fa4a6bcf05e5588.js",
+      "ext": ".js",
+      "size": 14308
+    },
+    {
+      "path": ".next/static/chunks/app/_not-found/page-4d951e480d1e1bf6.js",
+      "ext": ".js",
+      "size": 2670
+    },
+    {
+      "path": ".next/static/chunks/app/admin/page-ccf119cd3571ee89.js",
+      "ext": ".js",
+      "size": 5261
+    },
+    {
+      "path": ".next/static/chunks/app/admin/players/page-165d0e00ca1dadb1.js",
+      "ext": ".js",
+      "size": 8572
+    },
+    {
+      "path": ".next/static/chunks/app/admin/tournaments/page-66d6a01f75ed6a94.js",
+      "ext": ".js",
+      "size": 8644
+    },
+    {
+      "path": ".next/static/chunks/app/admin/yakumans/page-29377b4ed2350552.js",
+      "ext": ".js",
+      "size": 7890
+    },
+    {
+      "path": ".next/static/chunks/app/api/export/games/route-6619140275a15922.js",
+      "ext": ".js",
+      "size": 141
+    },
+    {
+      "path": ".next/static/chunks/app/api/export/matches/route-6619140275a15922.js",
+      "ext": ".js",
+      "size": 141
+    },
+    {
+      "path": ".next/static/chunks/app/api/export/stats/route-6619140275a15922.js",
+      "ext": ".js",
+      "size": 141
+    },
+    {
+      "path": ".next/static/chunks/app/api/yakumans/route-6619140275a15922.js",
+      "ext": ".js",
+      "size": 141
+    },
+    {
+      "path": ".next/static/chunks/app/layout-50dca84006385794.js",
+      "ext": ".js",
+      "size": 195
+    },
+    {
+      "path": ".next/static/chunks/app/login/page-438fa68c3644be86.js",
+      "ext": ".js",
+      "size": 7050
+    },
+    {
+      "path": ".next/static/chunks/app/matches/[createdAt]/edit/page-5e2c293666ed43e8.js",
+      "ext": ".js",
+      "size": 12531
+    },
+    {
+      "path": ".next/static/chunks/app/matches/page-9f7ca150311c00ed.js",
+      "ext": ".js",
+      "size": 1409
+    },
+    {
+      "path": ".next/static/chunks/app/page-bf9cc071c1b0db9a.js",
+      "ext": ".js",
+      "size": 11569
+    },
+    {
+      "path": ".next/static/chunks/app/stats/page-c86edecd890e0c13.js",
+      "ext": ".js",
+      "size": 8160
+    },
+    {
+      "path": ".next/static/chunks/app/stats/print/page-dac245fd163054bf.js",
+      "ext": ".js",
+      "size": 14073
+    },
+    {
+      "path": ".next/static/chunks/framework-372c62845e5ba996.js",
+      "ext": ".js",
+      "size": 181563
+    },
+    {
+      "path": ".next/static/chunks/main-app-65734fc3b6d08eb1.js",
+      "ext": ".js",
+      "size": 555
+    },
+    {
+      "path": ".next/static/chunks/main-c672d85187c33a35.js",
+      "ext": ".js",
+      "size": 127756
+    },
+    {
+      "path": ".next/static/chunks/pages/_app-7d307437aca18ad4.js",
+      "ext": ".js",
+      "size": 234
+    },
+    {
+      "path": ".next/static/chunks/pages/_error-cb2a52f75f2162e2.js",
+      "ext": ".js",
+      "size": 218
+    },
+    {
+      "path": ".next/static/chunks/polyfills-42372ed130431b0a.js",
+      "ext": ".js",
+      "size": 112541
+    },
+    {
+      "path": ".next/static/chunks/webpack-de856528393cea3e.js",
+      "ext": ".js",
+      "size": 3426
+    },
+    {
+      "path": ".next/types/app/admin/page.ts",
+      "ext": ".ts",
+      "size": 3708,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/admin/players/page.ts",
+      "ext": ".ts",
+      "size": 3738,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/admin/tournaments/page.ts",
+      "ext": ".ts",
+      "size": 3750,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/admin/yakumans/page.ts",
+      "ext": ".ts",
+      "size": 3741,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/api/export/games/route.ts",
+      "ext": ".ts",
+      "size": 8743,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/api/export/matches/route.ts",
+      "ext": ".ts",
+      "size": 8749,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/api/export/stats/route.ts",
+      "ext": ".ts",
+      "size": 8743,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/api/yakumans/route.ts",
+      "ext": ".ts",
+      "size": 8725,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/layout.ts",
+      "ext": ".ts",
+      "size": 3696,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/login/page.ts",
+      "ext": ".ts",
+      "size": 3708,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/matches/[createdAt]/edit/page.ts",
+      "ext": ".ts",
+      "size": 3777,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/matches/page.ts",
+      "ext": ".ts",
+      "size": 3714,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/page.ts",
+      "ext": ".ts",
+      "size": 3684,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/stats/page.ts",
+      "ext": ".ts",
+      "size": 3708,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/app/stats/print/page.ts",
+      "ext": ".ts",
+      "size": 3732,
+      "types": [
+        "PageProps",
+        "LayoutProps"
+      ]
+    },
+    {
+      "path": ".next/types/cache-life.d.ts",
+      "ext": ".ts",
+      "size": 5863,
+      "exports": [
+        "unstable_cacheLife"
+      ]
+    },
+    {
+      "path": ".next/types/package.json",
+      "ext": ".json",
+      "size": 18
+    },
+    {
+      "path": ".next/types/routes.d.ts",
+      "ext": ".ts",
+      "size": 2444,
+      "exports": [
+        "GET",
+        "Page",
+        "Layout"
+      ],
+      "types": [
+        "ParamsOf"
+      ]
+    },
+    {
+      "path": ".next/types/validator.ts",
+      "ext": ".ts",
+      "size": 6939
+    },
+    {
+      "path": ".vscode/mcp.json",
+      "ext": ".json",
+      "size": 119
+    },
+    {
+      "path": ".vscode/settings.json",
+      "ext": ".json",
+      "size": 1383
+    },
+    {
+      "path": "README.md",
+      "ext": ".md",
+      "size": 7918,
+      "title": "mj-score-manager"
+    },
+    {
+      "path": "app/actions.ts",
+      "ext": ".ts",
+      "size": 6248,
+      "exports": [
+        "saveScoreAction"
+      ],
+      "types": [
+        "SaveScoreState"
+      ]
+    },
+    {
+      "path": "app/admin/page.tsx",
+      "ext": ".tsx",
+      "size": 1338,
+      "exports": [
+        "AdminIndexPage"
+      ]
+    },
+    {
+      "path": "app/admin/players/page.tsx",
+      "ext": ".tsx",
+      "size": 3205,
+      "exports": [
+        "dynamic"
+      ]
+    },
+    {
+      "path": "app/admin/tournaments/page.tsx",
+      "ext": ".tsx",
+      "size": 2384,
+      "exports": [
+        "dynamic"
+      ]
+    },
+    {
+      "path": "app/admin/yakumans/page.tsx",
+      "ext": ".tsx",
+      "size": 4990,
+      "exports": [
+        "dynamic"
+      ]
+    },
+    {
+      "path": "app/api/export/games/csv-builder.d.ts",
+      "ext": ".ts",
+      "size": 523,
+      "exports": [
+        "buildGamesCsv"
+      ]
+    },
+    {
+      "path": "app/api/export/games/csv-builder.js",
+      "ext": ".js",
+      "size": 2672,
+      "exports": [
+        "buildGamesCsv"
+      ]
+    },
+    {
+      "path": "app/api/export/games/handler.d.ts",
+      "ext": ".ts",
+      "size": 560,
+      "exports": [
+        "makeGamesResponse"
+      ]
+    },
+    {
+      "path": "app/api/export/games/handler.js",
+      "ext": ".js",
+      "size": 867,
+      "exports": [
+        "resolveGamesExportParams",
+        "makeGamesResponse"
+      ]
+    },
+    {
+      "path": "app/api/export/games/route.ts",
+      "ext": ".ts",
+      "size": 881,
+      "exports": [
+        "GET"
+      ]
+    },
+    {
+      "path": "app/api/export/matches/handler.js",
+      "ext": ".js",
+      "size": 331,
+      "exports": [
+        "resolveMatchesExportParams"
+      ]
+    },
+    {
+      "path": "app/api/export/matches/route.ts",
+      "ext": ".ts",
+      "size": 2353,
+      "exports": [
+        "GET"
+      ]
+    },
+    {
+      "path": "app/api/export/stats/csv-builder.d.ts",
+      "ext": ".ts",
+      "size": 561,
+      "exports": [
+        "buildStatsCsv"
+      ]
+    },
+    {
+      "path": "app/api/export/stats/csv-builder.js",
+      "ext": ".js",
+      "size": 1622,
+      "exports": [
+        "buildStatsCsv"
+      ]
+    },
+    {
+      "path": "app/api/export/stats/handler.d.ts",
+      "ext": ".ts",
+      "size": 851,
+      "exports": [
+        "makeStatsResponse",
+        "parseMinGames",
+        "resolveStatsExportParams"
+      ]
+    },
+    {
+      "path": "app/api/export/stats/handler.js",
+      "ext": ".js",
+      "size": 1171,
+      "exports": [
+        "parseMinGames",
+        "resolveStatsExportParams",
+        "makeStatsResponse"
+      ]
+    },
+    {
+      "path": "app/api/export/stats/handler.ts",
+      "ext": ".ts",
+      "size": 1550,
+      "exports": [
+        "parseMinGames",
+        "resolveStatsExportParams",
+        "makeStatsResponse"
+      ]
+    },
+    {
+      "path": "app/api/export/stats/route.ts",
+      "ext": ".ts",
+      "size": 1645,
+      "exports": [
+        "GET"
+      ]
+    },
+    {
+      "path": "app/api/yakumans/route.ts",
+      "ext": ".ts",
+      "size": 1642,
+      "exports": [
+        "GET"
+      ]
+    },
+    {
+      "path": "app/layout.tsx",
+      "ext": ".tsx",
+      "size": 789,
+      "exports": [
+        "metadata",
+        "RootLayout"
+      ]
+    },
+    {
+      "path": "app/login/actions.ts",
+      "ext": ".ts",
+      "size": 3321,
+      "exports": [
+        "loginAction",
+        "logoutAction"
+      ]
+    },
+    {
+      "path": "app/login/login-form.tsx",
+      "ext": ".tsx",
+      "size": 1797,
+      "exports": [
+        "LoginForm"
+      ]
+    },
+    {
+      "path": "app/login/page.tsx",
+      "ext": ".tsx",
+      "size": 377,
+      "exports": [
+        "LoginPage"
+      ]
+    },
+    {
+      "path": "app/match-actions.ts",
+      "ext": ".ts",
+      "size": 9227,
+      "exports": [
+        "deleteMatchAction",
+        "editMatchAction"
+      ],
+      "types": [
+        "DeleteMatchState",
+        "EditMatchState"
+      ]
+    },
+    {
+      "path": "app/matches/[createdAt]/edit/page.tsx",
+      "ext": ".tsx",
+      "size": 4250,
+      "exports": [
+        "metadata",
+        "dynamic"
+      ]
+    },
+    {
+      "path": "app/matches/page.tsx",
+      "ext": ".tsx",
+      "size": 12948,
+      "exports": [
+        "metadata",
+        "dynamic"
+      ]
+    },
+    {
+      "path": "app/page.tsx",
+      "ext": ".tsx",
+      "size": 673,
+      "exports": [
+        "dynamic"
+      ]
+    },
+    {
+      "path": "app/player-actions.ts",
+      "ext": ".ts",
+      "size": 4707,
+      "exports": [
+        "addPlayerAction",
+        "deletePlayerAction",
+        "editPlayerAction",
+        "addPlayerFormAction",
+        "editPlayerFormAction",
+        "deletePlayerFormAction"
+      ],
+      "types": [
+        "AddPlayerState",
+        "DeletePlayerState",
+        "EditPlayerState"
+      ]
+    },
+    {
+      "path": "app/stats/page.tsx",
+      "ext": ".tsx",
+      "size": 18973,
+      "exports": [
+        "metadata",
+        "dynamic"
+      ]
+    },
+    {
+      "path": "app/stats/print/client.tsx",
+      "ext": ".tsx",
+      "size": 4241,
+      "exports": [
+        "ClientStatsPrintPage"
+      ]
+    },
+    {
+      "path": "app/stats/print/page.tsx",
+      "ext": ".tsx",
+      "size": 3955
+    },
+    {
+      "path": "app/stats/print/query.d.ts",
+      "ext": ".ts",
+      "size": 60,
+      "exports": [
+        "buildStatsPrintPath"
+      ]
+    },
+    {
+      "path": "app/stats/print/query.js",
+      "ext": ".js",
+      "size": 198,
+      "exports": [
+        "buildStatsPrintPath"
+      ]
+    },
+    {
+      "path": "app/tournament-actions.ts",
+      "ext": ".ts",
+      "size": 4847,
+      "exports": [
+        "addTournamentAction",
+        "editTournamentAction",
+        "deleteTournamentAction",
+        "addTournamentFormAction",
+        "editTournamentFormAction",
+        "deleteTournamentFormAction"
+      ],
+      "types": [
+        "TournamentActionState"
+      ]
+    },
+    {
+      "path": "app/yakuman-actions.ts",
+      "ext": ".ts",
+      "size": 3862,
+      "exports": [
+        "addYakumanAction",
+        "deleteYakumanAction"
+      ],
+      "types": [
+        "YakumanActionState"
+      ]
+    },
+    {
+      "path": "app/yakuman-types-actions.ts",
+      "ext": ".ts",
+      "size": 6152,
+      "exports": [
+        "addYakumanTypeAction",
+        "editYakumanTypeAction",
+        "deleteYakumanTypeAction",
+        "addYakumanTypeFormAction",
+        "editYakumanTypeFormAction",
+        "deleteYakumanTypeFormAction"
+      ],
+      "types": [
+        "YakumanTypeActionState"
+      ]
+    },
+    {
+      "path": "components/app-header.tsx",
+      "ext": ".tsx",
+      "size": 7018,
+      "exports": [
+        "AppHeader"
+      ]
+    },
+    {
+      "path": "components/csv-export-button.tsx",
+      "ext": ".tsx",
+      "size": 1750,
+      "exports": [
+        "CsvExportButton"
+      ]
+    },
+    {
+      "path": "components/date-filter.tsx",
+      "ext": ".tsx",
+      "size": 1614,
+      "exports": [
+        "DateFilter"
+      ]
+    },
+    {
+      "path": "components/date-range-filter-rules.js",
+      "ext": ".js",
+      "size": 512,
+      "exports": [
+        "getDefaultMinGamesForFilter",
+        "shouldShowMinGames",
+        "shouldAutoSubmitOnMinGamesChange",
+        "getLoadingIndicatorPlacement"
+      ]
+    },
+    {
+      "path": "components/date-range-filter-rules.ts",
+      "ext": ".ts",
+      "size": 634,
+      "exports": [
+        "getDefaultMinGamesForFilter",
+        "shouldShowMinGames",
+        "shouldAutoSubmitOnMinGamesChange",
+        "getLoadingIndicatorPlacement"
+      ]
+    },
+    {
+      "path": "components/date-range-filter.tsx",
+      "ext": ".tsx",
+      "size": 12460,
+      "exports": [
+        "DateRangeFilter"
+      ]
+    },
+    {
+      "path": "components/flash-message.tsx",
+      "ext": ".tsx",
+      "size": 2555,
+      "exports": [
+        "FlashMessage"
+      ]
+    },
+    {
+      "path": "components/match-delete-button.tsx",
+      "ext": ".tsx",
+      "size": 1749,
+      "exports": [
+        "MatchDeleteButton"
+      ]
+    },
+    {
+      "path": "components/match-edit-form.tsx",
+      "ext": ".tsx",
+      "size": 20173,
+      "exports": [
+        "MatchEditForm"
+      ]
+    },
+    {
+      "path": "components/pdf-export-button.tsx",
+      "ext": ".tsx",
+      "size": 693,
+      "exports": [
+        "PdfExportButton"
+      ]
+    },
+    {
+      "path": "components/player-add-form.tsx",
+      "ext": ".tsx",
+      "size": 1289,
+      "exports": [
+        "PlayerAddForm"
+      ]
+    },
+    {
+      "path": "components/player-delete-button.tsx",
+      "ext": ".tsx",
+      "size": 1453,
+      "exports": [
+        "PlayerDeleteButton"
+      ]
+    },
+    {
+      "path": "components/player-edit-form.tsx",
+      "ext": ".tsx",
+      "size": 1583,
+      "exports": [
+        "PlayerEditForm"
+      ]
+    },
+    {
+      "path": "components/print-trigger.tsx",
+      "ext": ".tsx",
+      "size": 288,
+      "exports": [
+        "PrintTrigger"
+      ]
+    },
+    {
+      "path": "components/score-form.tsx",
+      "ext": ".tsx",
+      "size": 21586,
+      "exports": [
+        "ScoreForm"
+      ]
+    },
+    {
+      "path": "components/stats-print/ExtraStatsTable.tsx",
+      "ext": ".tsx",
+      "size": 4835,
+      "exports": [
+        "ExtraStatsTable"
+      ]
+    },
+    {
+      "path": "components/stats-print/MatchHistoryTable.tsx",
+      "ext": ".tsx",
+      "size": 3723,
+      "exports": [
+        "MatchHistoryTable"
+      ]
+    },
+    {
+      "path": "components/stats-print/StatsSummaryTable.tsx",
+      "ext": ".tsx",
+      "size": 4249,
+      "exports": [
+        "StatsSummaryTable"
+      ]
+    },
+    {
+      "path": "components/stats-sortable-table.tsx",
+      "ext": ".tsx",
+      "size": 15244,
+      "exports": [
+        "StatsSortableTable"
+      ]
+    },
+    {
+      "path": "components/tournament-add-form.tsx",
+      "ext": ".tsx",
+      "size": 1363,
+      "exports": [
+        "TournamentAddForm"
+      ]
+    },
+    {
+      "path": "components/tournament-delete-button.tsx",
+      "ext": ".tsx",
+      "size": 1393,
+      "exports": [
+        "TournamentDeleteButton"
+      ]
+    },
+    {
+      "path": "components/tournament-edit-form.tsx",
+      "ext": ".tsx",
+      "size": 1611,
+      "exports": [
+        "TournamentEditForm"
+      ]
+    },
+    {
+      "path": "components/ui/alert.tsx",
+      "ext": ".tsx",
+      "size": 747
+    },
+    {
+      "path": "components/ui/button.tsx",
+      "ext": ".tsx",
+      "size": 1434,
+      "types": [
+        "ButtonProps"
+      ]
+    },
+    {
+      "path": "components/ui/card.tsx",
+      "ext": ".tsx",
+      "size": 1548
+    },
+    {
+      "path": "components/ui/input.tsx",
+      "ext": ".tsx",
+      "size": 751
+    },
+    {
+      "path": "components/ui/label.tsx",
+      "ext": ".tsx",
+      "size": 523
+    },
+    {
+      "path": "components/ui/player-select.tsx",
+      "ext": ".tsx",
+      "size": 6573,
+      "exports": [
+        "PlayerSelect"
+      ]
+    },
+    {
+      "path": "components/ui/select.tsx",
+      "ext": ".tsx",
+      "size": 2764
+    },
+    {
+      "path": "components/yakuman-add-form.tsx",
+      "ext": ".tsx",
+      "size": 1631,
+      "exports": [
+        "YakumanAddForm"
+      ]
+    },
+    {
+      "path": "components/yakuman-delete-button.tsx",
+      "ext": ".tsx",
+      "size": 1362,
+      "exports": [
+        "YakumanDeleteButton"
+      ]
+    },
+    {
+      "path": "components/yakuman-selection-panel.tsx",
+      "ext": ".tsx",
+      "size": 4338,
+      "exports": [
+        "YakumanSelectionPanel"
+      ],
+      "types": [
+        "YakumanOption",
+        "YakumanSelectionEntry"
+      ]
+    },
+    {
+      "path": "ddl/001_create_players.sql",
+      "ext": ".sql",
+      "size": 235,
+      "tables": [
+        "public"
+      ]
+    },
+    {
+      "path": "ddl/002_create_games.sql",
+      "ext": ".sql",
+      "size": 1250,
+      "tables": [
+        "public"
+      ]
+    },
+    {
+      "path": "ddl/README.md",
+      "ext": ".md",
+      "size": 412,
+      "title": "ddl/ ディレクトリについて"
+    },
+    {
+      "path": "ddl/fix-games-created-at/README.md",
+      "ext": ".md",
+      "size": 399
+    },
+    {
+      "path": "design/README.md",
+      "ext": ".md",
+      "size": 965
+    },
+    {
+      "path": "design/adr/0002-match-history.md",
+      "ext": ".md",
+      "size": 1027,
+      "title": "ADR 0002: 対戦履歴（Match History）CSV フォーマット"
+    },
+    {
+      "path": "design/adr/0003-player-stats.md",
+      "ext": ".md",
+      "size": 558,
+      "title": "ADR 0003: 個人成績（Player Stats）CSV フォーマット"
+    },
+    {
+      "path": "design/adr/0004-games-export-metadata.md",
+      "ext": ".md",
+      "size": 934,
+      "title": "ADR 0004: `games` エクスポートにおける拡張項目の取り扱い"
+    },
+    {
+      "path": "design/adr/0005-local-supabase-for-dev.md",
+      "ext": ".md",
+      "size": 3157,
+      "title": "ADR 0005: local 開発では local Supabase を標準DBとする"
+    },
+    {
+      "path": "design/adr/0006-games-player-ids.md",
+      "ext": ".md",
+      "size": 5113,
+      "title": "ADR 0006: games にプレイヤー参照 ID を導入し、表示用プレイヤー名を併存させる"
+    },
+    {
+      "path": "design/adr/0007-issue-96.md",
+      "ext": ".md",
+      "size": 1675,
+      "title": "0007: 日付範囲選択のモバイル横並び化"
+    },
+    {
+      "path": "design/adr/0008-header-menu.md",
+      "ext": ".md",
+      "size": 1268
+    },
+    {
+      "path": "design/adr/0009-navigation-transition-feedback.md",
+      "ext": ".md",
+      "size": 1827
+    },
+    {
+      "path": "design/adr/0010-issue-116-compact-match-history.md",
+      "ext": ".md",
+      "size": 1885
+    },
+    {
+      "path": "design/adr/0011-issue-115-multiple-result-badges.md",
+      "ext": ".md",
+      "size": 3024
+    },
+    {
+      "path": "design/adr/0012-issue-118-stats-pc-sort.md",
+      "ext": ".md",
+      "size": 2617
+    },
+    {
+      "path": "design/adr/0013-issue-90-rank-distribution.md",
+      "ext": ".md",
+      "size": 3073
+    },
+    {
+      "path": "design/adr/0014-issue-119-cell-rank-highlighting.md",
+      "ext": ".md",
+      "size": 2976
+    },
+    {
+      "path": "design/adr/0015-issue-120-stats-subtables.md",
+      "ext": ".md",
+      "size": 859,
+      "title": "ADR 0015: Stats Subtables (Issue #120)"
+    },
+    {
+      "path": "design/adr/0016-issue-103-import-hist-fix.md",
+      "ext": ".md",
+      "size": 1504,
+      "title": "ADR 0016: 過去対戦インポート修正 (Issue #103)"
+    },
+    {
+      "path": "design/adr/0017-issue-126-add-yakuman-types.md",
+      "ext": ".md",
+      "size": 3392
+    },
+    {
+      "path": "design/adr/0018-issue-135-rank-contrast.md",
+      "ext": ".md",
+      "size": 2318
+    },
+    {
+      "path": "design/adr/0019-issue-140-transition-feedback-refresh.md",
+      "ext": ".md",
+      "size": 2336
+    },
+    {
+      "path": "design/db-cd-strategy.md",
+      "ext": ".md",
+      "size": 2066,
+      "title": "DB CD Strategy (本番マイグレーション運用戦略)"
+    },
+    {
+      "path": "design/issue-113-yakuman-ui-commonization-design.md",
+      "ext": ".md",
+      "size": 1392,
+      "title": "Issue #113 設計: 役満登録UI統一とフォーム共通化"
+    },
+    {
+      "path": "design/issue-117-date-filter-design.md",
+      "ext": ".md",
+      "size": 3085,
+      "title": "Issue #117 設計: 対局履歴を対局日で絞込み"
+    },
+    {
+      "path": "design/issue-132-match-count-filter-design.md",
+      "ext": ".md",
+      "size": 5870,
+      "title": "Issue #132 設計: 成績集計に試合数フィルタを追加"
+    },
+    {
+      "path": "design/issue-146-score-formula-alignment-design.md",
+      "ext": ".md",
+      "size": 3575,
+      "title": "Issue #146 設計: 成績集計の計算方法を既存Excel資料に合わせる"
+    },
+    {
+      "path": "design/issue-157-stats-pdf-export-design.md",
+      "ext": ".md",
+      "size": 7024,
+      "title": "Issue #157 設計: 成績集計画面 PDF出力機能"
+    },
+    {
+      "path": "design/issue-158-lowest-score-ranking-fix-design.md",
+      "ext": ".md",
+      "size": 5204,
+      "title": "Issue #158 設計: 成績集計画面 最高得点ランキング・最低失点ランキングの修正"
+    },
+    {
+      "path": "design/issue-167-tournament-management-design.md",
+      "ext": ".md",
+      "size": 8285,
+      "title": "Issue #167 設計: 大会管理機能追加、および付帯機能追加（改訂版）"
+    },
+    {
+      "path": "design/issue-172-workflow-cleanup-design.md",
+      "ext": ".md",
+      "size": 4318,
+      "title": "Issue #172 設計: Workflow 整理（一覧化・振り分け・統合案）"
+    },
+    {
+      "path": "design/schema-management.md",
+      "ext": ".md",
+      "size": 2135,
+      "title": "ADR: スキーマ管理方針"
+    },
+    {
+      "path": "design/templates/adr-template.md",
+      "ext": ".md",
+      "size": 226,
+      "title": "ADR - {番号}: {短いタイトル}"
+    },
+    {
+      "path": "docs/doc-style.md",
+      "ext": ".md",
+      "size": 1120,
+      "title": "目的"
+    },
+    {
+      "path": "docs/images/README.md",
+      "ext": ".md",
+      "size": 331,
+      "title": "images フォルダ"
+    },
+    {
+      "path": "docs/index.md",
+      "ext": ".md",
+      "size": 129,
+      "title": "ドキュメント"
+    },
+    {
+      "path": "docs/manual.md",
+      "ext": ".md",
+      "size": 3566,
+      "title": "表紙"
+    },
+    {
+      "path": "docs/migration-runbook.md",
+      "ext": ".md",
+      "size": 1993,
+      "title": "Migration runbook (セルフホスト runner 用)"
+    },
+    {
+      "path": "docs/migrations-deprecated.md",
+      "ext": ".md",
+      "size": 552,
+      "title": "migrations ディレクトリ（Deprecated）"
+    },
+    {
+      "path": "docs/user-manual.md",
+      "ext": ".md",
+      "size": 5928,
+      "title": "概要"
+    },
+    {
+      "path": "lib/auth.ts",
+      "ext": ".ts",
+      "size": 3363,
+      "exports": [
+        "createAuthToken",
+        "verifyAuthToken",
+        "AUTH_COOKIE_NAME",
+        "LOGIN_FAILURE_COOKIE_NAME",
+        "LOGIN_LOCK_COOKIE_NAME",
+        "SESSION_MAX_AGE_SECONDS",
+        "MAX_LOGIN_FAILURES",
+        "LOGIN_LOCK_SECONDS"
+      ]
+    },
+    {
+      "path": "lib/filter-params.ts",
+      "ext": ".ts",
+      "size": 2901,
+      "exports": [
+        "resolveFilterParams"
+      ],
+      "types": [
+        "FilterParamConfig",
+        "FilterParamResult"
+      ]
+    },
+    {
+      "path": "lib/insert-yakuman.ts",
+      "ext": ".ts",
+      "size": 4595,
+      "exports": [
+        "insertYakumanOccurrences",
+        "insertYakumanTypes"
+      ]
+    },
+    {
+      "path": "lib/matches.ts",
+      "ext": ".ts",
+      "size": 11289,
+      "exports": [
+        "fetchMatchResults",
+        "fetchMatchDates"
+      ],
+      "types": [
+        "YakumanOccurrence",
+        "MatchPlayer",
+        "MatchResult",
+        "MatchQueryOptions"
+      ]
+    },
+    {
+      "path": "lib/metric-ranks.d.ts",
+      "ext": ".ts",
+      "size": 358,
+      "exports": [
+        "computeTopSets",
+        "METRIC_DIRECTION",
+        "METRICS_TO_HIGHLIGHT"
+      ],
+      "types": [
+        "RankSets"
+      ]
+    },
+    {
+      "path": "lib/metric-ranks.js",
+      "ext": ".js",
+      "size": 1915,
+      "exports": [
+        "computeTopSets",
+        "METRIC_DIRECTION",
+        "METRICS_TO_HIGHLIGHT"
+      ]
+    },
+    {
+      "path": "lib/mfa.ts",
+      "ext": ".ts",
+      "size": 588,
+      "exports": [
+        "normalizeOtpCode",
+        "verifyTotpCode"
+      ]
+    },
+    {
+      "path": "lib/players-sheet.ts",
+      "ext": ".ts",
+      "size": 1078,
+      "exports": [
+        "fetchPlayerNames",
+        "PLAYER_MASTER_SHEET_TITLE"
+      ]
+    },
+    {
+      "path": "lib/players.ts",
+      "ext": ".ts",
+      "size": 232,
+      "exports": [
+        "PLAYERS"
+      ]
+    },
+    {
+      "path": "lib/stats-rank-theme.ts",
+      "ext": ".ts",
+      "size": 394,
+      "exports": [
+        "RANK_BADGE",
+        "RANK_ROW_BG"
+      ]
+    },
+    {
+      "path": "lib/stats-ranking.d.ts",
+      "ext": ".ts",
+      "size": 313,
+      "exports": [
+        "sortAndAssignCompetitionRank"
+      ],
+      "types": [
+        "ScoreRow",
+        "RankedScoreRow"
+      ]
+    },
+    {
+      "path": "lib/stats-ranking.js",
+      "ext": ".js",
+      "size": 649,
+      "exports": [
+        "sortAndAssignCompetitionRank"
+      ]
+    },
+    {
+      "path": "lib/stats-subtables.d.ts",
+      "ext": ".ts",
+      "size": 1203,
+      "exports": [
+        "computeSubtablesFromMatches",
+        "fetchStatsSubtables"
+      ],
+      "types": [
+        "YakumanEvent",
+        "ScoreRank",
+        "SpreadRank"
+      ]
+    },
+    {
+      "path": "lib/stats-subtables.js",
+      "ext": ".js",
+      "size": 5643,
+      "exports": [
+        "computeSubtablesFromMatches",
+        "fetchStatsSubtables"
+      ]
+    },
+    {
+      "path": "lib/stats.ts",
+      "ext": ".ts",
+      "size": 3863,
+      "exports": [
+        "fetchPlayerStats"
+      ],
+      "types": [
+        "PlayerStats"
+      ]
+    },
+    {
+      "path": "lib/tournament-filter-query.d.ts",
+      "ext": ".ts",
+      "size": 143,
+      "exports": [
+        "parseTournamentId",
+        "resolveTournamentIdFromUrl"
+      ]
+    },
+    {
+      "path": "lib/tournament-filter-query.js",
+      "ext": ".js",
+      "size": 455,
+      "exports": [
+        "parseTournamentId",
+        "resolveTournamentIdFromUrl"
+      ]
+    },
+    {
+      "path": "lib/tournament-preference.ts",
+      "ext": ".ts",
+      "size": 620,
+      "exports": [
+        "getLastTournamentId",
+        "setLastTournamentId",
+        "LAST_TOURNAMENT_STORAGE_KEY"
+      ]
+    },
+    {
+      "path": "lib/tournaments.ts",
+      "ext": ".ts",
+      "size": 2613,
+      "exports": [
+        "fetchTournaments",
+        "fetchTournamentOptions",
+        "fetchTournamentById",
+        "fetchDefaultTournament",
+        "countGamesByTournamentId"
+      ],
+      "types": [
+        "TournamentRow",
+        "TournamentOption"
+      ]
+    },
+    {
+      "path": "lib/useYakumans.ts",
+      "ext": ".ts",
+      "size": 1534,
+      "exports": [
+        "useYakumans"
+      ]
+    },
+    {
+      "path": "lib/utils.ts",
+      "ext": ".ts",
+      "size": 175,
+      "exports": [
+        "cn"
+      ]
+    },
+    {
+      "path": "lib/validate-match.ts",
+      "ext": ".ts",
+      "size": 5242,
+      "exports": [
+        "validateAndParseMatchForm",
+        "buildRankedEntries"
+      ],
+      "types": [
+        "GameType",
+        "GameEntry",
+        "ParsedMatchData"
+      ]
+    },
+    {
+      "path": "lib/yakumans.ts",
+      "ext": ".ts",
+      "size": 571,
+      "exports": [
+        "YAKUMANS"
+      ],
+      "types": [
+        "YakumanDef"
+      ]
+    },
+    {
+      "path": "middleware.ts",
+      "ext": ".ts",
+      "size": 979,
+      "exports": [
+        "middleware",
+        "config"
+      ]
+    },
+    {
+      "path": "migrations/0001_init.sql",
+      "ext": ".sql",
+      "size": 1516,
+      "tables": [
+        "public",
+        "public"
+      ]
+    },
+    {
+      "path": "next-env.d.ts",
+      "ext": ".ts",
+      "size": 268
+    },
+    {
+      "path": "next.config.ts",
+      "ext": ".ts",
+      "size": 137
+    },
+    {
+      "path": "package-lock.json",
+      "ext": ".json",
+      "size": 288487
+    },
+    {
+      "path": "package.json",
+      "ext": ".json",
+      "size": 2279
+    },
+    {
+      "path": "supabase/migrations/20260401000000_create_players.sql",
+      "ext": ".sql",
+      "size": 304,
+      "tables": [
+        "public"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260401000001_create_games.sql",
+      "ext": ".sql",
+      "size": 1317,
+      "tables": [
+        "public"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260402000000_create_yakuman_occurrences.sql",
+      "ext": ".sql",
+      "size": 843,
+      "tables": [
+        "public"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260403000000_games_add_player_ids.sql",
+      "ext": ".sql",
+      "size": 2063
+    },
+    {
+      "path": "supabase/migrations/20260403000001_games_backfill_player_ids.sql",
+      "ext": ".sql",
+      "size": 3165
+    },
+    {
+      "path": "supabase/migrations/20260406000000_create_yakuman_types.sql",
+      "ext": ".sql",
+      "size": 557,
+      "tables": [
+        "public"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260419000000_create_tournaments.sql",
+      "ext": ".sql",
+      "size": 234,
+      "tables": [
+        "public"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260419000001_seed_default_tournament.sql",
+      "ext": ".sql",
+      "size": 83
+    },
+    {
+      "path": "supabase/migrations/20260419000002_games_add_tournament_id.sql",
+      "ext": ".sql",
+      "size": 671
+    },
+    {
+      "path": "tailwind.config.ts",
+      "ext": ".ts",
+      "size": 1206
+    },
+    {
+      "path": "test/date-range-filter-rules.test.js",
+      "ext": ".js",
+      "size": 1528
+    },
+    {
+      "path": "test/fixtures/issue-146-rank-tie.json",
+      "ext": ".json",
+      "size": 453
+    },
+    {
+      "path": "test/games-export.e2e.test.js",
+      "ext": ".js",
+      "size": 1019
+    },
+    {
+      "path": "test/games-export.test.js",
+      "ext": ".js",
+      "size": 1029
+    },
+    {
+      "path": "test/metric-ranks.test.js",
+      "ext": ".js",
+      "size": 1493
+    },
+    {
+      "path": "test/stats-export.e2e.test.js",
+      "ext": ".js",
+      "size": 1105
+    },
+    {
+      "path": "test/stats-export.test.js",
+      "ext": ".js",
+      "size": 4038
+    },
+    {
+      "path": "test/stats-ranking.test.js",
+      "ext": ".js",
+      "size": 1041
+    },
+    {
+      "path": "test/stats-subtables.test.js",
+      "ext": ".js",
+      "size": 2475
+    },
+    {
+      "path": "test/tournament-filter-propagation.test.js",
+      "ext": ".js",
+      "size": 1572
+    },
+    {
+      "path": "test/yakuman-insert.integration.test.js",
+      "ext": ".js",
+      "size": 2682
+    },
+    {
+      "path": "test/yakuman-migration.test.js",
+      "ext": ".js",
+      "size": 1311
+    },
+    {
+      "path": "test/yakumans-lib.test.js",
+      "ext": ".js",
+      "size": 555
+    },
+    {
+      "path": "tsconfig.json",
+      "ext": ".json",
+      "size": 594
+    }
+  ]
+}

@@ -2,8 +2,32 @@
 	"servers": {
 		"github": {
 			"type": "http",
-			"url": "https://api.githubcopilot.com/mcp/"
+			"url": "https://api.githubcopilot.com/mcp"
+		},
+		"playwright": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@microsoft/mcp-server-playwright"
+			]
+		},
+		"supabasePostgres": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@modelcontextprotocol/server-postgres",
+				"${input:supabaseReadonlyDbUrl}"
+			]
 		}
 	},
-	"inputs": []
+	"inputs": [
+		{
+			"id": "supabaseReadonlyDbUrl",
+			"type": "promptString",
+			"description": "Supabase/Postgres read-only 接続URL (postgres://...)",
+			"password": true
+		}
+	]
 }
