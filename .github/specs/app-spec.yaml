@@ -1,0 +1,72 @@
+project:
+  name: "麻雀スコア抽出・管理アプリ (mj-score-manager)"
+  purpose: "手書きの麻雀スコア表（画像）から、アプリ投入用の正確なマスターデータを抽出・管理する。"
+  description: |
+    リポジトリの運用指針と開発ルールをまとめた `copilot-instructions.md` を元に
+    現在のアプリ仕様を機械可読な YAML 形式で表現しています。
+
+technologies:
+  database_auth: "Supabase (PostgreSQL) — 暫定で Google Sheets を使用可能"
+  frontend: "TypeScript / React (Vite 推奨)"
+  logic: "TypeScript (Node.js)"
+
+domain:
+  mahjong:
+    supported_modes:
+      - "四人打ち"
+      - "三人打ち"
+    notes: "スコア体系の拡張性を考慮すること"
+
+development:
+  package_manager: "npm@10.x"
+  engines:
+    node: ">=20.19.0 <21"
+    npm: ">=10.8.2 <11"
+  scripts_required:
+    - "npm run build"
+    - "npm run lint (推奨)"
+    - "npm test (推奨)"
+
+git_pr_rules:
+  auto_commit_allowed: true
+  push_allowed: true
+  pre_commit_checks:
+    - "npm run build  # 必須"
+    - "npm run lint   # 推奨"
+    - "npm test       # 推奨"
+  branch_strategy: "機能ブランチで実装。粒度に迷ったら確認する。"
+  pr_creation: "`gh` CLI を使って PR を作成。マージ先の指定がなければ `develop` をデフォルトにする。"
+
+safety_security:
+  secrets_policy: "APIキーやトークンなどの機密情報はコード/ログ/コミットに含めない。"
+  env_policy: ".env* の差分は必ず確認し、機密値が含まれる変更はコミットしない。"
+  robustness: "Server Action/API では入力バリデーションとエラーハンドリングを厳格に行う。"
+  risk_reporting: "認証/認可に関わる変更は PR に想定リスクを明記する。"
+  dependency_policy: "パッケージ追加/更新時は既知の脆弱性を確認する。"
+
+quality:
+  minimal_diff: true
+  task_management: "GitHub Issues を確認し優先度の高いものから対応。完了時に Issue をクローズする。"
+  design_agreement: "複雑な変更は実装前に Plan を提示し承認を得る。"
+  quality_checks:
+    - "npm run build"
+    - "npm run lint (推奨)"
+    - "npm test (推奨)"
+
+required_files:
+  - ".github/copilot-instructions.md"
+  check_command: "npm run check:required-files"
+  pre_commit_hook: "husky の pre-commit。`npm run prepare` を実行してフックを有効化する。"
+
+operation:
+  local_setup:
+    - "npm install"
+    - "npm run prepare"
+    - "chmod +x .husky/pre-commit"
+  ci:
+    - "CI は必須ファイルの存在をチェックし、欠如時に PR/マージをブロックする。"
+
+notes:
+  generated_from: ".github/copilot-instructions.md"
+  generated_at: "2026-04-20"
+  author: "GitHub Copilot (assistant)"

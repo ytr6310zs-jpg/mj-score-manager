@@ -52,3 +52,8 @@ chmod +x .husky/pre-commit
 ```
 
 このセクションはリポジトリ運用に直結するため、変更する際は事前にチーム合意を取ってください。
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
