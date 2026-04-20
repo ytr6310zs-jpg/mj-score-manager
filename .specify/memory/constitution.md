@@ -37,20 +37,19 @@
 - Primary stack: Next.js + React + TypeScript
 - Data layer: Supabase (PostgreSQL)
 - Package/runtime constraints: Node `>=20.19.0 <21`, npm `>=10.8.2 <11`
-- Required repository guidance file: `.github/copilot-instructions.md`
-- Required pre-commit setup: `npm run prepare` による Husky 有効化
 - Spec artifacts location:
   - Spec Kit artifacts: `.specify/specs/<feature>/`
-  - Reverse-engineered app specs: `.github/specs/`
+  - App feature specs: `.github/specs/`
+  - Daily operation rules: `.github/copilot-instructions.md`
 
 ## Workflow and Review Policy
 
-1. Issue を起点に作業目的・受け入れ基準を定義する。
-2. 原則として feature ブランチで作業する。
-3. Spec Kit を用いて `spec.md` / `plan.md` / `tasks.md` を整備し、必要なら clarify/analyze を実施する。
-4. 実装時は `tasks.md` の順序と依存関係を守る。
-5. コミット前に `npm run build` を実行し、成功を確認する。
-6. PR は `gh` CLI で作成し、マージ先未指定時は `develop` を既定とする。
+Git操作・ブランチ・コミット・PRの具体的手順は `.github/copilot-instructions.md` を参照。
+
+SDD フロー固有のルール:
+1. Spec Kit を用いて `spec.md` → `plan.md` → `tasks.md` の順に整備し、必要なら clarify/analyze を実施する。
+2. 実装時は `tasks.md` の順序と依存関係を守る。
+3. 実装完了後は `spec.md` との乖離（ドリフト）がないかを確認し、必要なら仕様を追随更新する。
 
 ## Governance
 
