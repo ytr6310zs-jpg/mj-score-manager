@@ -154,6 +154,29 @@ Supabase Free プランでプロジェクトの休止を避けるため、GitHub
 
 新規 secret の追加は不要です。`psql "SELECT 1;"` で DB に直接クエリを投げるため、Vercel の Deployment Protection の影響も受けません。
 
+## GitHub Actions 運用
+
+現行運用で使う workflow:
+
+- `.github/workflows/ci.yml` - build/test/lint と local Supabase migration 検証
+- `.github/workflows/check-migrations.yml` - PR 時の migration チェック
+- `.github/workflows/required-files.yml` - 必須ファイル存在チェック
+- `.github/workflows/supabase-keepalive.yml` - staging / prod keepalive
+- `.github/workflows/migrate.yml` - staging / preview / prod 向け migration 実行
+- `.github/workflows/migrate-common.yml` - migrate 再利用本体
+- `.github/workflows/reset-and-seed-players.yml` - staging / prod 向け reset + seed 実行
+
+archive 済み workflow:
+
+- historical import 系 workflow は役目を終えたため `.github/workflows-archive/` へ移動済み
+- 旧 environment 別 wrapper (`migrate-staging.yml`, `migrate-prod.yml`, `staging-reset-and-seed-players.yml`, `prod-reset-and-seed-players.yml`) も統合に伴い `.github/workflows-archive/` へ移動済み
+
+運用メモ:
+
+- 手動 migration は `migrate.yml` の `target` で環境を選択する
+- reset + seed は `reset-and-seed-players.yml` の `target` と `confirmation` で実行する
+- archive された workflow は GitHub Actions の実行対象ではない
+
 ## スプレッドシート（補助スクリプト）について
 
 アプリ本体は Supabase の `games` / `players` テーブルをデータソースとして動作します。Google スプレッドシートは移行・エクスポート・検証用の補助スクリプトでのみ利用します。スプレッドシート関連のスクリプトは `scripts/sheets/` にまとまっています。
