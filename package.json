@@ -22,7 +22,9 @@
     "check:local-db": "node scripts/check-local-supabase.mjs",
     "dev:local": "npm run check:local-db && next dev",
     "check:local-pages": "node scripts/local-healthcheck.mjs",
-    "verify:local": "npm run dev:local & sleep 3; npm run check:local-pages"
+    "verify:local": "npm run dev:local & sleep 3; npm run check:local-pages",
+    "worklog:start": "node scripts/worklog.mjs start",
+    "worklog:review": "node scripts/worklog.mjs review"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.0",

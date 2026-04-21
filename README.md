@@ -228,6 +228,41 @@ npm run seed:historical
 
 これらのスクリプトを実行する場合は、Google API 用の環境変数（上に記載）を `.env.local` に追記してください。
 
+## AI作業記録（自動生成と振り返り）
+
+AIエージェント作業のトレーサビリティ向上のため、作業ログを `.worklog/` 配下へ自動生成できます。
+
+基本コマンド:
+
+```bash
+# 作業エントリを追加（当日分のログがなければ自動作成）
+npm run worklog:start -- --summary "入力検証の修正" --reason "不正入力時の再現バグが報告されたため" --decision "検証はzodに統一" --next "stats集計の境界値テスト追加" --done-when "境界値テストが追加されCIで成功する"
+
+# 直近7日を振り返ってレビューを生成
+npm run worklog:review -- --days 7
+```
+
+出力先:
+
+- 日次ログ: `.worklog/logs/YYYY-MM-DD.md`
+- 振り返り: `.worklog/reviews/review-YYYY-MM-DD.md`
+
+主な記録内容:
+
+- 実行日時
+- 現在ブランチ
+- 変更ファイル一覧（`git status --porcelain` ベース）
+- 作業要約（summary）
+- 作業理由（reason）
+- 決定事項（decisions）
+- 次アクション（next actions）
+- 完了条件（done when）
+
+運用注意:
+
+- `.worklog/` は `.gitignore` 済み（ローカル運用前提）
+- APIキー、トークン、個人情報などの機密情報は記録しない
+
 ## 現在の入力ルール
 
 - 3人打ち / 4人打ちの半荘を記録できます
