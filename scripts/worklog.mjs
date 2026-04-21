@@ -37,8 +37,10 @@ function parseArgs(argv) {
   const args = {
     command: "start",
     summary: "",
+    reason: "",
     decisions: [],
     next: [],
+    doneWhen: [],
     tags: [],
     days: 7,
     out: "",
@@ -59,6 +61,12 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (item === "--reason" && next) {
+      args.reason = next;
+      i += 1;
+      continue;
+    }
+
     if (item === "--decision" && next) {
       args.decisions = toArray(next);
       i += 1;
@@ -67,6 +75,12 @@ function parseArgs(argv) {
 
     if (item === "--next" && next) {
       args.next = toArray(next);
+      i += 1;
+      continue;
+    }
+
+    if (item === "--done-when" && next) {
+      args.doneWhen = toArray(next);
       i += 1;
       continue;
     }
@@ -116,7 +130,7 @@ function getChangedFiles() {
   if (!output) return [];
   return output
     .split("\n")
-    .map((line) => line.slice(3).trim())
+    .map((line) => line.replace(/^..\s/, "").trim())
     .filter(Boolean);
 }
 
@@ -129,8 +143,10 @@ function appendWorklog(args) {
   const exists = fs.existsSync(filePath);
 
   const changedFiles = getChangedFiles();
+  const reason = args.reason || "(理由を記載してください)";
   const decisions = args.decisions.length ? args.decisions : ["(必要なら追記)"];
   const nextActions = args.next.length ? args.next : ["(必要なら追記)"];
+  const doneWhen = args.doneWhen.length ? args.doneWhen : ["(完了条件を追記)"];
   const tags = args.tags.length ? args.tags.join(", ") : "(なし)";
   const summary = args.summary || "(作業内容を要約してください)";
 
@@ -153,10 +169,13 @@ function appendWorklog(args) {
     `- tags: ${tags}`,
     `- changed_files: ${changedFiles.length ? changedFiles.join(", ") : "(変更ファイルなし)"}`,
     `- summary: ${summary}`,
+    `- reason: ${reason}`,
     "- decisions:",
     ...decisions.map((d) => `  - ${d}`),
     "- next_actions:",
     ...nextActions.map((n) => `  - ${n}`),
+    "- done_when:",
+    ...doneWhen.map((item) => `  - ${item}`),
     "",
   ].join("\n");
 
@@ -206,8 +225,10 @@ function generateReview(args) {
     : path.join(REPORT_DIR, `review-${reviewDate}.md`);
 
   const summaries = [];
+  const reasons = [];
   const decisions = [];
   const nextActions = [];
+  const doneWhenItems = [];
   const fileCounter = new Map();
   let entryCount = 0;
 
@@ -219,21 +240,34 @@ function generateReview(args) {
       summaries.push(summary);
     }
 
-    const decisionMatches = content.match(/^  - .+$/gm) || [];
-    let inNextActions = false;
+    for (const reason of extractLines(content, "- reason:")) {
+      reasons.push(reason);
+    }
+
+    let currentSection = "";
     for (const line of content.split("\n")) {
       if (line.startsWith("- decisions:")) {
-        inNextActions = false;
+        currentSection = "decisions";
         continue;
       }
       if (line.startsWith("- next_actions:")) {
-        inNextActions = true;
+        currentSection = "next_actions";
+        continue;
+      }
+      if (line.startsWith("- done_when:")) {
+        currentSection = "done_when";
+        continue;
+      }
+      if (line.startsWith("### ")) {
+        currentSection = "";
         continue;
       }
       if (line.startsWith("  - ")) {
-        if (inNextActions) {
+        if (currentSection === "next_actions") {
           nextActions.push(line.slice(4).trim());
-        } else {
+        } else if (currentSection === "done_when") {
+          doneWhenItems.push(line.slice(4).trim());
+        } else if (currentSection === "decisions") {
           decisions.push(line.slice(4).trim());
         }
       }
@@ -245,10 +279,6 @@ function generateReview(args) {
       for (const item of line.split(",").map((v) => v.trim()).filter(Boolean)) {
         fileCounter.set(item, (fileCounter.get(item) || 0) + 1);
       }
-    }
-
-    if (!decisionMatches.length) {
-      // no-op: decisions/next_actions are optional in old logs
     }
   }
 
@@ -266,11 +296,17 @@ function generateReview(args) {
     "## Summary",
     summaries.length ? summaries.map((s) => `- ${s}`).join("\n") : "- (記録なし)",
     "",
+    "## Reason",
+    reasons.length ? reasons.map((r) => `- ${r}`).join("\n") : "- (記録なし)",
+    "",
     "## Decisions",
     decisions.length ? decisions.map((d) => `- ${d}`).join("\n") : "- (記録なし)",
     "",
     "## Next Actions",
     nextActions.length ? nextActions.map((n) => `- ${n}`).join("\n") : "- (記録なし)",
+    "",
+    "## Done When",
+    doneWhenItems.length ? doneWhenItems.map((item) => `- ${item}`).join("\n") : "- (記録なし)",
     "",
     "## Frequently Touched Files",
     topFiles.length ? topFiles.map(([file, count]) => `- ${file} (${count})`).join("\n") : "- (記録なし)",

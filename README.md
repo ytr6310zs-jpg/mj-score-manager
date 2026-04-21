@@ -236,7 +236,7 @@ AIエージェント作業のトレーサビリティ向上のため、作業ロ
 
 ```bash
 # 作業エントリを追加（当日分のログがなければ自動作成）
-npm run worklog:start -- --summary "入力検証の修正" --decision "検証はzodに統一" --next "stats集計の境界値テスト追加"
+npm run worklog:start -- --summary "入力検証の修正" --reason "不正入力時の再現バグが報告されたため" --decision "検証はzodに統一" --next "stats集計の境界値テスト追加" --done-when "境界値テストが追加されCIで成功する"
 
 # 直近7日を振り返ってレビューを生成
 npm run worklog:review -- --days 7
@@ -253,8 +253,10 @@ npm run worklog:review -- --days 7
 - 現在ブランチ
 - 変更ファイル一覧（`git status --porcelain` ベース）
 - 作業要約（summary）
+- 作業理由（reason）
 - 決定事項（decisions）
 - 次アクション（next actions）
+- 完了条件（done when）
 
 運用注意:
 
