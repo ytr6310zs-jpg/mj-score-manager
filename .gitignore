@@ -40,3 +40,6 @@ yarn-error.log*
 # supabase local cli state
 /supabase/.branches/
 /supabase/.temp/
+
+# AI worklog artifacts
+/.worklog/
