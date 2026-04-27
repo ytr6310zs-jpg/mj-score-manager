@@ -72,12 +72,33 @@ testSuite.describe("Score entry form browser E2E", () => {
   });
 
   testSuite("submits 3-player game and reflects in database", async () => {
-    // 1. Navigate to main page
-    await page.goto(BASE_URL);
+    // 1. If ACCESS_PASSWORD is configured, perform login first
+    const ACCESS_PASSWORD = process.env.ACCESS_PASSWORD;
+    const MFA_TOTP_SECRET = process.env.MFA_TOTP_SECRET;
 
-    // 2. Wait for form to be visible
+    if (ACCESS_PASSWORD) {
+      await page.goto(`${BASE_URL}/login`);
+      const pw = page.locator('input[name="password"], input#password');
+      await expect(pw).toBeVisible();
+      await pw.fill(ACCESS_PASSWORD);
+      if (MFA_TOTP_SECRET) {
+        // If MFA enabled, generate TOTP is out of scope for Playwright here; assume tests provide valid OTP via env
+        const otp = process.env.TEST_OTP_CODE || "000000";
+        const otpInput = page.locator('input[name="otp"], input#otp');
+        if (await otpInput.isVisible().catch(() => false)) {
+          await otpInput.fill(otp);
+        }
+      }
+      const loginBtn = page.locator('button[type="submit"], button:has-text("ログイン")').first();
+      await loginBtn.click();
+      // wait for redirect to root
+      await page.waitForURL(`${BASE_URL}/`, { waitUntil: "networkidle", timeout: 5000 }).catch(() => {});
+    }
+
+    // 2. Navigate to main page and wait for form
+    await page.goto(BASE_URL);
     const tournamentSelect = page.locator('select[name="tournamentId"], [role="combobox"]').first();
-    await expect(tournamentSelect).toBeVisible();
+    await expect(tournamentSelect).toBeVisible({ timeout: 5000 });
 
     // 3. Ensure 3-player game is selected (should be default)
     const gameTypeSelect = page.locator('select[name="gameType"]');
