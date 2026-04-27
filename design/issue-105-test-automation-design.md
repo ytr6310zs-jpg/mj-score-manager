@@ -161,8 +161,51 @@ Issue #105 では、次の要求が明示されている。
 5. CI に coverage 実行と artifact 保存を組み込む。
 6. `npm test` / `npm run build` を確認し、安定性を検証する。
 
-## 10. Definition of Done
+## 10. MODULE_TYPELESS_PACKAGE_JSON 警告への対応方針
+
+テスト実行時に複数の `.cjs` / `.js` テストファイルが異なるモジュール解析ルールで読み込まれるため、Node.js が「タイプレスなパッケージから import/require されている」という警告を出す場合がある。
+
+### 現状
+
+- `package.json` で `"type": "commonjs"` が明示的に指定されていない（暗黙的に CommonJS）
+- テストファイル（`.cjs`, `.js`, `.test.mjs`）が混在している
+- ts-node での TS ファイルの読み込みが動的 import で行われている
+
+### 対応案（優先順）
+
+1. **短期（現在）**: 警告は許容する。機能・テスト成功に影響なし。
+   - CI では warning として認識するが、エラーにはならない。
+
+2. **中期（Issue 化検討）**: `package.json` に `"type": "commonjs"` を明示的に追加。
+   - 現在は暗黙的に commonjs だが、明示することで警告を軽減する可能性。
+   - ただし既存 ESM imports（例：`@supabase/supabase-js`）との共存を考慮する必要。
+
+3. **長期**: テストモジュールシステム全体を整理（別 Issue）
+   - `.test.mjs`（ESM）と `.test.cjs`（CommonJS）を明確に分離
+   - または、全テストを ts-node + TypeScript で統一
+   - ただし、実装複度とメンテナンス負荷を考慮すると優先度は低い。
+
+### 推奨アクション
+
+現在の Issue #105 では対応を見送り、以下の理由から別 Issue 化を提案：
+
+1. **テスト機能への影響がない**: 警告であり、テスト自体は正常に実行される。
+2. **プロジェクト全体の module 戦略との整合が必要**: 単なる warning 抑制ではなく、プロジェクト全体での ESM/CommonJS の方針が必要。
+3. **リスク・改修範囲が大きい**: package.json の type 追加は既存 import/require に影響を与える可能性がある。
+
+### 別 Issue 案
+
+- タイトル: `Resolve MODULE_TYPELESS_PACKAGE_JSON warnings in test suite`
+- 内容: 
+  - package.json の `"type"` フィールドを検証・明示化
+  - テストモジュール戦略を統一（ESM vs CommonJS）
+  - 既存ソースコードとの互換性確認
+- 優先度: 低（P2 or lower）
+
+## 11. Definition of Done
 
 1. Issue #105 の受け入れ基準を満たすテスト構成がコード化されている。
 2. CI で build/test/coverage が実行され、結果が追跡可能である。
 3. 次タスク（#185 / #184）で回帰検知基盤として再利用できる。
+4. DB 連携 E2E テストが追加され、実DB環境での反映確認が自動化されている。
+5. MODULE_TYPELESS_PACKAGE_JSON 警告について対応方針が明文化されている。
