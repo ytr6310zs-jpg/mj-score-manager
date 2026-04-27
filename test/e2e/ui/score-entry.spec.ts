@@ -75,88 +75,97 @@ testSuite.describe("Score entry form browser E2E", () => {
     // 1. Navigate to main page
     await page.goto(BASE_URL);
 
-    // 2. Verify score form is visible
-    const gameTypeSelect = page.locator("select, [role='combobox']").first();
-    await expect(gameTypeSelect).toBeVisible();
+    // 2. Wait for form to be visible
+    const tournamentSelect = page.locator('select[name="tournamentId"], [role="combobox"]').first();
+    await expect(tournamentSelect).toBeVisible();
 
-    // 3. Select 3-player game (should be default, but ensure)
-    // The game type selector might be a Next.js select component
-    await page.evaluate(() => {
-      const event = new Event("change", { bubbles: true });
-      const radios = document.querySelectorAll<HTMLInputElement>(
-        'input[type="radio"][value="3p"]'
-      );
-      if (radios.length > 0) {
-        radios[0].checked = true;
-        radios[0].dispatchEvent(event);
+    // 3. Ensure 3-player game is selected (should be default)
+    const gameTypeSelect = page.locator('select[name="gameType"]');
+    // If it's a combobox, click and select
+    if (await gameTypeSelect.isVisible().catch(() => false)) {
+      await gameTypeSelect.selectOption("3p");
+    } else {
+      // Fallback: look for 3p radio or button
+      const radio3p = page.locator('input[type="radio"][value="3p"]');
+      if (await radio3p.isVisible()) {
+        await radio3p.click();
       }
-    });
+    }
 
-    // 4. Wait a moment for the form to update (adjust slot count)
     await page.waitForTimeout(300);
 
-    // 5. Fill player names (slot 1, 2, 3)
-    // Assuming auto-complete or dropdown inputs
-    const getPlayerInput = (slot: number) => 
-      page.locator(`input[placeholder*="Player ${slot}"], [data-testid="player-${slot}-input"]`).first();
-
-    // Try to find player inputs by common patterns
-    const playerInputs = await page.locator("input[placeholder*='Player'], input[placeholder*='プレイヤー']").all();
-    
-    if (playerInputs.length >= 3) {
-      await playerInputs[0].fill("TestPlayer1");
-      await playerInputs[0].press("Tab");
-      await page.waitForTimeout(100);
-
-      await playerInputs[1].fill("TestPlayer2");
-      await playerInputs[1].press("Tab");
-      await page.waitForTimeout(100);
-
-      await playerInputs[2].fill("TestPlayer3");
-      await playerInputs[2].press("Tab");
-      await page.waitForTimeout(100);
-    } else {
-      // Fallback: use generic text inputs
-      const inputs = await page.locator("input[type='text']").all();
-      if (inputs.length >= 3) {
-        await inputs[0].fill("TestPlayer1");
-        await inputs[1].fill("TestPlayer2");
-        await inputs[2].fill("TestPlayer3");
+    // 4. Fill tournament if needed
+    const tournamentSelects = await page.locator('select[name="tournamentId"], [role="combobox"]').all();
+    if (tournamentSelects.length > 0) {
+      const first = tournamentSelects[0];
+      // Try select option if it's a native select
+      try {
+        await first.selectOption({ index: 0 });
+      } catch {
+        // Fallback: click and choose from dropdown
+        await first.click();
+        const firstOption = await page.locator('[role="option"]').first();
+        if (await firstOption.isVisible()) {
+          await firstOption.click();
+        }
       }
     }
 
-    // 6. Fill scores
-    // Look for score inputs (typically number fields)
-    const scoreInputs = await page.locator("input[type='number']").all();
-    if (scoreInputs.length >= 3) {
-      await scoreInputs[0].fill("30000");
-      await scoreInputs[1].fill("0");
-      await scoreInputs[2].fill("-30000");
+    // 5. Fill player names - use PlayerSelect inputs
+    // Assuming they appear in order (slot 1, 2, 3)
+    const playerInputs = await page
+      .locator('input[name^="player"]')
+      .all();
+    
+    if (playerInputs.length >= 3) {
+      // Player 1
+      await playerInputs[0].click();
+      await playerInputs[0].fill("TestPlayer1");
+      await playerInputs[0].press("Tab");
+      await page.waitForTimeout(200);
+
+      // Player 2
+      await playerInputs[1].click();
+      await playerInputs[1].fill("TestPlayer2");
+      await playerInputs[1].press("Tab");
+      await page.waitForTimeout(200);
+
+      // Player 3
+      await playerInputs[2].click();
+      await playerInputs[2].fill("TestPlayer3");
+      await playerInputs[2].press("Tab");
+      await page.waitForTimeout(200);
     }
 
-    // 7. Fill optional notes (if present)
-    const notesInput = await page.locator("textarea").first();
+    // 6. Fill scores using id selectors
+    const score1 = page.locator('input[id="score1"]');
+    const score2 = page.locator('input[id="score2"]');
+    const score3 = page.locator('input[id="score3"]');
+
+    if (await score1.isVisible()) await score1.fill("30000");
+    if (await score2.isVisible()) await score2.fill("0");
+    if (await score3.isVisible()) {
+      await score3.fill("-30000");
+    }
+
+    // 7. Fill notes if present
+    const notesInput = await page.locator("textarea[name='notes']").first();
     if (await notesInput.isVisible()) {
       await notesInput.fill("E2E Browser test");
     }
 
-    // 8. Submit the form
-    const submitBtn = page.locator('button:has-text("登録"), button:has-text("Submit"), button:has-text("Save")').first();
+    // 8. Submit - find button by text or name
+    const submitBtn = page.locator(
+      'button[type="submit"], button:has-text("登録"), button:has-text("送信")'
+    ).first();
     await expect(submitBtn).toBeVisible();
     await submitBtn.click();
 
-    // 9. Wait for success message or navigation
-    // Check for success alert or wait for form reset
-    const successMsg = page.locator(
-      'text="成功", text="完了", text="登録されました", text="successfully"'
-    ).first();
-    await expect(successMsg).toBeVisible({ timeout: 5000 }).catch(() => {
-      // If no message, wait for route change or form reset
-      return page.waitForNavigation({ waitUntil: "networkidle" }).catch(() => {});
-    });
+    // 9. Wait for success feedback
+    // Look for alert/toast or form reset
+    await page.waitForTimeout(2000);
 
-    // 10. Verify match was saved to DB
-    await page.waitForTimeout(1000); // Allow DB write to complete
+    // 10. Verify DB persistence
     const match = await fetchLatestMatch();
     
     expect(match).toBeTruthy();
@@ -165,7 +174,6 @@ testSuite.describe("Score entry form browser E2E", () => {
       expect(match.game_type).toBe("3p");
       expect(match.match_details?.length).toBe(3);
       
-      // Verify player data
       const playerNames = match.match_details?.map((d: any) => d.player_name) || [];
       expect(playerNames).toContain("TestPlayer1");
       expect(playerNames).toContain("TestPlayer2");
@@ -178,64 +186,87 @@ testSuite.describe("Score entry form browser E2E", () => {
     await page.goto(BASE_URL);
 
     // 2. Switch to 4-player game
-    await page.evaluate(() => {
-      const event = new Event("change", { bubbles: true });
-      const radios = document.querySelectorAll<HTMLInputElement>(
-        'input[type="radio"][value="4p"]'
-      );
-      if (radios.length > 0) {
-        radios[0].checked = true;
-        radios[0].dispatchEvent(event);
+    const gameTypeSelect = page.locator('select[name="gameType"]');
+    if (await gameTypeSelect.isVisible()) {
+      await gameTypeSelect.selectOption("4p");
+    } else {
+      const radio4p = page.locator('input[type="radio"][value="4p"]');
+      if (await radio4p.isVisible()) {
+        await radio4p.click();
       }
-    });
+    }
 
     await page.waitForTimeout(300);
 
-    // 3. Fill 4 players
-    const playerInputs = await page.locator("input[placeholder*='Player'], input[placeholder*='プレイヤー']").all();
+    // 3. Select tournament (if needed)
+    const tournamentSelects = await page.locator('select[name="tournamentId"], [role="combobox"]').all();
+    if (tournamentSelects.length > 0) {
+      try {
+        await tournamentSelects[0].selectOption({ index: 0 });
+      } catch {
+        await tournamentSelects[0].click();
+        const firstOption = await page.locator('[role="option"]').first();
+        if (await firstOption.isVisible()) {
+          await firstOption.click();
+        }
+      }
+    }
+
+    // 4. Fill 4 players
+    const playerInputs = await page
+      .locator('input[name^="player"]')
+      .all();
+    
     if (playerInputs.length >= 4) {
+      await playerInputs[0].click();
       await playerInputs[0].fill("Player4P_1");
+      await playerInputs[0].press("Tab");
+      await page.waitForTimeout(200);
+
+      await playerInputs[1].click();
       await playerInputs[1].fill("Player4P_2");
+      await playerInputs[1].press("Tab");
+      await page.waitForTimeout(200);
+
+      await playerInputs[2].click();
       await playerInputs[2].fill("Player4P_3");
+      await playerInputs[2].press("Tab");
+      await page.waitForTimeout(200);
+
+      await playerInputs[3].click();
       await playerInputs[3].fill("Player4P_4");
+      await playerInputs[3].press("Tab");
+      await page.waitForTimeout(200);
     }
 
-    // 4. Fill scores
-    const scoreInputs = await page.locator("input[type='number']").all();
-    if (scoreInputs.length >= 4) {
-      await scoreInputs[0].fill("40000");
-      await scoreInputs[1].fill("10000");
-      await scoreInputs[2].fill("-10000");
-      await scoreInputs[3].fill("-40000");
-    }
+    // 5. Fill scores
+    const score1 = page.locator('input[id="score1"]');
+    const score2 = page.locator('input[id="score2"]');
+    const score3 = page.locator('input[id="score3"]');
+    const score4 = page.locator('input[id="score4"]');
 
-    // 5. Select tobi player (Player4P_3 or 4)
-    // Try to find a select/dropdown for tobi player
-    const tobiSelects = await page.locator("select, [role='combobox']").all();
-    if (tobiSelects.length > 0) {
-      // Attempt to select tobi player from dropdown
-      await tobiSelects[0].click().catch(() => {});
-    }
+    if (await score1.isVisible()) await score1.fill("40000");
+    if (await score2.isVisible()) await score2.fill("10000");
+    if (await score3.isVisible()) await score3.fill("-10000");
+    if (await score4.isVisible()) await score4.fill("-40000");
 
-    // 6. Select tobashi player
-    if (tobiSelects.length > 1) {
-      await tobiSelects[1].click().catch(() => {});
-    }
+    // 6. (Optional) Set tobi/tobashi if UI controls are available
+    // These would be select dropdowns or checkboxes if implemented
+    const tobiSelects = await page.locator('select[name="tobiPlayer"], [role="combobox"]').all();
+    const tobashiSelects = await page.locator('select[name="tobashiPlayer"], [role="combobox"]').all();
+    
+    // Skip setting tobi/tobashi for basic test (implementation varies by UI)
 
     // 7. Submit
-    const submitBtn = page.locator('button:has-text("登録"), button:has-text("Submit")').first();
+    const submitBtn = page.locator(
+      'button[type="submit"], button:has-text("登録"), button:has-text("送信")'
+    ).first();
     await submitBtn.click();
 
     // 8. Wait for success
-    const successMsg = page.locator(
-      'text="成功", text="完了", text="登録されました"'
-    ).first();
-    await expect(successMsg).toBeVisible({ timeout: 5000 }).catch(() => {
-      return page.waitForTimeout(2000);
-    });
+    await page.waitForTimeout(2000);
 
     // 9. Verify in DB
-    await page.waitForTimeout(1000);
     const match = await fetchLatestMatch();
     
     expect(match).toBeTruthy();
