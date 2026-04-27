@@ -120,28 +120,109 @@ Issue #105 では、次の要求が明示されている。
 
 `migrate-and-test` は統合テストの安定運用を優先し、必要最小限の変更に留める。
 
+## 5.4 ブラウザ E2E テスト（Playwright）
+
+スコア入力画面の UI 操作を自動化し、実ブラウザでのエンドツーエンド検証を実施する。
+
+### フレームワーク
+
+- **Playwright** を使用（理由: Next.js との親和性、CI 統合容易性、headless/headed 両対応）
+
+### テスト対象
+
+1. スコア入力画面（メイン画面）
+   - フォーム入力（プレイヤー名、スコア、日付、大会選択）
+   - 3p・4p ゲーム切り替え
+   - 送信処理と成功通知
+   - Supabase DB への実際の保存を検証
+
+### スクリプト・実行
+
+- `npm run test:ui` — Playwright テスト実行
+- `npm run test:ui:debug` — デバッグモード（ブラウザ表示）
+
+### CI 統合
+
+`migrate-and-test` ジョブ内で以下順序で実行:
+
+1. `npm install` → Playwright ブラウザインストール
+2. `npm test` → Node.js テスト（DB-backed E2E を含む）
+3. `npm run build` → Next.js ビルド
+4. `npm run test:ui` → Playwright ブラウザ E2E テスト
+5. HTML レポート保存 → CI アーティファクト
+
+### 考慮事項
+
+- **環境変数**: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` を設定し、Supabase local と連携
+- **フレーク対策**: 各ステップで適切な待機・タイムアウト設定
+- **セレクタ安定性**: フォーム要素の id・name 属性を明示的に指定（placeholder や position 依存を避ける）
+- **クリーンアップ**: テスト実行後、テストデータを DB から削除
+
+## 5.5 テスト実行フロー（ローカル）
+
+```bash
+# Supabase 起動
+npm run supabase:start
+
+# 別ターミナルで dev サーバー起動
+npm run dev:local
+
+# テスト実行
+npm test                   # Node.js 群（Unit/Integration/E2E）
+npm run test:coverage      # カバレッジ付き実行
+npm run test:ui            # Playwright ブラウザ E2E
+
+# デバッグ
+npm run test:ui:debug      # Playwright デバッグモード
+```
+
+## 5.6 テスト実行フロー（CI）
+
+CI ワークフロー `migrate-and-test` ジョブが以下を自動実行:
+
+1. Supabase local 起動
+2. DB マイグレーション
+3. Node.js テスト（coverage 含む）
+4. Next.js ビルド
+5. Playwright E2E テスト
+6. アーティファクト保存（coverage, Playwright HTML report）
+
 ## 6. 実装対象（計画）
 
 1. `package.json`
    - テストスクリプトの分割（unit/e2e/coverage）。
    - `c8` の導入。
-2. `test/`
+   - Playwright テストスクリプト追加（`test:ui`, `test:ui:debug`）。
+2. `playwright.config.ts`（新規）
+   - Playwright フレームワーク設定
+   - Next.js dev サーバー自動起動
+   - Chrome headless 設定
+3. `test/`
    - Unit 強化テストの追加。
-   - 主要ユーザーフロー E2E の追加。
+   - DB 連携 E2E テストの追加（`test/*.db.e2e.test.cjs`）。
+   - ブラウザ E2E テストの追加（`test/e2e/ui/*.spec.ts`）。
    - 失敗時メッセージの改善。
-3. `.github/workflows/ci.yml`
+4. `.github/workflows/ci.yml`
    - coverage 実行と artifact 保存。
-4. `README.md`（必要に応じて）
-   - ローカル実行手順に coverage コマンドを追記。
+   - migrate-and-test ジョブに Playwright テスト追加。
+   - Playwright ブラウザインストールと HTML レポート保存。
+5. `design/issue-105-test-automation-design.md`
+   - テスト戦略と実装計画の明文化。
+   - Playwright ブラウザ E2E の設計。
+6. `README.md`（必要に応じて）
+   - ローカル実行手順に coverage・Playwright コマンドを追記。
 
 ## 7. 受け入れ基準
 
 1. Unit テストで主要分岐がカバーされている（対象ファイルを PR で明示）。
-2. 入力 -> 保存 -> 一覧/集計反映の E2E が少なくとも 1 本自動化されている。
-3. 失敗時のメッセージから対象機能と期待値が判断できる。
-4. `npm run build` が成功する。
-5. `npm test` が CI 上で安定して成功する。
-6. `coverage/` レポートが CI で確認できる。
+2. DB 連携 E2E テストが「入力 -> 保存 -> DB 反映」を検証（最低 1 本）。
+3. ブラウザ E2E テスト（Playwright）がスコア入力画面を自動化（3p・4p 両シナリオ）。
+4. 失敗時のメッセージから対象機能と期待値が判断できる。
+5. `npm run build` が成功する。
+6. `npm test` が CI 上で安定して成功する。
+7. `npm run test:ui` が CI 上で安定して実行される（DB-backed環境）。
+8. `coverage/` レポートが CI で確認できる。
+9. Playwright HTML レポートが CI で確認できる。
 
 ## 8. リスクと対策
 
@@ -208,4 +289,8 @@ Issue #105 では、次の要求が明示されている。
 2. CI で build/test/coverage が実行され、結果が追跡可能である。
 3. 次タスク（#185 / #184）で回帰検知基盤として再利用できる。
 4. DB 連携 E2E テストが追加され、実DB環境での反映確認が自動化されている。
-5. MODULE_TYPELESS_PACKAGE_JSON 警告について対応方針が明文化されている。
+5. ブラウザ E2E テスト（Playwright）がスコア入力画面を自動化している。
+   - 3p・4p 両シナリオをカバー
+   - フォーム入力→送信→DB 確認の完全フローが検証される
+   - CI で実行され、HTML レポートが保存される
+6. MODULE_TYPELESS_PACKAGE_JSON 警告について対応方針が明文化されている。
