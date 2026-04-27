@@ -154,6 +154,7 @@ Issue #105 では、次の要求が明示されている。
 ### 考慮事項
 
 - **環境変数**: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` を設定し、Supabase local と連携
+- **認証フロー**: `middleware.ts` がサイト全体を保護し、未認証は `/login` にリダイレクト。Playwright テストが `ACCESS_PASSWORD` 環境変数を使用して、`/login` を経由して自動ログインしてから対象画面にアクセス（CI では `secrets.ACCESS_PASSWORD` を参照）
 - **フレーク対策**: 各ステップで適切な待機・タイムアウト設定
 - **セレクタ安定性**: フォーム要素の id・name 属性を明示的に指定（placeholder や position 依存を避ける）
 - **クリーンアップ**: テスト実行後、テストデータを DB から削除
@@ -182,10 +183,12 @@ CI ワークフロー `migrate-and-test` ジョブが以下を自動実行:
 
 1. Supabase local 起動
 2. DB マイグレーション
-3. Node.js テスト（coverage 含む）
+3. Node.js テスト（coverage 含む、DB-backed E2E を含む）
 4. Next.js ビルド
-5. Playwright E2E テスト
+5. Playwright E2E テスト（`ACCESS_PASSWORD` 環境変数で自動ログイン）
 6. アーティファクト保存（coverage, Playwright HTML report）
+
+**注**: Playwright テストは CI 上で `secrets.ACCESS_PASSWORD` を参照して、ログイン処理を自動実行する。これにより、ブラウザ E2E がミドルウェア保護を通過して、スコア入力フォームに到達可能。
 
 ## 6. 実装対象（計画）
 
