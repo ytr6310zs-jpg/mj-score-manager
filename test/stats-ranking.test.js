@@ -13,7 +13,7 @@ describe("sortAndAssignCompetitionRank", () => {
     const ranked = sortAndAssignCompetitionRank(fixture.rows);
     const actual = ranked.map((row) => ({ name: row.name, rank: row.rank }));
 
-    assert.deepStrictEqual(actual, fixture.expected);
+    assert.deepStrictEqual(actual, fixture.expected, "ranking should assign correct competition ranks matching fixture expectations");
   });
 
   it("keeps deterministic order by name for equal scores", () => {
@@ -22,7 +22,7 @@ describe("sortAndAssignCompetitionRank", () => {
       { name: "A", totalScore: 100 },
     ]);
 
-    assert.deepStrictEqual(ranked.map((row) => row.name), ["A", "B"]);
-    assert.deepStrictEqual(ranked.map((row) => row.rank), [1, 1]);
+    assert.deepStrictEqual(ranked.map((row) => row.name), ["A", "B"], "players with equal scores should be sorted alphabetically by name");
+    assert.deepStrictEqual(ranked.map((row) => row.rank), [1, 1], "equal scores should receive equal competition rank (no gaps)");
   });
 });

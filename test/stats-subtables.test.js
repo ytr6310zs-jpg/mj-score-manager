@@ -33,24 +33,24 @@ describe('computeSubtablesFromMatches', () => {
     const { yakumanEvents, highestScores, lowestScores, largestSpreads } = computeSubtablesFromMatches(matches, 5);
 
     // yakuman
-    assert.strictEqual(yakumanEvents.length, 1);
-    assert.strictEqual(yakumanEvents[0].playerName, 'Alice');
-    assert.strictEqual(yakumanEvents[0].yakumanName, '大三元');
+    assert.strictEqual(yakumanEvents.length, 1, "should extract 1 yakuman event from test matches");
+    assert.strictEqual(yakumanEvents[0].playerName, 'Alice', "yakuman should be attributed to correct player (Alice)");
+    assert.strictEqual(yakumanEvents[0].yakumanName, '大三元', "yakuman name should be correctly extracted (大三元)");
 
     // highest
-    assert.strictEqual(highestScores.length, 7);
-    assert.strictEqual(highestScores[0].playerName, 'Alice');
-    assert.strictEqual(highestScores[0].score, 30000);
-    assert.strictEqual(highestScores[1].playerName, 'Eve');
+    assert.strictEqual(highestScores.length, 7, "highest scores should include 7 entries (5 limit + ties)");
+    assert.strictEqual(highestScores[0].playerName, 'Alice', "Alice should have highest score (30000)");
+    assert.strictEqual(highestScores[0].score, 30000, "highest score value should be 30000");
+    assert.strictEqual(highestScores[1].playerName, 'Eve', "Eve should rank second in highest scores");
 
     // lowest (player-level minima sorted by higher minima first -> Alice has min 30000)
-    assert.strictEqual(lowestScores.length, 7);
-    assert.strictEqual(lowestScores[0].playerName, 'Alice');
-    assert.strictEqual(lowestScores[0].score, 30000);
+    assert.strictEqual(lowestScores.length, 7, "lowest scores should include 7 entries");
+    assert.strictEqual(lowestScores[0].playerName, 'Alice', "Alice minimum score (30000) should rank highest among minimums");
+    assert.strictEqual(lowestScores[0].score, 30000, "player-level minimum for Alice should be 30000");
 
     // largest spread
-    assert.strictEqual(largestSpreads[0].topPlayerName, 'Alice');
-    assert.strictEqual(largestSpreads[0].lastPlayerName, 'Dave');
-    assert.strictEqual(largestSpreads[0].spread, 40000);
+    assert.strictEqual(largestSpreads[0].topPlayerName, 'Alice', "largest spread should have Alice (top scorer)");
+    assert.strictEqual(largestSpreads[0].lastPlayerName, 'Dave', "largest spread should have Dave (last scorer)");
+    assert.strictEqual(largestSpreads[0].spread, 40000, "spread value should be 40000 (30000 - (-10000))");
   });
 });
