@@ -17,7 +17,7 @@
     "test:integration": "node --test $(find test -maxdepth 1 -name '*.integration.test.js')",
     "test:e2e": "node --test $(find test -maxdepth 1 \\( -name '*.e2e.test.js' -o -name '*.e2e.test.cjs' \\))",
     "test:coverage": "c8 --reporter=text-summary --reporter=lcov --exclude='test/**' npm run test",
-    "test:ui": "playwright test",
+    "test:ui": "playwright test --reporter=list",
     "test:ui:debug": "playwright test --debug",
     "check:required-files": "bash -c \"if [ ! -f .github/copilot-instructions.md ]; then echo '\".github/copilot-instructions.md\" が存在しません。コミットを中止します。'; exit 1; fi\"",
     "supabase:init": "npx supabase@2.84.2 init",
