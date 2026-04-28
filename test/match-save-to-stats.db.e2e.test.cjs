@@ -19,6 +19,7 @@ const testSuite = DATABASE_URL ? describe : describe.skip;
 testSuite("match save to stats reflection (DB-backed E2E)", async () => {
   let supabase;
   let insertedMatchId;
+  let supabaseAdmin;
   let defaultTournamentId;
 
   before(async () => {
@@ -34,18 +35,25 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
       { db: { schema: "public" } }
     );
 
+    // Create an admin client using service role key for setup actions
+    supabaseAdmin = createClient(
+      process.env.SUPABASE_URL || "http://localhost:54321",
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY,
+      { db: { schema: "public" } }
+    );
+
     // Verify connection by querying a simple count on `games`
-    const { count, error: countError } = await supabase
+    const { count, error: countError } = await supabaseAdmin
       .from("games")
       .select("*", { count: "exact", head: true });
 
     if (countError) {
-      console.error("Failed to connect to Supabase:", countError);
+      console.error("Failed to connect to Supabase (admin):", countError);
       throw new Error(`Database connection failed: ${countError.message}`);
     }
 
     // Ensure there is a default tournament (migration backfill expects '大会1')
-    const { data: trow, error: tErr } = await supabase
+    const { data: trow, error: tErr } = await supabaseAdmin
       .from("tournaments")
       .select("id")
       .eq("name", "大会1")
@@ -59,7 +67,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
     if (trow && trow.id) {
       defaultTournamentId = trow.id;
     } else {
-      const { data: created, error: createErr } = await supabase
+      const { data: created, error: createErr } = await supabaseAdmin
         .from("tournaments")
         .insert([{ name: "大会1" }])
         .select("id")
@@ -114,7 +122,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
       notes: "DB E2E test game",
     };
 
-    const { data: gameInserted, error: insertError } = await supabase
+    const { data: gameInserted, error: insertError } = await supabaseAdmin
       .from("games")
       .insert([gameData])
       .select("id");
@@ -175,7 +183,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
       notes: "DB E2E test 3p game",
     };
 
-    const { data: g3, error: insert3pError } = await supabase
+    const { data: g3, error: insert3pError } = await supabaseAdmin
       .from("games")
       .insert([game3p])
       .select("id");
@@ -207,7 +215,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
     assert.strictEqual(byName3p.Player3pWinner.topCount, 1, "Player3pWinner should have 1 win");
 
     // Clean up
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from("games")
       .delete()
       .eq("id", match3pId);
