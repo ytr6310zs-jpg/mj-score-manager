@@ -159,6 +159,20 @@ async function waitForMatchByNote(note: string) {
   return fetchLatestMatch();
 }
 
+async function fetchMatchesCountByNote(note: string) {
+  if (!DATABASE_URL) return 0;
+
+  const supabase = createReadClient();
+
+  const { count, error } = await supabase
+    .from("games")
+    .select("id", { head: true, count: "exact" })
+    .eq("notes", note);
+
+  if (error) return 0;
+  return count ?? 0;
+}
+
 testSuite.describe("Score entry form browser E2E", () => {
   let page: Page;
   let lastInsertedMatchId: number | null = null;
@@ -208,6 +222,16 @@ testSuite.describe("Score entry form browser E2E", () => {
     await submitBtn.click();
 
     await expect(page.getByText("スコアを保存しました。")).toBeVisible({ timeout: 10000 });
+
+    // Verify form was reset: player hidden inputs and score inputs should be empty, date reset to today
+    const todayStr = new Date().toISOString().slice(0,10);
+    await expect(page.locator("input[type='hidden'][name='player1']")).toHaveValue("");
+    await expect(page.locator("input[type='hidden'][name='player2']")).toHaveValue("");
+    await expect(page.locator("input[type='hidden'][name='player3']")).toHaveValue("");
+    await expect(page.locator("input[id='score1']")).toHaveValue("");
+    await expect(page.locator("input[id='score2']")).toHaveValue("");
+    await expect(page.locator("input[id='score3']")).toHaveValue("");
+    await expect(page.locator("input[id='gameDate']")).toHaveValue(todayStr);
   });
 
   testSuite("submits 4-player game with tobi and tobashi options", async () => {
@@ -245,5 +269,55 @@ testSuite.describe("Score entry form browser E2E", () => {
     await submitBtn.click();
 
     await expect(page.getByText("スコアを保存しました。")).toBeVisible({ timeout: 10000 });
+
+    // verify reset for 4p: players and scores cleared, date reset
+    const todayStr = new Date().toISOString().slice(0,10);
+    await expect(page.locator("input[type='hidden'][name='player1']")).toHaveValue("");
+    await expect(page.locator("input[type='hidden'][name='player2']")).toHaveValue("");
+    await expect(page.locator("input[type='hidden'][name='player3']")).toHaveValue("");
+    await expect(page.locator("input[type='hidden'][name='player4']")).toHaveValue("");
+    await expect(page.locator("input[id='score1']")).toHaveValue("");
+    await expect(page.locator("input[id='score2']")).toHaveValue("");
+    await expect(page.locator("input[id='score3']")).toHaveValue("");
+    await expect(page.locator("input[id='score4']")).toHaveValue("");
+    await expect(page.locator("input[id='gameDate']")).toHaveValue(todayStr);
+  });
+
+  testSuite("prevents double submit for 3p (quick double click)", async () => {
+    const existingPlayers = await fetchExistingPlayers(3);
+    expect(existingPlayers.length).toBeGreaterThanOrEqual(3);
+    const [player1Name, player2Name, player3Name] = existingPlayers;
+    const note = `E2EDoubleSubmit ${Date.now()}`;
+
+    await loginIfNeeded(page);
+    await page.goto(BASE_URL);
+
+    await selectGameType(page, "3p");
+    await selectExistingPlayer(page, 1, player1Name);
+    await selectExistingPlayer(page, 2, player2Name);
+    await selectExistingPlayer(page, 3, player3Name);
+
+    const score1 = page.locator('input[id="score1"]');
+    const score2 = page.locator('input[id="score2"]');
+    const score3 = page.locator('input[id="score3"]');
+
+    if (await score1.isVisible()) await score1.fill("300");
+    if (await score2.isVisible()) await score2.fill("0");
+    if (await score2.isVisible()) await score2.blur();
+
+    const notesInput = await page.locator("textarea[name='notes']").first();
+    if (await notesInput.isVisible()) {
+      await notesInput.fill(note);
+    }
+
+    const submitBtn = page.getByRole("button", { name: "スコアを保存" }).first();
+    // rapid double click
+    await submitBtn.click();
+    await submitBtn.click();
+
+    await expect(page.getByText("スコアを保存しました。")).toBeVisible({ timeout: 10000 });
+
+    const count = await fetchMatchesCountByNote(note);
+    expect(count).toBe(1);
   });
 });
