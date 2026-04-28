@@ -63,7 +63,10 @@ jobs:
           SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ACCESS_PASSWORD: ${{ secrets.ACCESS_PASSWORD }}
-        run: npm run test:ui
+        # Ensure Playwright generates the HTML report for artifact upload while still
+        # printing a concise list reporter to the logs. Using npx here avoids relying
+        # on the developer-local npm script which may be configured differently.
+        run: npx playwright test --reporter=list,html
         timeout-minutes: 10
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

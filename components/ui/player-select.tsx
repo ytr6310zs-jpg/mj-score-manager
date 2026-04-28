@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type Ref, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ type Props = {
   placeholder?: string;
   required?: boolean;
   onAddPlayer?: (name: string) => Promise<{ success: boolean; message: string }>;
+  triggerRef?: Ref<HTMLButtonElement>;
 };
 
 export function PlayerSelect({
@@ -24,6 +25,7 @@ export function PlayerSelect({
   placeholder = "選択してください",
   required,
   onAddPlayer,
+  triggerRef,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -99,6 +101,7 @@ export function PlayerSelect({
 
       {/* トリガー */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={handleToggle}
         className={cn(
