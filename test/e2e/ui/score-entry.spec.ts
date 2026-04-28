@@ -192,15 +192,15 @@ async function addYakumanSelection(page: Page) {
   const yakumanPlayerTrigger = yakumanPanel.locator('button[role="combobox"]').nth(0);
   const yakumanNameTrigger = yakumanPanel.locator('button[role="combobox"]').nth(1);
 
+  // Select player: wait for listbox to open, then pick first option
   await yakumanPlayerTrigger.click();
-  // wait for options to appear after opening the player combobox
-  await expect(page.getByRole("option").first()).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole("listbox").first()).toBeVisible({ timeout: 8000 });
   await page.getByRole("option").first().click();
 
+  // Select yakuman name: wait for listbox to open, then pick by known seeded name
   await yakumanNameTrigger.click();
-  // wait for yakuman name options to be populated (may be async)
-  await expect(page.getByRole("option").first()).toBeVisible({ timeout: 5000 });
-  await page.getByRole("option").first().click();
+  await expect(page.getByRole("listbox").first()).toBeVisible({ timeout: 8000 });
+  await page.getByRole("option", { name: "大三元" }).click();
 
   await yakumanPanel.getByRole("button", { name: "登録" }).click();
   await expect(yakumanPanel.getByText("登録済みの役満はありません。")).toHaveCount(0);
