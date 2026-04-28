@@ -170,6 +170,38 @@ async function fetchMatchesCountByNote(note: string) {
   return count ?? 0;
 }
 
+async function assertResetAndPlayer1Ready(page: Page) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  await expect(page.locator("input[type='hidden'][name='player1']")).toHaveValue("");
+  await expect(page.locator("input[type='hidden'][name='player2']")).toHaveValue("");
+  await expect(page.locator("input[type='hidden'][name='player3']")).toHaveValue("");
+  await expect(page.locator("input[id='score1']")).toHaveValue("");
+  await expect(page.locator("input[id='score2']")).toHaveValue("");
+  await expect(page.locator("input[id='score3']")).toHaveValue("");
+  await expect(page.locator("input[id='gameDate']")).toHaveValue(todayStr);
+
+  const player1Trigger = page
+    .locator('div:has(> label:has-text("プレイヤー1")) button[aria-haspopup="listbox"]')
+    .first();
+  await expect(player1Trigger).toBeFocused();
+}
+
+async function addYakumanSelection(page: Page) {
+  const yakumanPanel = page.locator('div:has(> label:has-text("役満情報"))').first();
+  const yakumanPlayerTrigger = yakumanPanel.locator('button[role="combobox"]').nth(0);
+  const yakumanNameTrigger = yakumanPanel.locator('button[role="combobox"]').nth(1);
+
+  await yakumanPlayerTrigger.click();
+  await page.getByRole("option").first().click();
+
+  await yakumanNameTrigger.click();
+  await page.getByRole("option").first().click();
+
+  await yakumanPanel.getByRole("button", { name: "登録" }).click();
+  await expect(yakumanPanel.getByText("登録済みの役満はありません。")).toHaveCount(0);
+}
+
 test.describe("Score entry form browser E2E", () => {
   test.skip(!DATABASE_URL, "DATABASE_URL is required for DB-backed UI E2E tests");
 
@@ -222,15 +254,7 @@ test.describe("Score entry form browser E2E", () => {
 
     await expect(page.getByText("スコアを保存しました。")).toBeVisible({ timeout: 10000 });
 
-    // Verify form was reset: player hidden inputs and score inputs should be empty, date reset to today
-    const todayStr = new Date().toISOString().slice(0,10);
-    await expect(page.locator("input[type='hidden'][name='player1']")).toHaveValue("");
-    await expect(page.locator("input[type='hidden'][name='player2']")).toHaveValue("");
-    await expect(page.locator("input[type='hidden'][name='player3']")).toHaveValue("");
-    await expect(page.locator("input[id='score1']")).toHaveValue("");
-    await expect(page.locator("input[id='score2']")).toHaveValue("");
-    await expect(page.locator("input[id='score3']")).toHaveValue("");
-    await expect(page.locator("input[id='gameDate']")).toHaveValue(todayStr);
+    await assertResetAndPlayer1Ready(page);
   });
 
   test("submits 4-player game with tobi and tobashi options", async () => {
@@ -274,11 +298,11 @@ test.describe("Score entry form browser E2E", () => {
     await expect(page.locator("input[type='hidden'][name='player1']")).toHaveValue("");
     await expect(page.locator("input[type='hidden'][name='player2']")).toHaveValue("");
     await expect(page.locator("input[type='hidden'][name='player3']")).toHaveValue("");
-    await expect(page.locator("input[type='hidden'][name='player4']")).toHaveValue("");
+    await expect(page.locator("input[type='hidden'][name='player4']")).toHaveCount(0);
     await expect(page.locator("input[id='score1']")).toHaveValue("");
     await expect(page.locator("input[id='score2']")).toHaveValue("");
     await expect(page.locator("input[id='score3']")).toHaveValue("");
-    await expect(page.locator("input[id='score4']")).toHaveValue("");
+    await expect(page.locator("input[id='score4']")).toHaveCount(0);
     await expect(page.locator("input[id='gameDate']")).toHaveValue(todayStr);
   });
 
@@ -318,5 +342,49 @@ test.describe("Score entry form browser E2E", () => {
 
     const count = await fetchMatchesCountByNote(note);
     expect(count).toBe(1);
+  });
+
+  test("clears fields after first and second submit including yakuman", async () => {
+    const existingPlayers = await fetchExistingPlayers(3);
+    expect(existingPlayers.length).toBeGreaterThanOrEqual(3);
+    const [player1Name, player2Name, player3Name] = existingPlayers;
+
+    await loginIfNeeded(page);
+    await page.goto(BASE_URL);
+
+    const note1 = `E2ERepeat1 ${Date.now()}`;
+    await selectGameType(page, "3p");
+    await selectExistingPlayer(page, 1, player1Name);
+    await selectExistingPlayer(page, 2, player2Name);
+    await selectExistingPlayer(page, 3, player3Name);
+
+    await page.locator('input[id="score1"]').fill("300");
+    await page.locator('input[id="score2"]').fill("0");
+    await page.locator('input[id="score2"]').blur();
+
+    await addYakumanSelection(page);
+
+    await page.locator("textarea[name='notes']").first().fill(note1);
+    await page.getByRole("button", { name: "スコアを保存" }).first().click();
+    await expect(page.getByText("スコアを保存しました。")).toBeVisible({ timeout: 10000 });
+    await assertResetAndPlayer1Ready(page);
+
+    const yakumanPanel = page.locator('div:has(> label:has-text("役満情報"))').first();
+    await expect(yakumanPanel.getByText("登録済みの役満はありません。")).toBeVisible();
+
+    const note2 = `E2ERepeat2 ${Date.now()}`;
+    await selectGameType(page, "3p");
+    await selectExistingPlayer(page, 1, player1Name);
+    await selectExistingPlayer(page, 2, player2Name);
+    await selectExistingPlayer(page, 3, player3Name);
+
+    await page.locator('input[id="score1"]').fill("250");
+    await page.locator('input[id="score2"]').fill("0");
+    await page.locator('input[id="score2"]').blur();
+
+    await page.locator("textarea[name='notes']").first().fill(note2);
+    await page.getByRole("button", { name: "スコアを保存" }).first().click();
+    await expect(page.getByText("スコアを保存しました。")).toBeVisible({ timeout: 10000 });
+    await assertResetAndPlayer1Ready(page);
   });
 });

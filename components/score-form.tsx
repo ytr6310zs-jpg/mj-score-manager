@@ -64,6 +64,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
   const [yakumanPanelResetKey, setYakumanPanelResetKey] = useState(0);
   const skipInitialPersistRef = useRef(true);
   const isSubmittingRef = useRef(false);
+  const player1TriggerRef = useRef<HTMLButtonElement>(null);
   const [localSubmitting, setLocalSubmitting] = useState(false);
 
   const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
@@ -259,6 +260,15 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     // clear submitting guard so next round can start
     isSubmittingRef.current = false;
     setLocalSubmitting(false);
+
+    requestAnimationFrame(() => {
+      const player1Trigger = player1TriggerRef.current;
+      if (!player1Trigger) {
+        return;
+      }
+      player1Trigger.scrollIntoView({ block: "center", behavior: "smooth" });
+      player1Trigger.focus();
+    });
   }, [state, tournamentId]);
 
   return (
@@ -377,6 +387,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
                   <PlayerSelect
                     name={`player${slot}`}
                     value={players[slot as keyof PlayerSelection]}
+                    triggerRef={slot === 1 ? player1TriggerRef : undefined}
                     onValueChange={(value) =>
                       setPlayers((current) => ({
                         ...current,
