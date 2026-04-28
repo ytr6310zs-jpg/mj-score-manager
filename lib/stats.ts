@@ -1,5 +1,5 @@
 import type { MatchQueryOptions, MatchResult } from "./matches";
-import { sortAndAssignCompetitionRank } from "./stats-ranking";
+import { sortAndAssignCompetitionRank } from "./stats-ranking.js";
 
 export type PlayerStats = {
   name: string;
