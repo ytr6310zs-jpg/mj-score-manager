@@ -126,9 +126,9 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
 
     insertedMatchId = gameInserted[0].id;
 
-    // 2. Dynamically import fetchMatchResults and computePlayerStatsFromMatches
-    const matchesModule = await import("../lib/matches.ts");
-    const statsModule = await import("../lib/stats.ts");
+    // 2. Load fetchMatchResults and computePlayerStatsFromMatches via ts-node hook
+    const matchesModule = require("../lib/matches.ts");
+    const statsModule = require("../lib/stats.ts");
     const { fetchMatchResults } = matchesModule;
     const { computePlayerStatsFromMatches } = statsModule;
 
@@ -188,7 +188,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
     const match3pId = g3[0].id;
 
     // 2. Fetch and verify aggregation using fetchMatchResults
-    const matchesModule2 = await import("../lib/matches.ts");
+    const matchesModule2 = require("../lib/matches.ts");
     const { fetchMatchResults: fetchMatchResults2 } = matchesModule2;
 
     const { matches: matches3p, error: fetch3pError } = await fetchMatchResults2(undefined, undefined, {});
@@ -200,7 +200,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
     assert.strictEqual(match3p.players.length, 3, "3p match should have 3 players");
 
     // 3. Compute stats and verify
-    const statsModule2 = await import("../lib/stats.ts");
+    const statsModule2 = require("../lib/stats.ts");
     const { computePlayerStatsFromMatches: compute2 } = statsModule2;
 
     const stats3p = compute2([match3p], 1);
