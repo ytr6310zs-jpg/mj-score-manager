@@ -200,7 +200,7 @@ async function addYakumanSelection(page: Page) {
   // Select yakuman name: wait for listbox to open, then pick by known seeded name
   await yakumanNameTrigger.click();
   await expect(page.getByRole("listbox").first()).toBeVisible({ timeout: 8000 });
-  await page.getByRole("option", { name: "大三元" }).click();
+  await page.getByRole("option", { name: "大三元", exact: true }).click();
 
   await yakumanPanel.getByRole("button", { name: "登録" }).click();
   await expect(yakumanPanel.getByText("登録済みの役満はありません。")).toHaveCount(0);
