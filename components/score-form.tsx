@@ -53,6 +53,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     3: "",
     4: "",
   });
+  const [gameDate, setGameDate] = useState<string>(today());
   const [scores, setScores] = useState<Record<number, string>>({});
   const [autoFilledSlot, setAutoFilledSlot] = useState<number | null>(null);
   const [tobiPlayers, setTobiPlayers] = useState<string[]>([]);
@@ -60,7 +61,11 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
   const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>([]);
+  const [yakumanPanelResetKey, setYakumanPanelResetKey] = useState(0);
   const skipInitialPersistRef = useRef(true);
+  const isSubmittingRef = useRef(false);
+  const player1TriggerRef = useRef<HTMLButtonElement>(null);
+  const [localSubmitting, setLocalSubmitting] = useState(false);
 
   const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
   const { yakumans } = useYakumans();
@@ -78,6 +83,8 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
   const activeSlots = useMemo(() => (gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3]), [gameType]);
 
   function resetRoundFields() {
+    setPlayers({ 1: "", 2: "", 3: "", 4: "" });
+    setGameType("3p");
     setScores({});
     setAutoFilledSlot(null);
     setTobiPlayers([]);
@@ -85,7 +92,9 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     setYakitoriSlots({});
     setNotes("");
     setPendingYakumans([]);
+    setYakumanPanelResetKey((current) => current + 1);
     setClientError(null);
+    setGameDate(today());
   }
 
   function handleScoreChange(slot: number, value: string) {
@@ -229,13 +238,38 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     setLastTournamentId(Number(tournamentId));
   }, [tournamentId]);
 
+  // Clear the local submitting guard when pending completes
+  useEffect(() => {
+    if (!pending) {
+      isSubmittingRef.current = false;
+      setLocalSubmitting(false);
+    }
+  }, [pending]);
+
   useEffect(() => {
     if (!state.success) {
       return;
     }
-
+    // Persist the tournament used for this successful save, then reset inputs
+    try {
+      setLastTournamentId(Number(tournamentId));
+    } catch {
+      // ignore
+    }
     resetRoundFields();
-  }, [state.success]);
+    // clear submitting guard so next round can start
+    isSubmittingRef.current = false;
+    setLocalSubmitting(false);
+
+    requestAnimationFrame(() => {
+      const player1Trigger = player1TriggerRef.current;
+      if (!player1Trigger) {
+        return;
+      }
+      player1Trigger.scrollIntoView({ block: "center", behavior: "smooth" });
+      player1Trigger.focus();
+    });
+  }, [state, tournamentId]);
 
   return (
     <Card className="w-full max-w-3xl border-white/70 bg-white/90 shadow-xl backdrop-blur">
@@ -246,10 +280,13 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
         </CardDescription>
       </CardHeader>
       <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-        <form
-          action={formAction}
-          className="space-y-6"
-          onSubmit={(e) => {
+        <form action={formAction} className="space-y-6" onSubmit={(e) => {
+            // immediate guard for double-submit before pending flag is set
+            if (isSubmittingRef.current) {
+              e.preventDefault();
+              return;
+            }
+
             if (!tournamentId) {
               e.preventDefault();
               setClientError("大会を選択してください。");
@@ -257,9 +294,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
             }
 
             const slots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
-            const selectedPlayers = slots.map(
-              (slot) => players[slot as keyof PlayerSelection]
-            );
+            const selectedPlayers = slots.map((slot) => players[slot as keyof PlayerSelection]);
             const uniquePlayers = new Set(selectedPlayers.filter(Boolean));
             const total = slots.reduce((sum, slot) => {
               const value = Number(scores[slot] || 0);
@@ -298,9 +333,13 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
               return;
             }
 
+            // pass validation — set immediate submitting guard to block rapid double submits
+            isSubmittingRef.current = true;
+            setLocalSubmitting(true);
+
             setClientError(null);
-          }}
-        >
+          }}>
+          <fieldset disabled={pending || localSubmitting} aria-busy={pending || localSubmitting}>
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2 sm:col-span-3">
@@ -334,7 +373,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
 
               <div className="space-y-2">
                 <Label htmlFor="gameDate">対局日</Label>
-                <Input id="gameDate" name="gameDate" type="date" defaultValue={today()} required />
+                <Input id="gameDate" name="gameDate" type="date" value={gameDate} onChange={(e) => setGameDate(e.target.value)} required />
               </div>
             </div>
 
@@ -348,6 +387,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
                   <PlayerSelect
                     name={`player${slot}`}
                     value={players[slot as keyof PlayerSelection]}
+                    triggerRef={slot === 1 ? player1TriggerRef : undefined}
                     onValueChange={(value) =>
                       setPlayers((current) => ({
                         ...current,
@@ -497,6 +537,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
 
             <div className="md:col-span-2">
               <YakumanSelectionPanel
+                key={yakumanPanelResetKey}
                 activePlayerNames={activePlayerNames}
                 yakumanOptions={yakumans}
                 value={pendingYakumans}
@@ -519,6 +560,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
               />
             </div>
           </div>
+          </fieldset>
 
           {clientError ? (
             <Alert className="border-destructive/40 bg-destructive/5 text-destructive">
@@ -540,8 +582,8 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
             </Alert>
           ) : null}
 
-          <Button type="submit" disabled={pending || duplicatePlayerError !== null} className="w-full md:w-auto">
-            {pending ? "保存中..." : "スコアを保存"}
+          <Button type="submit" disabled={pending || localSubmitting || duplicatePlayerError !== null} className="w-full md:w-auto">
+            {pending || localSubmitting ? "保存中..." : "スコアを保存"}
           </Button>
         </form>
       </CardContent>
