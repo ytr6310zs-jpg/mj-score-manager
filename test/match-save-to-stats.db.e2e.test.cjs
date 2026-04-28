@@ -33,9 +33,9 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
       { db: { schema: "public" } }
     );
 
-    // Verify connection by querying a simple count
+    // Verify connection by querying a simple count on `games`
     const { count, error: countError } = await supabase
-      .from("matches")
+      .from("games")
       .select("*", { count: "exact", head: true });
 
     if (countError) {
@@ -66,116 +66,62 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
       throw new Error("Supabase client not initialized");
     }
 
-    // 1. Insert a test match
-    const matchData = {
+    // 1. Insert a test game using `games` table (schema used by application)
+    const gameData = {
       tournament_id: null,
-      game_date: new Date().toISOString().split("T")[0],
+      date: new Date().toISOString().split("T")[0],
       game_type: "4p",
+      player_count: 4,
+      player1: "TestWinner",
+      player2: "PlayerB",
+      player3: "PlayerC",
+      player4: "TestLoser",
+      score1: 350,
+      score2: 0,
+      score3: 0,
+      score4: -300,
+      rank1: 1,
+      rank2: 2,
+      rank3: 3,
+      rank4: 4,
       top_player: "TestWinner",
       last_player: "TestLoser",
-      tobi_player: null,
-      tobashi_player: null,
-      notes: "DB E2E test match",
+      notes: "DB E2E test game",
     };
 
-    const { data: matchInserted, error: insertError } = await supabase
-      .from("matches")
-      .insert([matchData])
+    const { data: gameInserted, error: insertError } = await supabase
+      .from("games")
+      .insert([gameData])
       .select("id");
 
-    assert.ok(!insertError, `Insert match failed: ${insertError?.message}`);
-    assert.ok(matchInserted && matchInserted.length > 0, "Match not inserted");
+    assert.ok(!insertError, `Insert game failed: ${insertError?.message}`);
+    assert.ok(gameInserted && gameInserted.length > 0, "Game not inserted");
 
-    insertedMatchId = matchInserted[0].id;
+    insertedMatchId = gameInserted[0].id;
 
-    // 2. Insert match details (player scores)
-    const playerDetails = [
-      {
-        match_id: insertedMatchId,
-        player_name: "TestWinner",
-        rank: 1,
-        score: 350,
-        is_tobi: false,
-        is_tobashi: false,
-        is_yakitori: false,
-      },
-      {
-        match_id: insertedMatchId,
-        player_name: "TestLoser",
-        rank: 4,
-        score: -300,
-        is_tobi: false,
-        is_tobashi: false,
-        is_yakitori: false,
-      },
-    ];
-
-    const { error: detailError } = await supabase
-      .from("match_details")
-      .insert(playerDetails);
-
-    assert.ok(!detailError, `Insert match details failed: ${detailError?.message}`);
-
-    // 3. Dynamically load computePlayerStatsFromMatches to verify aggregation
-    // (Use dynamic import to avoid module resolution issues in node:test)
+    // 2. Dynamically import fetchMatchResults and computePlayerStatsFromMatches
+    const matchesModule = await import("../lib/matches.ts");
     const statsModule = await import("../lib/stats.ts");
+    const { fetchMatchResults } = matchesModule;
     const { computePlayerStatsFromMatches } = statsModule;
 
-    // 4. Query inserted match and details
-    const { data: matches, error: fetchError } = await supabase
-      .from("matches")
-      .select(
-        `
-        id, tournament_id, game_date, game_type,
-        top_player, last_player, tobi_player, tobashi_player, notes, created_at,
-        match_details (
-          id, player_name, rank, score, is_tobi, is_tobashi, is_yakitori
-        )
-      `
-      )
-      .eq("id", insertedMatchId);
+    // 3. Fetch transformed MatchResult via fetchMatchResults and select our inserted game
+    const { matches, error: fetchError } = await fetchMatchResults(undefined, undefined, {});
+    assert.ok(!fetchError, `Fetch match results failed: ${fetchError}`);
 
-    assert.ok(!fetchError, `Fetch match failed: ${fetchError?.message}`);
-    assert.ok(matches && matches.length > 0, "Match not fetched");
+    const found = matches.find((m) => Number(m.id) === Number(insertedMatchId));
+    assert.ok(found, "Inserted game not found in fetched matches");
 
-    const match = matches[0];
-    assert.strictEqual(
-      match.match_details.length,
-      2,
-      "Both player details should be inserted"
-    );
+    // 4. Verify aggregation reflects the new game
+    const stats = computePlayerStatsFromMatches([found], 1);
+    const byName = Object.fromEntries(stats.map((s) => [s.name, s]));
 
-    // 5. Verify aggregation reflects the new match
-    // (This verifies that computePlayerStatsFromMatches can process the match)
-    const testMatches = [match];
-    const stats = computePlayerStatsFromMatches(testMatches, 1);
-
-    assert.ok(stats, "Stats should be computed");
-    assert.ok(
-      stats.TestWinner,
-      "TestWinner should appear in aggregated stats"
-    );
-    assert.ok(
-      stats.TestLoser,
-      "TestLoser should appear in aggregated stats"
-    );
-
-    assert.strictEqual(
-      stats.TestWinner.wins,
-      1,
-      "TestWinner should have 1 win"
-    );
-    assert.strictEqual(
-      stats.TestWinner.score,
-      350,
-      "TestWinner score should be 350"
-    );
-
-    assert.strictEqual(
-      stats.TestLoser.totalGames,
-      1,
-      "TestLoser should have 1 game"
-    );
+    assert.ok(byName.TestWinner, "TestWinner should appear in aggregated stats");
+    assert.ok(byName.TestLoser, "TestLoser should appear in aggregated stats");
+    // wins/top count and score assertions
+    assert.strictEqual(byName.TestWinner.topCount, 1, "TestWinner should have 1 top");
+    assert.strictEqual(byName.TestWinner.totalScore, 350, "TestWinner score should be 350");
+    assert.strictEqual(byName.TestLoser.games, 1, "TestLoser should have 1 game");
   });
 
   it("verifies multiple players in single match are correctly aggregated", async () => {
