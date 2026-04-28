@@ -43,3 +43,9 @@ yarn-error.log*
 
 # AI worklog artifacts
 /.worklog/
+
+# Playwright report (generated)
+playwright-report/
+
+# Local test run outputs (generated)
+test-results/
