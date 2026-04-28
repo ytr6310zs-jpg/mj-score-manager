@@ -32,9 +32,6 @@ function createReadClient() {
   );
 }
 
-// Skip tests if DATABASE_URL is not available
-const testSuite = DATABASE_URL ? test : test.skip;
-
 // Helper to clear test data from DB
 async function cleanupTestMatch(matchId: number | null) {
   if (!matchId || !DATABASE_URL) return;
@@ -173,7 +170,9 @@ async function fetchMatchesCountByNote(note: string) {
   return count ?? 0;
 }
 
-testSuite.describe("Score entry form browser E2E", () => {
+test.describe("Score entry form browser E2E", () => {
+  test.skip(!DATABASE_URL, "DATABASE_URL is required for DB-backed UI E2E tests");
+
   let page: Page;
   let lastInsertedMatchId: number | null = null;
 
@@ -186,7 +185,7 @@ testSuite.describe("Score entry form browser E2E", () => {
     await cleanupTestMatch(lastInsertedMatchId);
   });
 
-  testSuite("submits 3-player game and reflects in database", async () => {
+  test("submits 3-player game and reflects in database", async () => {
     const existingPlayers = await fetchExistingPlayers(3);
     expect(existingPlayers.length).toBeGreaterThanOrEqual(3);
     const [player1Name, player2Name, player3Name] = existingPlayers;
@@ -234,7 +233,7 @@ testSuite.describe("Score entry form browser E2E", () => {
     await expect(page.locator("input[id='gameDate']")).toHaveValue(todayStr);
   });
 
-  testSuite("submits 4-player game with tobi and tobashi options", async () => {
+  test("submits 4-player game with tobi and tobashi options", async () => {
     const existingPlayers = await fetchExistingPlayers(4);
     expect(existingPlayers.length).toBeGreaterThanOrEqual(4);
     const [player1Name, player2Name, player3Name, player4Name] = existingPlayers;
@@ -283,7 +282,7 @@ testSuite.describe("Score entry form browser E2E", () => {
     await expect(page.locator("input[id='gameDate']")).toHaveValue(todayStr);
   });
 
-  testSuite("prevents double submit for 3p (quick double click)", async () => {
+  test("prevents double submit for 3p (quick double click)", async () => {
     const existingPlayers = await fetchExistingPlayers(3);
     expect(existingPlayers.length).toBeGreaterThanOrEqual(3);
     const [player1Name, player2Name, player3Name] = existingPlayers;

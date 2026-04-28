@@ -61,6 +61,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
   const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>([]);
+  const [yakumanPanelResetKey, setYakumanPanelResetKey] = useState(0);
   const skipInitialPersistRef = useRef(true);
   const isSubmittingRef = useRef(false);
   const [localSubmitting, setLocalSubmitting] = useState(false);
@@ -90,6 +91,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     setYakitoriSlots({});
     setNotes("");
     setPendingYakumans([]);
+    setYakumanPanelResetKey((current) => current + 1);
     setClientError(null);
     setGameDate(today());
   }
@@ -257,7 +259,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     // clear submitting guard so next round can start
     isSubmittingRef.current = false;
     setLocalSubmitting(false);
-  }, [state.success]);
+  }, [state, tournamentId]);
 
   return (
     <Card className="w-full max-w-3xl border-white/70 bg-white/90 shadow-xl backdrop-blur">
@@ -524,6 +526,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
 
             <div className="md:col-span-2">
               <YakumanSelectionPanel
+                key={yakumanPanelResetKey}
                 activePlayerNames={activePlayerNames}
                 yakumanOptions={yakumans}
                 value={pendingYakumans}
