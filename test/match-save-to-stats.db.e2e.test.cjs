@@ -52,29 +52,23 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
       throw new Error(`Database connection failed: ${countError.message}`);
     }
 
-    // Ensure there is a default tournament (migration backfill expects '大会1')
-    const { data: trow, error: tErr } = await supabaseAdmin
+    // Ensure there is a default tournament (use upsert to be idempotent)
+    const { data: created, error: upsertErr } = await supabaseAdmin
       .from("tournaments")
+      .upsert([{ name: "大会1" }], { onConflict: "name" })
       .select("id")
-      .eq("name", "大会1")
-      .limit(1)
       .maybeSingle();
 
-    if (tErr) {
-      throw new Error(`Failed to lookup default tournament: ${tErr.message}`);
+    if (upsertErr) {
+      throw new Error(`Failed to upsert default tournament: ${upsertErr.message}`);
     }
 
-    if (trow && trow.id) {
-      defaultTournamentId = trow.id;
-    } else {
-      const { data: created, error: createErr } = await supabaseAdmin
-        .from("tournaments")
-        .insert([{ name: "大会1" }])
-        .select("id")
-        .maybeSingle();
-      if (createErr) throw new Error(`Failed to create default tournament: ${createErr.message}`);
-      defaultTournamentId = created.id;
+    if (!created || !created.id) {
+      throw new Error("Default tournament upsert did not return an id");
     }
+
+    defaultTournamentId = created.id;
+    console.log("Default tournament id:", defaultTournamentId);
   });
 
   after(async () => {
