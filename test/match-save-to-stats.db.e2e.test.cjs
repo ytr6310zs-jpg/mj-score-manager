@@ -19,6 +19,7 @@ const testSuite = DATABASE_URL ? describe : describe.skip;
 testSuite("match save to stats reflection (DB-backed E2E)", async () => {
   let supabase;
   let insertedMatchId;
+  let defaultTournamentId;
 
   before(async () => {
     if (!DATABASE_URL) {
@@ -42,13 +43,37 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
       console.error("Failed to connect to Supabase:", countError);
       throw new Error(`Database connection failed: ${countError.message}`);
     }
+
+    // Ensure there is a default tournament (migration backfill expects '大会1')
+    const { data: trow, error: tErr } = await supabase
+      .from("tournaments")
+      .select("id")
+      .eq("name", "大会1")
+      .limit(1)
+      .maybeSingle();
+
+    if (tErr) {
+      throw new Error(`Failed to lookup default tournament: ${tErr.message}`);
+    }
+
+    if (trow && trow.id) {
+      defaultTournamentId = trow.id;
+    } else {
+      const { data: created, error: createErr } = await supabase
+        .from("tournaments")
+        .insert([{ name: "大会1" }])
+        .select("id")
+        .maybeSingle();
+      if (createErr) throw new Error(`Failed to create default tournament: ${createErr.message}`);
+      defaultTournamentId = created.id;
+    }
   });
 
   after(async () => {
-    // Clean up: remove inserted match
+    // Clean up: remove inserted game
     if (supabase && insertedMatchId) {
       const { error } = await supabase
-        .from("matches")
+        .from("games")
         .delete()
         .eq("id", insertedMatchId);
 
@@ -68,7 +93,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
 
     // 1. Insert a test game using `games` table (schema used by application)
     const gameData = {
-      tournament_id: null,
+      tournament_id: defaultTournamentId,
       date: new Date().toISOString().split("T")[0],
       game_type: "4p",
       player_count: 4,
@@ -130,113 +155,60 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
     }
 
     // 1. Insert a 3-player match
-    const match3pData = {
-      tournament_id: null,
-      game_date: new Date().toISOString().split("T")[0],
+    // 1. Insert a 3-player game
+    const game3p = {
+      tournament_id: defaultTournamentId,
+      date: new Date().toISOString().split("T")[0],
       game_type: "3p",
+      player_count: 3,
+      player1: "Player3pWinner",
+      player2: "Player3pMiddle",
+      player3: "Player3pLast",
+      score1: 400,
+      score2: 100,
+      score3: -500,
+      rank1: 1,
+      rank2: 2,
+      rank3: 3,
       top_player: "Player3pWinner",
       last_player: "Player3pLast",
-      tobi_player: null,
-      tobashi_player: null,
-      notes: "DB E2E test 3p match",
+      notes: "DB E2E test 3p game",
     };
 
-    const { data: match3pInserted, error: insert3pError } = await supabase
-      .from("matches")
-      .insert([match3pData])
+    const { data: g3, error: insert3pError } = await supabase
+      .from("games")
+      .insert([game3p])
       .select("id");
 
-    assert.ok(!insert3pError, `Insert 3p match failed: ${insert3pError?.message}`);
-    assert.ok(
-      match3pInserted && match3pInserted.length > 0,
-      "3p Match not inserted"
-    );
+    assert.ok(!insert3pError, `Insert 3p game failed: ${insert3pError?.message}`);
+    assert.ok(g3 && g3.length > 0, "3p game not inserted");
 
-    const match3pId = match3pInserted[0].id;
+    const match3pId = g3[0].id;
 
-    // 2. Insert player details
-    const players3p = [
-      {
-        match_id: match3pId,
-        player_name: "Player3pWinner",
-        rank: 1,
-        score: 400,
-        is_tobi: false,
-        is_tobashi: false,
-        is_yakitori: false,
-      },
-      {
-        match_id: match3pId,
-        player_name: "Player3pMiddle",
-        rank: 2,
-        score: 100,
-        is_tobi: false,
-        is_tobashi: false,
-        is_yakitori: false,
-      },
-      {
-        match_id: match3pId,
-        player_name: "Player3pLast",
-        rank: 3,
-        score: -500,
-        is_tobi: false,
-        is_tobashi: false,
-        is_yakitori: false,
-      },
-    ];
+    // 2. Fetch and verify aggregation using fetchMatchResults
+    const matchesModule2 = await import("../lib/matches.ts");
+    const { fetchMatchResults: fetchMatchResults2 } = matchesModule2;
 
-    const { error: detail3pError } = await supabase
-      .from("match_details")
-      .insert(players3p);
+    const { matches: matches3p, error: fetch3pError } = await fetchMatchResults2(undefined, undefined, {});
+    assert.ok(!fetch3pError, `Fetch 3p match failed: ${fetch3pError}`);
 
-    assert.ok(
-      !detail3pError,
-      `Insert 3p match details failed: ${detail3pError?.message}`
-    );
+    const match3p = matches3p.find((m) => Number(m.id) === Number(match3pId));
+    assert.ok(match3p, "3p Match not fetched");
+    assert.strictEqual(match3p.gameType, "3p", "Match should be 3p");
+    assert.strictEqual(match3p.players.length, 3, "3p match should have 3 players");
 
-    // 3. Fetch and verify aggregation
-    const { data: matches3p, error: fetch3pError } = await supabase
-      .from("matches")
-      .select(
-        `
-        id, tournament_id, game_date, game_type,
-        top_player, last_player, tobi_player, tobashi_player, notes, created_at,
-        match_details (
-          id, player_name, rank, score, is_tobi, is_tobashi, is_yakitori
-        )
-      `
-      )
-      .eq("id", match3pId);
+    // 3. Compute stats and verify
+    const statsModule2 = await import("../lib/stats.ts");
+    const { computePlayerStatsFromMatches: compute2 } = statsModule2;
 
-    assert.ok(!fetch3pError, `Fetch 3p match failed: ${fetch3pError?.message}`);
-    assert.ok(
-      matches3p && matches3p.length > 0,
-      "3p Match not fetched"
-    );
-
-    const match3p = matches3p[0];
-    assert.strictEqual(match3p.game_type, "3p", "Match should be 3p");
-    assert.strictEqual(
-      match3p.match_details.length,
-      3,
-      "3p match should have 3 players"
-    );
-
-    // 4. Compute stats and verify
-    const statsModule = await import("../lib/stats.ts");
-    const { computePlayerStatsFromMatches } = statsModule;
-
-    const stats3p = computePlayerStatsFromMatches([match3p], 1);
-    assert.ok(stats3p.Player3pWinner, "Player3pWinner should be in stats");
-    assert.strictEqual(
-      stats3p.Player3pWinner.wins,
-      1,
-      "Player3pWinner should have 1 win"
-    );
+    const stats3p = compute2([match3p], 1);
+    const byName3p = Object.fromEntries(stats3p.map((s) => [s.name, s]));
+    assert.ok(byName3p.Player3pWinner, "Player3pWinner should be in stats");
+    assert.strictEqual(byName3p.Player3pWinner.topCount, 1, "Player3pWinner should have 1 win");
 
     // Clean up
     const { error: deleteError } = await supabase
-      .from("matches")
+      .from("games")
       .delete()
       .eq("id", match3pId);
 
