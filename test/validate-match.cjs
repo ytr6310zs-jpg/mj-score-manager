@@ -42,9 +42,9 @@ function run() {
   let res = validateAndParseMatchForm(fd);
   assert.ok(res.ok, 'valid 4p should parse');
   const data = res.data;
-  assert.strictEqual(data.gameDate, '2026-04-06');
-  assert.deepStrictEqual(data.players, ['A', 'B', 'C', 'D']);
-  assert.strictEqual(data.total, 0);
+  assert.strictEqual(data.gameDate, '2026-04-06', 'game date should be parsed correctly');
+  assert.deepStrictEqual(data.players, ['A', 'B', 'C', 'D'], 'all 4 players should be extracted');
+  assert.strictEqual(data.total, 0, 'total score should be 0 (balanced)');
   assert.ok(data.yakitoriPlayers.has('A'), 'yakitori1 should map to player1');
 
   // regression: yakitori2 should map to player2 (not player1)
@@ -96,7 +96,7 @@ function run() {
   });
   res = validateAndParseMatchForm(fd);
   assert.ok(!res.ok, 'duplicate players should fail');
-  assert.ok(/別の名前/.test(res.message || ''), 'duplicate message');
+  assert.ok(/別の名前/.test(res.message || ''), 'error message should mention distinct player names');
 
   // missing tobashi
   fd = fdFrom({
@@ -114,7 +114,7 @@ function run() {
   });
   res = validateAndParseMatchForm(fd);
   assert.ok(!res.ok, 'missing tobashi should fail');
-  assert.ok(/飛びと飛ばし/.test(res.message || ''), 'tobi/tobashi message');
+  assert.ok(/飛びと飛ばし/.test(res.message || ''), 'error message should mention tobi/tobashi pair requirement');
 
   // same tobi/tobashi
   fd = fdFrom({
@@ -133,7 +133,7 @@ function run() {
   });
   res = validateAndParseMatchForm(fd);
   assert.ok(!res.ok, 'same tobi/tobashi should fail');
-  assert.ok(/同じ/.test(res.message || ''), 'same-player message');
+  assert.ok(/同じ/.test(res.message || ''), 'error message should mention tobi and tobashi must be different players');
 
   // out-of-range score
   fd = fdFrom({
@@ -150,7 +150,7 @@ function run() {
   });
   res = validateAndParseMatchForm(fd);
   assert.ok(!res.ok, 'out-of-range score should fail');
-  assert.ok(/スコア/.test(res.message || ''), 'score-range message');
+  assert.ok(/スコア/.test(res.message || ''), 'error message should mention score range constraint');
 
   // tournament filter parser contract (used by matches/stats/print)
   const params = resolveFilterParams({

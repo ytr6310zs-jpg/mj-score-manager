@@ -20,9 +20,9 @@ describe('games CSV builder', () => {
     ];
 
     const { csv, filename } = buildGamesCsv(matches, { start: '2026-03-28', end: '2026-03-28' });
-    assert.ok(csv.includes('match_id,match_date'), 'header present');
-    assert.ok(csv.includes('M-1'), 'row contains match id');
-    assert.ok(csv.includes('田宮'), 'row contains player name');
-    assert.strictEqual(filename, 'games_2026-03-28_2026-03-28.csv');
+    assert.ok(csv.includes('match_id,match_date'), "CSV should include correct header row");
+    assert.ok(csv.includes('M-1'), "CSV should include match ID M-1");
+    assert.ok(csv.includes('田宮'), "CSV should include player name 田宮");
+    assert.strictEqual(filename, 'games_2026-03-28_2026-03-28.csv', "filename should use date range format");
   });
 });
