@@ -193,9 +193,13 @@ async function addYakumanSelection(page: Page) {
   const yakumanNameTrigger = yakumanPanel.locator('button[role="combobox"]').nth(1);
 
   await yakumanPlayerTrigger.click();
+  // wait for options to appear after opening the player combobox
+  await expect(page.getByRole("option").first()).toBeVisible({ timeout: 5000 });
   await page.getByRole("option").first().click();
 
   await yakumanNameTrigger.click();
+  // wait for yakuman name options to be populated (may be async)
+  await expect(page.getByRole("option").first()).toBeVisible({ timeout: 5000 });
   await page.getByRole("option").first().click();
 
   await yakumanPanel.getByRole("button", { name: "登録" }).click();
