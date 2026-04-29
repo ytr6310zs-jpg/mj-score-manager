@@ -2,12 +2,15 @@ import Link from "next/link";
 
 import { AppHeader } from "@/components/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCurrentSession } from "@/lib/session";
 
-export default function AdminIndexPage() {
+export default async function AdminIndexPage() {
+  const session = await getCurrentSession();
+
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="admin" />
+        <AppHeader current="admin" sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined} />
 
         <div className="max-w-3xl mx-auto py-2">
           <Card>
@@ -18,6 +21,11 @@ export default function AdminIndexPage() {
               <p className="mb-4 text-sm text-muted-foreground">管理者向けの操作パネルです。</p>
 
               <ul className="space-y-2">
+                <li>
+                  <Link href="/admin/users" className="text-primary underline">
+                    ユーザー管理
+                  </Link>
+                </li>
                 <li>
                   <Link href="/admin/tournaments" className="text-primary underline">
                     大会管理

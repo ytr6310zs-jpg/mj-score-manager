@@ -13,6 +13,7 @@ import { computeTopSets, METRIC_DIRECTION, METRICS_TO_HIGHLIGHT } from "@/lib/me
 import { fetchPlayerStats } from "@/lib/stats";
 import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
+import { getCurrentSession } from "@/lib/session";
 import { fetchTournamentOptions } from "@/lib/tournaments";
 
 type RankSets = { first: string[]; second: string[]; third: string[] };
@@ -61,6 +62,7 @@ function score(value: number): string {
 type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
 
 export default async function StatsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const session = await getCurrentSession();
   const params = await (searchParams as Promise<SearchParams> | undefined);
   const initialMinGamesRaw = Array.isArray(params?.minGames) ? params?.minGames[0] : params?.minGames;
   const hasMinGamesParam = initialMinGamesRaw !== undefined;
@@ -102,7 +104,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
         <FlashMessage />
       </Suspense>
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="stats" />
+        <AppHeader current="stats" sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined} />
 
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">

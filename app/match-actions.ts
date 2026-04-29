@@ -1,5 +1,7 @@
 "use server";
 
+import { canEditMatches } from "@/lib/authorization";
+import { getCurrentSession } from "@/lib/session";
 import { buildRankedEntries, validateAndParseMatchForm } from "@/lib/validate-match";
 import { createClient } from "@supabase/supabase-js";
 export type DeleteMatchState = {
@@ -11,6 +13,11 @@ export async function deleteMatchAction(
   _prevState: DeleteMatchState | undefined,
   formData: FormData
 ): Promise<DeleteMatchState> {
+  const session = await getCurrentSession();
+  if (!session || !canEditMatches(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const createdAt = String(formData.get("createdAt") ?? "").trim();
 
   if (!createdAt) {
@@ -85,6 +92,11 @@ export async function editMatchAction(
   _prevState: EditMatchState | undefined,
   formData: FormData
 ): Promise<EditMatchState> {
+  const session = await getCurrentSession();
+  if (!session || !canEditMatches(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const createdAt = String(formData.get("createdAt") ?? "").trim();
 
   if (!createdAt) {
@@ -176,6 +188,8 @@ export async function editMatchAction(
         [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined)
       ),
       notes,
+      updated_by_user_id: session.uid,
+      updated_at: new Date().toISOString(),
     };
 
     for (const entry of entries) {

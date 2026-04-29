@@ -7,6 +7,8 @@ import { MatchEditForm } from "@/components/match-edit-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchMatchResults } from "@/lib/matches";
 import { fetchPlayerNames } from "@/lib/players-sheet";
+import { canEditMatches } from "@/lib/authorization";
+import { getCurrentSession } from "@/lib/session";
 import { fetchTournamentOptions } from "@/lib/tournaments";
 import { createClient } from "@supabase/supabase-js";
 
@@ -22,6 +24,11 @@ interface EditPageProps {
 }
 
 export default async function MatchEditPage({ params }: EditPageProps) {
+  const session = await getCurrentSession();
+  if (!session || !canEditMatches(session.role)) {
+    redirect("/matches");
+  }
+
   const { createdAt } = await params;
   const decodedCreatedAt = decodeURIComponent(createdAt);
 
@@ -99,7 +106,7 @@ export default async function MatchEditPage({ params }: EditPageProps) {
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="matches" />
+        <AppHeader current="matches" sessionUser={{ displayName: session.displayName, role: session.role }} />
         <FlashMessage />
 
         <Card className="border-white/70 bg-white/90 shadow-xl backdrop-blur">

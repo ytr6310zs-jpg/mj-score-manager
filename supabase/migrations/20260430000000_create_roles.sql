@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS public.roles (
+  id BIGSERIAL PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_roles_code ON public.roles (code);

@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { AppHeader } from "@/components/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCurrentSession } from "@/lib/session";
 
 import { PlayerAddForm } from "@/components/player-add-form";
 import { PlayerDeleteButton } from "@/components/player-delete-button";
@@ -33,12 +34,13 @@ async function fetchPlayers(): Promise<PlayerRow[]> {
 }
 
 export default async function PlayersAdminPage() {
+  const session = await getCurrentSession();
   const players = await fetchPlayers();
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="admin" />
+        <AppHeader current="admin" sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined} />
 
         <div className="max-w-3xl mx-auto space-y-6 py-2">
           <Card>

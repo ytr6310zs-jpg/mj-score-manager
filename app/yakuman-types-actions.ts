@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { canAccessAdmin } from "@/lib/authorization";
+import { getCurrentSession } from "@/lib/session";
 
 export type YakumanTypeActionState = {
   success: boolean;
@@ -16,6 +18,11 @@ export async function addYakumanTypeAction(
   _prev: YakumanTypeActionState | undefined,
   formData: FormData
 ): Promise<YakumanTypeActionState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const code = parseString(formData.get("code"));
   const name = parseString(formData.get("name"));
   const pointsRaw = parseString(formData.get("points"));
@@ -76,6 +83,11 @@ export async function editYakumanTypeAction(
   _prev: YakumanTypeActionState | undefined,
   formData: FormData
 ): Promise<YakumanTypeActionState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const idRaw = parseString(formData.get("id"));
   const id = idRaw ? Number(idRaw) : NaN;
   const name = parseString(formData.get("name"));
@@ -121,6 +133,11 @@ export async function deleteYakumanTypeAction(
   _prev: YakumanTypeActionState | undefined,
   formData: FormData
 ): Promise<YakumanTypeActionState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const idRaw = parseString(formData.get("id"));
   const id = idRaw ? Number(idRaw) : NaN;
   if (!id || Number.isNaN(id)) return { success: false, message: "無効なIDです。" };

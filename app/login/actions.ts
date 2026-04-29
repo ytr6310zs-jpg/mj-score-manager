@@ -1,5 +1,6 @@
 "use server";
 
+import { compare } from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -11,10 +12,14 @@ import {
   SESSION_MAX_AGE_SECONDS,
   createAuthToken,
 } from "@/lib/auth";
+import { fetchUserByUserId } from "@/lib/users";
 import { verifyTotpCode } from "@/lib/mfa";
 
-type LoginState = {
+export type LoginState = {
   error: string | null;
+  message: string | null;
+  requireOtp: boolean;
+  userId: string;
 };
 
 function lockoutMessage() {
@@ -25,10 +30,11 @@ export async function loginAction(
   _prevState: LoginState,
   formData: FormData
 ): Promise<LoginState> {
-  const input = String(formData.get("password") ?? "");
+  const userId = String(formData.get("userId") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
   const otp = String(formData.get("otp") ?? "");
-  const requiredPassword = process.env.ACCESS_PASSWORD;
-  const totpSecret = (process.env.MFA_TOTP_SECRET ?? "").trim();
+  const totpSecretRaw = String(process.env.MFA_TOTP_SECRET ?? "").trim();
+  const totpSecret = totpSecretRaw && totpSecretRaw !== "MFA_TOTP_SECRET" ? totpSecretRaw : "";
   const cookieStore = await cookies();
 
   const handleInvalidCredential = () => {
@@ -54,14 +60,19 @@ export async function loginAction(
       });
       cookieStore.delete(LOGIN_FAILURE_COOKIE_NAME);
 
-      return { error: lockoutMessage() } satisfies LoginState;
+      return {
+        error: lockoutMessage(),
+        message: null,
+        requireOtp: false,
+        userId,
+      } satisfies LoginState;
     }
 
     return null;
   };
 
-  if (!requiredPassword) {
-    return { error: "サーバー側のパスワード設定が未完了です。" };
+  if (!userId || !password) {
+    return { error: "ユーザーIDとパスワードを入力してください。", message: null, requireOtp: false, userId };
   }
 
   const nowSeconds = Math.floor(Date.now() / 1000);
@@ -70,16 +81,38 @@ export async function loginAction(
     const remainingMinutes = Math.max(1, Math.ceil((lockUntil - nowSeconds) / 60));
     return {
       error: `ログイン試行が多いため一時的にロック中です。${remainingMinutes}分後に再試行してください。`,
+      message: null,
+      requireOtp: false,
+      userId,
     };
   }
 
-  if (input !== requiredPassword) {
+  const user = await fetchUserByUserId(userId);
+  if (!user || !user.isActive) {
     const lock = handleInvalidCredential();
     if (lock) {
       return lock;
     }
 
-    return { error: "パスワードが一致しません。" };
+    return { error: "ユーザーIDまたはパスワードが一致しません。", message: null, requireOtp: false, userId };
+  }
+
+  const matched = await compare(password, user.passwordHash);
+  if (!matched) {
+    const lock = handleInvalidCredential();
+    if (lock) {
+      return lock;
+    }
+    return { error: "ユーザーIDまたはパスワードが一致しません。", message: null, requireOtp: false, userId };
+  }
+
+  if (totpSecret && !otp.trim()) {
+    return {
+      error: null,
+      message: "パスワード認証に成功しました。ワンタイムパスワードを入力してください。",
+      requireOtp: true,
+      userId,
+    };
   }
 
   if (totpSecret && !verifyTotpCode(otp, totpSecret)) {
@@ -88,10 +121,15 @@ export async function loginAction(
       return lock;
     }
 
-    return { error: "ワンタイムパスワードが一致しません。" };
+    return { error: "ワンタイムパスワードが一致しません。", message: null, requireOtp: true, userId };
   }
 
-  const token = await createAuthToken(requiredPassword);
+  const token = await createAuthToken({
+    uid: user.id,
+    userId: user.userId,
+    displayName: user.displayName,
+    role: user.role,
+  });
 
   cookieStore.delete(LOGIN_FAILURE_COOKIE_NAME);
   cookieStore.delete(LOGIN_LOCK_COOKIE_NAME);
@@ -102,6 +140,10 @@ export async function loginAction(
     path: "/",
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
+
+  if (user.role === "viewer") {
+    redirect("/matches");
+  }
 
   redirect("/");
 }

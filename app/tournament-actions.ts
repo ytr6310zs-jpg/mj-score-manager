@@ -1,5 +1,7 @@
 "use server";
 
+import { canAccessAdmin } from "@/lib/authorization";
+import { getCurrentSession } from "@/lib/session";
 import { createClient } from "@supabase/supabase-js";
 
 export type TournamentActionState = {
@@ -27,6 +29,11 @@ export async function addTournamentAction(
   _prevState: TournamentActionState | undefined,
   formData: FormData
 ): Promise<TournamentActionState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const name = parseString(formData.get("name"));
 
   if (!name) {
@@ -72,6 +79,11 @@ export async function editTournamentAction(
   _prevState: TournamentActionState | undefined,
   formData: FormData
 ): Promise<TournamentActionState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const id = Number(parseString(formData.get("id")));
   const name = parseString(formData.get("name"));
 
@@ -122,6 +134,11 @@ export async function deleteTournamentAction(
   _prevState: TournamentActionState | undefined,
   formData: FormData
 ): Promise<TournamentActionState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const id = Number(parseString(formData.get("id")));
 
   if (!Number.isInteger(id) || id <= 0) {
