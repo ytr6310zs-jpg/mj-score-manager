@@ -24,6 +24,10 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Consider DB-backed tests runnable when either DATABASE_URL (direct DB connection)
+// or SUPABASE_SERVICE_ROLE_KEY (service-role key for Supabase) is provided.
+const hasDb = Boolean(DATABASE_URL || SUPABASE_SERVICE_ROLE_KEY);
+
 function createReadClient() {
   return createClient(
     SUPABASE_URL,
@@ -207,7 +211,7 @@ async function addYakumanSelection(page: Page) {
 }
 
 test.describe("Score entry form browser E2E", () => {
-  test.skip(!DATABASE_URL, "DATABASE_URL is required for DB-backed UI E2E tests");
+  test.skip(!hasDb, "DATABASE_URL or SUPABASE_SERVICE_ROLE_KEY is required for DB-backed UI E2E tests");
 
   let page: Page;
   let lastInsertedMatchId: number | null = null;
