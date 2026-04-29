@@ -7,8 +7,10 @@ import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
 import { MatchDeleteButton } from "@/components/match-delete-button";
 import { buttonVariants } from "@/components/ui/button";
+import { canEditMatches } from "@/lib/authorization";
 import { resolveFilterParams } from "@/lib/filter-params";
 import { fetchMatchDates, fetchMatchResults, type MatchPlayer } from "@/lib/matches";
+import { getCurrentSession } from "@/lib/session";
 import { fetchTournamentOptions } from "@/lib/tournaments";
 import Link from "next/link";
 
@@ -34,6 +36,8 @@ function resultBadges(player: MatchPlayer): string[] {
 type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
 
 export default async function MatchesPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const session = await getCurrentSession();
+  const canEdit = session ? canEditMatches(session.role) : false;
   const params = await (searchParams as Promise<SearchParams> | undefined);
 
   const { filter, start, end } = resolveFilterParams({
@@ -61,7 +65,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
         <FlashMessage />
       </Suspense>
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="matches" />
+        <AppHeader current="matches" sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined} />
 
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
@@ -108,15 +112,17 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                             {match.gameType.toUpperCase()}
                           </p>
                         </div>
-                        <div className="flex shrink-0 gap-2">
-                          <Link
-                            href={`/matches/${encodeURIComponent(match.createdAt)}/edit`}
-                            className={buttonVariants({ variant: "outline", size: "sm" })}
-                          >
-                            編集
-                          </Link>
-                          <MatchDeleteButton createdAt={match.createdAt} />
-                        </div>
+                        {canEdit ? (
+                          <div className="flex shrink-0 gap-2">
+                            <Link
+                              href={`/matches/${encodeURIComponent(match.createdAt)}/edit`}
+                              className={buttonVariants({ variant: "outline", size: "sm" })}
+                            >
+                              編集
+                            </Link>
+                            <MatchDeleteButton createdAt={match.createdAt} />
+                          </div>
+                        ) : null}
                       </div>
 
                       <ul className="mt-4 space-y-2">
@@ -237,12 +243,14 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
                         </td>
                           <td className="px-3 py-3 text-xs text-emerald-900/80">{match.notes || "-"}</td>
                         <td className="px-3 py-3 text-center">
-                          <div className="flex gap-2 justify-center">
-                            <Link href={`/matches/${encodeURIComponent(match.createdAt)}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                              編集
-                            </Link>
-                            <MatchDeleteButton createdAt={match.createdAt} />
-                          </div>
+                          {canEdit ? (
+                            <div className="flex gap-2 justify-center">
+                              <Link href={`/matches/${encodeURIComponent(match.createdAt)}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                                編集
+                              </Link>
+                              <MatchDeleteButton createdAt={match.createdAt} />
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     ))}

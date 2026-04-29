@@ -13,18 +13,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const requiredPassword = process.env.ACCESS_PASSWORD;
-  if (!requiredPassword) {
-    return NextResponse.json(
-      { error: "ACCESS_PASSWORD is not configured" },
-      { status: 500 }
-    );
-  }
-
   const current = request.cookies.get(AUTH_COOKIE_NAME)?.value;
-  if (!current || !(await verifyAuthToken(current, requiredPassword))) {
+  if (!current) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  const session = await verifyAuthToken(current);
+  if (!session) {
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (pathname === "/" && session.role === "viewer") {
+    return NextResponse.redirect(new URL("/matches", request.url));
+  }
+
+  if (pathname.startsWith("/admin") && session.role !== "admin") {
+    return NextResponse.redirect(new URL("/matches", request.url));
+  }
+
+  if (pathname.startsWith("/matches/") && pathname.endsWith("/edit") && session.role === "viewer") {
+    return NextResponse.redirect(new URL("/matches", request.url));
   }
 
   return NextResponse.next();

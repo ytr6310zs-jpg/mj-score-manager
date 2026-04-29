@@ -5,15 +5,17 @@ import { TournamentAddForm } from "@/components/tournament-add-form";
 import { TournamentDeleteButton } from "@/components/tournament-delete-button";
 import { TournamentEditForm } from "@/components/tournament-edit-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCurrentSession } from "@/lib/session";
 import { fetchTournaments } from "@/lib/tournaments";
 
 export default async function TournamentsAdminPage() {
+  const session = await getCurrentSession();
   const tournaments = await fetchTournaments();
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="admin" />
+        <AppHeader current="admin" sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined} />
 
         <div className="mx-auto max-w-3xl space-y-6 py-2">
           <Card>

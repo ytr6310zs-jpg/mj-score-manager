@@ -1,6 +1,8 @@
 "use server";
 
 import { insertYakumanOccurrences } from "@/lib/insert-yakuman";
+import { canUseScoreInput } from "@/lib/authorization";
+import { getCurrentSession } from "@/lib/session";
 import { buildRankedEntries, validateAndParseMatchForm } from "@/lib/validate-match";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
@@ -13,6 +15,11 @@ export async function saveScoreAction(
   _prevState: SaveScoreState,
   formData: FormData
 ): Promise<SaveScoreState> {
+  const session = await getCurrentSession();
+  if (!session || !canUseScoreInput(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const validated = validateAndParseMatchForm(formData);
   if (!validated.ok) {
     return { success: false, message: validated.message };
@@ -97,7 +104,10 @@ export async function saveScoreAction(
         [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined)
       ),
       notes,
+      created_by_user_id: session.uid,
+      updated_by_user_id: session.uid,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     for (const entry of entries) {
