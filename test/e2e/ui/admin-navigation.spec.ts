@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { totp } from "otplib";
+import { generate } from "otplib";
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
 const E2E_LOGIN_USER_ID = process.env.E2E_LOGIN_USER_ID || "admin";
@@ -19,8 +19,8 @@ async function loginAsAdmin(page: Page) {
   if (TOTP_SECRET) {
     const otpInput = page.locator('input[name="otp"], input#otp').first();
     await expect(otpInput).toBeVisible({ timeout: 10000 });
-    totp.options = { digits: 6, period: 30 };
-    await otpInput.fill(totp.generate(TOTP_SECRET));
+    const code = await generate({ secret: TOTP_SECRET, digits: 6, period: 30 });
+    await otpInput.fill(code);
     await loginButton.click();
   }
 

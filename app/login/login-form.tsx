@@ -26,13 +26,21 @@ export function LoginForm() {
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
+          {!state.requireOtp ? (
+            <div className="space-y-2">
+              <Label htmlFor="userId">ユーザーID</Label>
+              <Input id="userId" name="userId" type="text" required defaultValue={state.userId} />
+            </div>
+          ) : (
+            <input type="hidden" name="userId" value={state.userId} />
+          )}
           <div className="space-y-2">
-            <Label htmlFor="userId">ユーザーID</Label>
-            <Input id="userId" name="userId" type="text" required defaultValue={state.userId} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">パスワード</Label>
-            <Input id="password" name="password" type="password" required />
+            {!state.requireOtp ? (
+              <>
+                <Label htmlFor="password">パスワード</Label>
+                <Input id="password" name="password" type="password" required />
+              </>
+            ) : null}
           </div>
           {state.requireOtp ? (
             <div className="space-y-2">

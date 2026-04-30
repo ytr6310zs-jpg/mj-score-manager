@@ -1,5 +1,5 @@
 import { expect, Page, test } from "@playwright/test";
-import { totp } from "otplib";
+import { generate } from "otplib";
 import { createClient } from "@supabase/supabase-js";
 
 /**
@@ -131,11 +131,8 @@ async function loginIfNeeded(page: Page) {
   if (TOTP_SECRET) {
     const otpInput = page.locator('input[name="otp"], input#otp').first();
     await expect(otpInput).toBeVisible({ timeout: 10000 });
-    totp.options = {
-      digits: 6,
-      period: 30,
-    };
-    await otpInput.fill(totp.generate(TOTP_SECRET));
+    const code = await generate({ secret: TOTP_SECRET, digits: 6, period: 30 });
+    await otpInput.fill(code);
     await loginButton.click();
   }
 
