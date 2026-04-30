@@ -37,7 +37,7 @@
     "worklog:start": "node scripts/worklog.mjs start",
     "worklog:review": "node scripts/worklog.mjs review",
     "worklog:generate": "node scripts/worklog.mjs start",
-    "worklog:summary": "node scripts/worklog.mjs review"
+    "worklog:summary": "node scripts/summary-worklog.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.0",
