@@ -23,6 +23,7 @@
     "test:ui:local:reset": "npm run supabase:reset && npm run test:ui:local",
     "test:ui:debug": "playwright test --debug",
     "check:required-files": "bash -c \"if [ ! -f .github/copilot-instructions.md ]; then echo '\".github/copilot-instructions.md\" が存在しません。コミットを中止します。'; exit 1; fi\"",
+    "check:worklog": "node scripts/check-worklog.mjs",
     "supabase:init": "npx supabase@2.84.2 init",
     "supabase:start": "npx supabase@2.84.2 start",
     "supabase:status": "npx supabase@2.84.2 status",
