@@ -216,119 +216,28 @@ function extractLines(content, prefix) {
 }
 
 function generateReview(args) {
-  ensureDir(REPORT_DIR);
-
-  const files = listRecentLogFiles(args.days);
-  const reviewDate = fmtDate(now());
-  const outFile = args.out
-    ? path.resolve(ROOT, args.out)
-    : path.join(REPORT_DIR, `review-${reviewDate}.md`);
-
-  const summaries = [];
-  const reasons = [];
-  const decisions = [];
-  const nextActions = [];
-  const doneWhenItems = [];
-  const fileCounter = new Map();
-  let entryCount = 0;
-
-  for (const file of files) {
-    const content = fs.readFileSync(file.fullPath, "utf8");
-    entryCount += (content.match(/^### /gm) || []).length;
-
-    for (const summary of extractLines(content, "- summary:")) {
-      summaries.push(summary);
-    }
-
-    for (const reason of extractLines(content, "- reason:")) {
-      reasons.push(reason);
-    }
-
-    let currentSection = "";
-    for (const line of content.split("\n")) {
-      if (line.startsWith("- decisions:")) {
-        currentSection = "decisions";
-        continue;
-      }
-      if (line.startsWith("- next_actions:")) {
-        currentSection = "next_actions";
-        continue;
-      }
-      if (line.startsWith("- done_when:")) {
-        currentSection = "done_when";
-        continue;
-      }
-      if (line.startsWith("### ")) {
-        currentSection = "";
-        continue;
-      }
-      if (line.startsWith("  - ")) {
-        if (currentSection === "next_actions") {
-          nextActions.push(line.slice(4).trim());
-        } else if (currentSection === "done_when") {
-          doneWhenItems.push(line.slice(4).trim());
-        } else if (currentSection === "decisions") {
-          decisions.push(line.slice(4).trim());
-        }
-      }
-    }
-
-    const changedLines = extractLines(content, "- changed_files:");
-    for (const line of changedLines) {
-      if (line === "(変更ファイルなし)") continue;
-      for (const item of line.split(",").map((v) => v.trim()).filter(Boolean)) {
-        fileCounter.set(item, (fileCounter.get(item) || 0) + 1);
-      }
-    }
-  }
-
-  const topFiles = [...fileCounter.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-
-  const body = [
-    `# Worklog Review (${reviewDate})`,
-    "",
-    `- period_days: ${args.days}`,
-    `- log_files: ${files.length}`,
-    `- entries: ${entryCount}`,
-    "",
-    "## Summary",
-    summaries.length ? summaries.map((s) => `- ${s}`).join("\n") : "- (記録なし)",
-    "",
-    "## Reason",
-    reasons.length ? reasons.map((r) => `- ${r}`).join("\n") : "- (記録なし)",
-    "",
-    "## Decisions",
-    decisions.length ? decisions.map((d) => `- ${d}`).join("\n") : "- (記録なし)",
-    "",
-    "## Next Actions",
-    nextActions.length ? nextActions.map((n) => `- ${n}`).join("\n") : "- (記録なし)",
-    "",
-    "## Done When",
-    doneWhenItems.length ? doneWhenItems.map((item) => `- ${item}`).join("\n") : "- (記録なし)",
-    "",
-    "## Frequently Touched Files",
-    topFiles.length ? topFiles.map(([file, count]) => `- ${file} (${count})`).join("\n") : "- (記録なし)",
-    "",
-  ].join("\n");
-
-  ensureDir(path.dirname(outFile));
-  fs.writeFileSync(outFile, body, "utf8");
-  console.log(`Review generated: ${path.relative(ROOT, outFile)}`);
-}
+// `generateReview` removed. Delegate `review` command to `scripts/summary-worklog.mjs`.
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-
   if (args.command === "start" || args.command === "touch") {
     appendWorklog(args);
     return;
   }
 
   if (args.command === "review") {
-    generateReview(args);
-    return;
+    // Delegate to the new summary script to avoid duplicated logic.
+    try {
+      const daysArg = args.days || 7;
+      const outArg = args.out ? ` --out "${args.out}"` : "";
+      const cmd = `node ${path.join("scripts", "summary-worklog.mjs")} --days ${daysArg}${outArg}`;
+      execSync(cmd, { cwd: ROOT, stdio: "inherit" });
+      return;
+    } catch (err) {
+      console.error("Failed to run summary-worklog.mjs:", err.message || err);
+      process.exitCode = 1;
+      return;
+    }
   }
 
   console.error("Unknown command. Use: start|touch|review");
