@@ -24,6 +24,7 @@ created: 2026-04-30
 要件（高レベル）
 --
 1. CLI コマンド `npm run worklog:generate` を実行すると、現在の日時／ブランチ／変更ファイル一覧／作業要約（短文）／決定事項／次アクションを含む Markdown ファイルを `.worklog/logs/YYYY-MM-DD-HHMMSS.md` として出力すること
+1.1. 上記ワークログは原則として agent が生成すること（agent が CLI を呼ぶ、または agent が実行するフロー内で自動作成）。人手で追記する場合は `agent:manual` メタ情報を残すこと。
 2. Husky の `pre-commit` フックまたは同等の仕組みで、作業ブランチにコミットする際に直近のワークログが存在するかチェックし、存在しない場合は警告（または生成）を行うこと
 3. 振り返りスクリプト `npm run worklog:summary -- --days N` が過去 N 日分を集約し、要点（合計コミット数、主要変更、未解決タスク）を生成すること
 4. 生成物は機密情報（`.env*`、トークン、個人情報）をフィルタリングして保存すること
@@ -41,6 +42,38 @@ created: 2026-04-30
 - 個人運用のため、Issue の作成者が設計・実装の最終承認者となる（`.github/copilot-instructions.md` を参照）
 - 機密情報はログに含めない。ログ生成時には `.gitignore` と `.env*` を参考に漏洩しうるパスを除外する
 - 小さな修正やドキュメントのみの変更はワークログルールを省略できるが、PR 本文に「Worklog: skipped (reason)」を明記すること
+
+Agent の責務
+--
+- Agent は以下を満たしてワークログを生成・コミットする責務を負います（運用規約として適用）。
+	- いつワークログを生成するか: Agent が Issue/タスクを処理開始した直後、及び重要な意思決定を行った直後に自動生成すること。
+	- ワークログに含める必須フィールド: `datetime`, `branch`, `changed_files`, `summary`, `decisions`, `next_actions`, `agent_id`（エージェント識別子）
+	- 出力フォーマット: YAML frontmatter（上記メタ） + 本文（簡易説明、コマンド履歴、参照ファイル）
+	- 機密フィルタリング: `.env*` や `.git-ignored` なファイルパス、明白なトークン形式は自動で除外すること
+	- コミット振る舞い: Agent が変更を加える場合は `feature/issue-<番号>-<要約>` ブランチ上で `worklog` を生成し、同一コミットまたは直後のコミットでワークログを含めること（事前にユーザー承認がある場合を除く）
+
+Worklog テンプレート（agent 出力例）
+--
+```
+---
+datetime: 2026-04-30T15:04:22Z
+branch: feature/issue-179-worklog
+changed_files:
+	- scripts/extract-specs.mjs
+	- .specify/specs/179-worklog/spec.md
+summary: "Worklog generation spec added and branch created"
+decisions:
+	- "Spec will require agent-generated worklogs; husky pre-commit will warn if missing"
+next_actions:
+	- "Implement scripts/generate-worklog.js and summary-worklog.js"
+agent_id: agent/codex
+---
+
+作業詳細:
+- 実行コマンド: `node scripts/generate-worklog.js --auto`
+- 備考: サンプルワークログを生成
+```
+
 
 実施タスク（実装フェーズで実行）
 --
