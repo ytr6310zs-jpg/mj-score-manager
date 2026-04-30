@@ -1,5 +1,6 @@
 import { expect, Page, test } from "@playwright/test";
-import { totp } from "otplib";
+import { TOTP } from "otplib";
+const totp = new TOTP();
 import { createClient } from "@supabase/supabase-js";
 
 /**

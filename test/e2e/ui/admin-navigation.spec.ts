@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { totp } from "otplib";
+import { TOTP } from "otplib";
+const totp = new TOTP();
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
 const E2E_LOGIN_USER_ID = process.env.E2E_LOGIN_USER_ID || "admin";
