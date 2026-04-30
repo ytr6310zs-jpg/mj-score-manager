@@ -1,6 +1,7 @@
 "use server";
 
 import { hash } from "bcryptjs";
+import { revalidatePath } from "next/cache";
 
 import { canAccessAdmin } from "@/lib/authorization";
 import { getCurrentSession } from "@/lib/session";
@@ -107,6 +108,13 @@ export async function addUserAction(
   if (error) {
     console.error("addUserAction insert error:", error);
     return { success: false, message: "ユーザーの追加に失敗しました。" };
+  }
+
+  try {
+    // Ensure the admin users page is revalidated so the new user appears immediately.
+    revalidatePath("/admin/users");
+  } catch (e) {
+    // ignore revalidate errors
   }
 
   return { success: true, message: "ユーザーを追加しました。" };

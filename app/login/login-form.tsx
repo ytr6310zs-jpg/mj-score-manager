@@ -31,8 +31,12 @@ export function LoginForm() {
             <Input id="userId" name="userId" type="text" required defaultValue={state.userId} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">パスワード</Label>
-            <Input id="password" name="password" type="password" required />
+            {!state.requireOtp ? (
+              <>
+                <Label htmlFor="password">パスワード</Label>
+                <Input id="password" name="password" type="password" required />
+              </>
+            ) : null}
           </div>
           {state.requireOtp ? (
             <div className="space-y-2">
