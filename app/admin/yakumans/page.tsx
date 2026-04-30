@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getCurrentSession } from "@/lib/session";
 
 import { editYakumanTypeFormAction } from "@/app/yakuman-types-actions";
 import { YakumanAddForm } from "@/components/yakuman-add-form";
@@ -45,12 +46,13 @@ async function fetchYakumans(): Promise<YakumanRow[]> {
 }
 
 export default async function YakumansAdminPage() {
+  const session = await getCurrentSession();
   const yakumans = await fetchYakumans();
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="admin" />
+        <AppHeader current="admin" sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined} />
 
         <div className="max-w-3xl mx-auto space-y-6 py-2">
           <Card>

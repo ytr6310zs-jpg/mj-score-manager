@@ -1,5 +1,7 @@
 "use server";
 
+import { canAccessAdmin } from "@/lib/authorization";
+import { getCurrentSession } from "@/lib/session";
 import { createClient } from "@supabase/supabase-js";
 
 
@@ -13,6 +15,11 @@ export async function addPlayerAction(
   _prevState: AddPlayerState | undefined,
   formData: FormData
 ): Promise<AddPlayerState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const name = String(formData.get("name") ?? "").trim();
 
   if (!name) {
@@ -69,6 +76,11 @@ export async function deletePlayerAction(
   _prevState: DeletePlayerState | undefined,
   formData: FormData
 ): Promise<DeletePlayerState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const idRaw = String(formData.get("id") ?? "").trim();
   const id = Number(idRaw);
   if (!id || Number.isNaN(id)) {
@@ -108,6 +120,11 @@ export async function editPlayerAction(
   _prevState: EditPlayerState | undefined,
   formData: FormData
 ): Promise<EditPlayerState> {
+  const session = await getCurrentSession();
+  if (!session || !canAccessAdmin(session.role)) {
+    return { success: false, message: "この操作を実行する権限がありません。" };
+  }
+
   const idRaw = String(formData.get("id") ?? "").trim();
   const id = Number(idRaw);
   const name = String(formData.get("name") ?? "").trim();

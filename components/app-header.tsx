@@ -1,22 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
+import type { RoleCode } from "@/lib/auth";
 
 type NavTarget = "input" | "matches" | "stats" | "admin";
 
 type AppHeaderProps = {
   current: NavTarget;
+  sessionUser?: {
+    displayName: string;
+    role: RoleCode;
+  };
 };
 
-export function AppHeader({ current }: AppHeaderProps) {
+export function AppHeader({ current, sessionUser }: AppHeaderProps) {
   const pathname = usePathname();
   const [navigatingTo, setNavigatingTo] = useState<null | NavTarget>(null);
   const [showIndicator, setShowIndicator] = useState(false);
+  const canUseScoreInput = sessionUser?.role !== "viewer";
+  const canAccessAdmin = sessionUser?.role === "admin";
 
   const delayTimerRef = useRef<number | null>(null);
   const timeoutTimerRef = useRef<number | null>(null);
@@ -97,13 +104,15 @@ export function AppHeader({ current }: AppHeaderProps) {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900/70 sm:text-sm">
           Mahjong Score Manager
         </p>
-        <Menu current={current} setNavigatingTo={setNavigatingTo} navigatingTo={navigatingTo} />
+        <Menu pathname={pathname} current={current} setNavigatingTo={setNavigatingTo} navigatingTo={navigatingTo} canAccessAdmin={canAccessAdmin} sessionUser={sessionUser} />
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <Link href="/" className={navClass("input")} onClick={handleNavClick("input")} aria-busy={navigatingTo === "input"} aria-disabled={navigatingTo === "input"}>
-          スコア入力
-        </Link>
+        {canUseScoreInput ? (
+          <Link href="/" className={navClass("input")} onClick={handleNavClick("input")} aria-busy={navigatingTo === "input"} aria-disabled={navigatingTo === "input"}>
+            スコア入力
+          </Link>
+        ) : null}
         <Link href="/matches" className={navClass("matches")} onClick={handleNavClick("matches")} aria-busy={navigatingTo === "matches"} aria-disabled={navigatingTo === "matches"}>
           対局履歴
         </Link>
@@ -135,7 +144,24 @@ export function AppHeader({ current }: AppHeaderProps) {
   );
 }
 
-function Menu({ current, setNavigatingTo, navigatingTo }: { current: NavTarget; setNavigatingTo: Dispatch<SetStateAction<null | NavTarget>>; navigatingTo: null | NavTarget }) {
+function Menu({
+  pathname,
+  current,
+  setNavigatingTo,
+  navigatingTo,
+  canAccessAdmin,
+  sessionUser,
+}: {
+  pathname: string | null;
+  current: NavTarget;
+  setNavigatingTo: Dispatch<SetStateAction<null | NavTarget>>;
+  navigatingTo: null | NavTarget;
+  canAccessAdmin: boolean;
+  sessionUser?: {
+    displayName: string;
+    role: RoleCode;
+  };
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -181,25 +207,33 @@ function Menu({ current, setNavigatingTo, navigatingTo }: { current: NavTarget; 
 
       {isOpen && (
         <div className="absolute right-0 top-full z-50 mt-1 w-40 min-w-[8rem] rounded-md border bg-card p-2 shadow-sm" role="menu">
-          <Link
-            href="/admin"
-            className={buttonVariants({
-              variant: current === "admin" ? "default" : "ghost",
-              size: "sm",
-              className: "w-full text-left",
-            })}
-            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-              if (current === "admin" || navigatingTo) {
-                e.preventDefault();
-                return;
-              }
-              setIsOpen(false);
-              setNavigatingTo("admin");
-            }}
-            role="menuitem"
-          >
-            管理
-          </Link>
+          {sessionUser ? (
+            <div className="mb-2 border-b pb-2 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">{sessionUser.displayName}</p>
+              <p>権限: {sessionUser.role}</p>
+            </div>
+          ) : null}
+          {canAccessAdmin ? (
+            <Link
+              href="/admin"
+              className={buttonVariants({
+                variant: current === "admin" ? "default" : "ghost",
+                size: "sm",
+                className: "w-full text-left",
+              })}
+              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                if ((current === "admin" && pathname === "/admin") || navigatingTo) {
+                  e.preventDefault();
+                  return;
+                }
+                setIsOpen(false);
+                setNavigatingTo("admin");
+              }}
+              role="menuitem"
+            >
+              管理
+            </Link>
+          ) : null}
           <form action={logoutAction} className="mt-2">
             <Button type="submit" variant="ghost" size="sm" className="w-full text-left" role="menuitem">
               ログアウト

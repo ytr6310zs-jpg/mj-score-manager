@@ -1,126 +1,97 @@
-const encoder = new TextEncoder();
-
 export const AUTH_COOKIE_NAME = "mj_access";
 export const LOGIN_FAILURE_COOKIE_NAME = "mj_login_failures";
 export const LOGIN_LOCK_COOKIE_NAME = "mj_login_locked_until";
+export const PREAUTH_COOKIE_NAME = "mj_preauth_user";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60;
 export const MAX_LOGIN_FAILURES = 5;
 export const LOGIN_LOCK_SECONDS = 60 * 5;
 
-type SessionPayload = {
-  exp: number;
-  nonce: string;
+import { SignJWT } from "jose/jwt/sign";
+import { jwtVerify } from "jose/jwt/verify";
+
+export type RoleCode = "admin" | "editor" | "viewer";
+
+export type AuthSession = {
+  uid: number;
+  userId: string;
+  displayName: string;
+  role: RoleCode;
 };
 
-function bytesToBase64(bytes: Uint8Array): string {
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(bytes).toString("base64");
-  }
-
-  let binary = "";
-  for (const b of bytes) {
-    binary += String.fromCharCode(b);
-  }
-  return btoa(binary);
-}
-
-function base64ToBytes(base64: string): Uint8Array {
-  if (typeof Buffer !== "undefined") {
-    return new Uint8Array(Buffer.from(base64, "base64"));
-  }
-
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-function base64UrlEncodeBytes(bytes: Uint8Array): string {
-  return bytesToBase64(bytes)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-}
-
-function base64UrlEncodeString(value: string): string {
-  return base64UrlEncodeBytes(encoder.encode(value));
-}
-
-function base64UrlDecodeToString(value: string): string {
-  const padded = value
-    .replace(/-/g, "+")
-    .replace(/_/g, "/")
-    .padEnd(Math.ceil(value.length / 4) * 4, "=");
-
-  const bytes = base64ToBytes(padded);
-  return new TextDecoder().decode(bytes);
-}
-
-function secureEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  let diff = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-
-  return diff === 0;
-}
-
-async function signPayload(payloadPart: string, password: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    {
-      name: "HMAC",
-      hash: "SHA-256",
-    },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payloadPart));
-  return base64UrlEncodeBytes(new Uint8Array(signature));
-}
-
-function randomNonce(length: number): string {
-  const bytes = new Uint8Array(length);
+function randomNonce(byteLength: number): string {
+  const bytes = new Uint8Array(byteLength);
   crypto.getRandomValues(bytes);
 
   return Array.from(bytes, (v) => v.toString(16).padStart(2, "0")).join("");
 }
 
-export async function createAuthToken(password: string): Promise<string> {
-  const payload: SessionPayload = {
-    exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SECONDS,
-    nonce: randomNonce(16),
-  };
-
-  const payloadPart = base64UrlEncodeString(JSON.stringify(payload));
-  const signaturePart = await signPayload(payloadPart, password);
-  return `${payloadPart}.${signaturePart}`;
+function getAuthSecret(): string | null {
+  const raw = String(process.env.AUTH_SESSION_SECRET ?? process.env.ACCESS_PASSWORD ?? "").trim();
+  return raw ? raw : null;
 }
 
-export async function verifyAuthToken(token: string, password: string): Promise<boolean> {
-  const [payloadPart, signaturePart] = token.split(".");
+const encoder = new TextEncoder();
 
-  if (!payloadPart || !signaturePart) {
-    return false;
+function normalizeRole(value: unknown): RoleCode | null {
+  if (value === "admin" || value === "editor" || value === "viewer") {
+    return value;
+  }
+  return null;
+}
+
+export async function createAuthToken(session: AuthSession): Promise<string> {
+  const secret = getAuthSecret();
+  if (!secret) {
+    throw new Error("AUTH_SESSION_SECRET または ACCESS_PASSWORD が未設定です。");
   }
 
-  const expectedSignature = await signPayload(payloadPart, password);
-  if (!secureEqual(signaturePart, expectedSignature)) {
-    return false;
+  return await new SignJWT({
+    uid: session.uid,
+    userId: session.userId,
+    displayName: session.displayName,
+    role: session.role,
+    ver: 2,
+    nonce: randomNonce(16),
+  })
+    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+    .setIssuedAt()
+    .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
+    .sign(encoder.encode(secret));
+}
+
+export async function verifyAuthToken(token: string): Promise<AuthSession | null> {
+  const secret = getAuthSecret();
+  if (!secret) {
+    return null;
   }
 
   try {
-    const payload = JSON.parse(base64UrlDecodeToString(payloadPart)) as SessionPayload;
-    return Number.isFinite(payload.exp) && payload.exp > Math.floor(Date.now() / 1000);
+    const verified = await jwtVerify(token, encoder.encode(secret), {
+      algorithms: ["HS256"],
+    });
+    const { uid, userId, displayName, role } = verified.payload;
+
+    if (!Number.isFinite(uid)) {
+      return null;
+    }
+    if (typeof userId !== "string" || userId.trim() === "") {
+      return null;
+    }
+    if (typeof displayName !== "string" || displayName.trim() === "") {
+      return null;
+    }
+    const normalizedRole = normalizeRole(role);
+    if (!normalizedRole) {
+      return null;
+    }
+
+    return {
+      uid: Number(uid),
+      userId,
+      displayName,
+      role: normalizedRole,
+    };
   } catch {
-    return false;
+    return null;
   }
 }

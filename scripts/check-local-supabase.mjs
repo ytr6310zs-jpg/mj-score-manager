@@ -1,11 +1,24 @@
 #!/usr/bin/env node
+import nextEnv from '@next/env';
+
+const { loadEnvConfig } = nextEnv;
+
+loadEnvConfig(process.cwd());
+
 // Simple guard to prevent accidentally running dev against remote DB
+const strict = process.argv.includes('--strict');
 const url = process.env.SUPABASE_URL || process.env.DATABASE_URL || '';
 const allow = /^(1|true)$/i.test(process.env.ALLOW_REMOTE_DB || '');
 
 if (!url) {
-  console.warn('WARNING: SUPABASE_URL or DATABASE_URL is not set. Ensure you have a .env.local for local dev.');
-  // don't fail hard here — developer might rely on other flows
+  const message = 'SUPABASE_URL or DATABASE_URL is not set. Ensure you have a .env.local for local dev.';
+  if (strict) {
+    console.error(`Refusing to proceed: ${message}`);
+    process.exit(1);
+  }
+
+  console.warn(`WARNING: ${message}`);
+  // don't fail hard in non-strict mode — developer might rely on other flows
   process.exit(0);
 }
 

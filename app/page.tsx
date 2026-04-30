@@ -1,17 +1,19 @@
 import { AppHeader } from "@/components/app-header";
 import { ScoreForm } from "@/components/score-form";
 import { fetchPlayerNames } from "@/lib/players-sheet";
+import { getCurrentSession } from "@/lib/session";
 import { fetchTournamentOptions } from "@/lib/tournaments";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const session = await getCurrentSession();
   const players = await fetchPlayerNames();
   const tournaments = await fetchTournamentOptions();
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="input" />
+        <AppHeader current="input" sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined} />
         <ScoreForm players={players} tournaments={tournaments} />
       </div>
     </main>

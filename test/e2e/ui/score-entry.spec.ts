@@ -1,4 +1,5 @@
 import { expect, Page, test } from "@playwright/test";
+import { generate } from "otplib";
 import { createClient } from "@supabase/supabase-js";
 
 /**
@@ -19,10 +20,22 @@ import { createClient } from "@supabase/supabase-js";
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
 const DATABASE_URL = process.env.DATABASE_URL;
 const SUPABASE_URL = process.env.SUPABASE_URL || "http://127.0.0.1:54321";
+const E2E_LOGIN_USER_ID = process.env.E2E_LOGIN_USER_ID || "admin";
+const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD || "ChangeMe_184";
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const TOTP_SECRET_RAW = String(process.env.MFA_TOTP_SECRET ?? "").trim();
+const TOTP_SECRET = TOTP_SECRET_RAW && TOTP_SECRET_RAW !== "MFA_TOTP_SECRET" ? TOTP_SECRET_RAW : "";
+
+function requireDatabaseUrl(): string {
+  if (!DATABASE_URL) {
+    throw new Error("DATABASE_URL is required for local DB-backed UI E2E tests. Ensure .env.local is loaded before running Playwright.");
+  }
+
+  return DATABASE_URL;
+}
 
 function createReadClient() {
   return createClient(
@@ -34,7 +47,9 @@ function createReadClient() {
 
 // Helper to clear test data from DB
 async function cleanupTestMatch(matchId: number | null) {
-  if (!matchId || !DATABASE_URL) return;
+  if (!matchId) return;
+
+  requireDatabaseUrl();
 
   const supabase = createReadClient();
 
@@ -43,7 +58,7 @@ async function cleanupTestMatch(matchId: number | null) {
 
 // Helper to fetch latest match from DB
 async function fetchLatestMatch() {
-  if (!DATABASE_URL) return null;
+  requireDatabaseUrl();
 
   const supabase = createReadClient();
 
@@ -61,7 +76,7 @@ async function fetchLatestMatch() {
 }
 
 async function fetchExistingPlayers(minCount: number) {
-  if (!DATABASE_URL) return [] as string[];
+  requireDatabaseUrl();
 
   const supabase = createClient(
     SUPABASE_URL,
@@ -102,17 +117,29 @@ async function fetchExistingPlayers(minCount: number) {
 }
 
 async function loginIfNeeded(page: Page) {
-  const accessPassword = process.env.ACCESS_PASSWORD;
-  if (!accessPassword) return;
-
   await page.goto(`${BASE_URL}/login`);
+  const userIdInput = page.locator('input[name="userId"], input#userId').first();
   const passwordInput = page.locator('input[name="password"], input#password').first();
+  await expect(userIdInput).toBeVisible();
   await expect(passwordInput).toBeVisible();
-  await passwordInput.fill(accessPassword);
+  await userIdInput.fill(E2E_LOGIN_USER_ID);
+  await passwordInput.fill(E2E_LOGIN_PASSWORD);
 
   const loginButton = page.locator('button[type="submit"], button:has-text("ログイン")').first();
   await loginButton.click();
-  await page.waitForURL(`${BASE_URL}/`, { waitUntil: "networkidle", timeout: 10000 });
+
+  if (TOTP_SECRET) {
+    const otpInput = page.locator('input[name="otp"], input#otp').first();
+    await expect(otpInput).toBeVisible({ timeout: 10000 });
+    const code = await generate({ secret: TOTP_SECRET, digits: 6, period: 30 });
+    await otpInput.fill(code);
+    await loginButton.click();
+  }
+
+  await page.waitForURL(
+    (url) => url.pathname === "/" || url.pathname === "/matches",
+    { waitUntil: "networkidle", timeout: 10000 }
+  );
 }
 
 async function selectGameType(page: Page, gameType: "3p" | "4p") {
@@ -157,7 +184,7 @@ async function waitForMatchByNote(note: string) {
 }
 
 async function fetchMatchesCountByNote(note: string) {
-  if (!DATABASE_URL) return 0;
+  requireDatabaseUrl();
 
   const supabase = createReadClient();
 
@@ -206,11 +233,34 @@ async function addYakumanSelection(page: Page) {
   await expect(yakumanPanel.getByText("登録済みの役満はありません。")).toHaveCount(0);
 }
 
-test.describe("Score entry form browser E2E", () => {
-  test.skip(!DATABASE_URL, "DATABASE_URL is required for DB-backed UI E2E tests");
+async function assertDbConnectivity(): Promise<void> {
+  requireDatabaseUrl();
 
+  const supabase = createReadClient();
+  const requiredTables = ["players", "games", "users"] as const;
+
+  for (const tableName of requiredTables) {
+    const { error } = await supabase
+      .from(tableName)
+      .select("id", { head: true, count: "exact" })
+      .limit(1);
+
+    if (error) {
+      throw new Error(
+        `Local DB-backed UI E2E preflight failed: required table '${tableName}' is not reachable (${error.message}). ` +
+        "Ensure local Supabase is running and migrations are applied, for example with 'npm run supabase:reset'."
+      );
+    }
+  }
+}
+
+test.describe("Score entry form browser E2E", () => {
   let page: Page;
   let lastInsertedMatchId: number | null = null;
+
+  test.beforeAll(async () => {
+    await assertDbConnectivity();
+  });
 
   test.beforeEach(async ({ page: testPage }) => {
     page = testPage;
