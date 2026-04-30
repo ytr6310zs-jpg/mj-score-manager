@@ -215,7 +215,6 @@ function extractLines(content, prefix) {
     .filter(Boolean);
 }
 
-function generateReview(args) {
 // `generateReview` removed. Delegate `review` command to `scripts/summary-worklog.mjs`.
 
 function main() {
