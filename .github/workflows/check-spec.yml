@@ -11,30 +11,50 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check for .specify or PR body
         run: |
-          # Attempt to fetch a shallow copy of the base branch; fall back safely
-          git fetch origin ${{ github.base_ref }} --depth=50 || git fetch origin ${{ github.base_ref }} || true
+          set -euo pipefail
+          echo "[check-spec] Starting spec presence check"
+          echo "[check-spec] Base ref: '${{ github.base_ref }}'  Event: '${{ github.event_name }}'  PR#: '${{ github.event.number || "-" }}'"
 
-          # Prefer a merge-base diff when available to avoid 'no merge base' errors
+          # Ensure origin points to repository URL and try a deeper shallow fetch for base branch
+          git remote set-url origin "https://github.com/${{ github.repository }}" || true
+          echo "[check-spec] Fetching base branch '${{ github.base_ref }}' (shallow)..."
+          git fetch --no-tags --prune origin "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}" --depth=100 || \
+            (echo "[check-spec] shallow fetch failed, retrying full fetch" && git fetch --no-tags --prune origin "${{ github.base_ref }}" || true)
+
+          # Also attempt to fetch the PR merge ref so diffing against merge commit works if provided
+          if [ -n "${{ github.event.number }}" ]; then
+            echo "[check-spec] Fetching PR merge ref refs/pull/${{ github.event.number }}/merge..."
+            git fetch --no-tags --prune origin "+refs/pull/${{ github.event.number }}/merge:refs/remotes/pull/${{ github.event.number }}/merge" --depth=1 || true
+          fi
+
+          echo "[check-spec] Git branches (local + remotes):"
+          git branch -a || true
+
+          # Prefer a merge-base when available to avoid 'no merge base' errors
           BASE=$(git merge-base HEAD origin/${{ github.base_ref }} || true)
+          echo "[check-spec] merge-base: $BASE"
+
           if [ -n "$BASE" ]; then
             MODIFIED=$(git diff --name-only $BASE..HEAD || true)
           else
+            echo "[check-spec] No merge-base found; falling back to origin/${{ github.base_ref }}..HEAD diff"
             MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}..HEAD || true)
           fi
 
-          echo "Modified files: $MODIFIED"
+          echo "[check-spec] Modified files: $MODIFIED"
           if echo "$MODIFIED" | grep -q "^.specify/"; then
-            echo "Spec files changed in PR - OK"
+            echo "[check-spec] Spec files changed in PR - OK"
             exit 0
           fi
 
-          # If no .specify changes, check PR body for a 'Spec' section
+          # If no .specify changes, check PR body for a 'Spec' section (case-insensitive)
           BODY=$(jq -r .pull_request.body <<< "$GITHUB_EVENT_PAYLOAD")
+          echo "[check-spec] PR body preview:\n${BODY:0:800}"
           if echo "$BODY" | grep -qi "spec"; then
-            echo "PR body contains spec section - OK"
+            echo "[check-spec] PR body contains spec section - OK"
             exit 0
           fi
 
-          echo "Spec artifact not found in PR and PR body lacks 'spec' section." >&2
-          echo "Add .specify/specs/<feature>/spec.md or include a 'Spec' section in PR body." >&2
+          echo "[check-spec] Spec artifact not found in PR and PR body lacks 'spec' section." >&2
+          echo "[check-spec] Add .specify/specs/<feature>/spec.md or include a 'Spec' section in PR body." >&2
           exit 1
