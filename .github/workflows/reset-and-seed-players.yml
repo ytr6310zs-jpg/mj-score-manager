@@ -27,7 +27,7 @@ on:
 jobs:
   reset_and_seed:
     runs-on: ubuntu-latest
-    environment: "${{ github.event.inputs.target == 'prod' && 'Production – mj-score-manager-tfvp' || 'Preview – mj-score-manager-tfvp' }}"
+    environment: "${{ github.event.inputs.target == 'prod' && 'Production – mj-score-manager-tfvp' || 'Staging' }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

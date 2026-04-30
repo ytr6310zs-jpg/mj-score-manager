@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/migrate-common.yml
     with:
       target: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target || 'staging' }}"
-      environment_name: "${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'prod') && 'Production – mj-score-manager-tfvp' || 'Preview – mj-score-manager-tfvp' }}"
+      environment_name: "${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'prod') && 'Production – mj-score-manager-tfvp' || (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'preview') && 'Preview – mj-score-manager-tfvp' || 'Staging' }}"
       allow_repair: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'prod' && false || true }}
       supabase_cli_version: '2.84.2'
     secrets: inherit
