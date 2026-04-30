@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-.
 set -e
 
 # Check required repository file
@@ -11,6 +10,7 @@ fi
 # Optionally run the npm check script if available
 if command -v npm >/dev/null 2>&1; then
   npm run check:required-files --silent || exit 1
+  npm run check:worklog --silent || exit 1
 fi
 
 exit 0
