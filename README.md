@@ -127,6 +127,34 @@ npm run check:local-pages
 npm run build
 ```
 
+### UI E2E（Playwright）ローカル実行
+
+ローカル UI E2E は、実行前に DB 接続先チェックを必ず行います。
+
+```bash
+# 事前チェックのみ（ローカルDB設定の確認）
+npm run test:ui:preflight
+
+# 通常実行（preflight -> Playwright）
+npm run test:ui:local
+
+# DBをリセットしてから実行（migrations 再適用込み）
+npm run test:ui:local:reset
+```
+
+補足:
+
+- `test:ui:local` は `check:local-db:strict` を内部で実行し、`SUPABASE_URL` / `DATABASE_URL` が未設定、または remote URL の場合は失敗します。
+- `test/e2e/ui/score-entry.spec.ts` は preflight で `players` / `games` / `users` テーブルを検証し、未マイグレーション状態は `skip` ではなくテスト失敗として報告します。
+- 既定の UI テスト用ログイン情報は `admin / ChangeMe_184` です。必要なら以下で上書きしてください。
+
+```bash
+export E2E_LOGIN_USER_ID="admin"
+export E2E_LOGIN_PASSWORD="ChangeMe_184"
+```
+
+- `MFA_TOTP_SECRET` を有効化している環境では、UI E2E 側で OTP 入力も自動対応します（`MFA_TOTP_SECRET` を `.env.local` または環境変数で設定）。
+
 トラブルシュート:
 
 - `npx supabase@2.84.2 start` が失敗する場合: Docker Desktop / Docker Engine が起動しているか確認する
