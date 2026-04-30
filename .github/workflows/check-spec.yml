@@ -11,20 +11,30 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check for .specify or PR body
         run: |
-          # Check if .specify/specs contains any files modified in the PR
-          git fetch origin ${{ github.base_ref }} --depth=1 || true
-          MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || true)
+          # Attempt to fetch a shallow copy of the base branch; fall back safely
+          git fetch origin ${{ github.base_ref }} --depth=50 || git fetch origin ${{ github.base_ref }} || true
+
+          # Prefer a merge-base diff when available to avoid 'no merge base' errors
+          BASE=$(git merge-base HEAD origin/${{ github.base_ref }} || true)
+          if [ -n "$BASE" ]; then
+            MODIFIED=$(git diff --name-only $BASE..HEAD || true)
+          else
+            MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}..HEAD || true)
+          fi
+
           echo "Modified files: $MODIFIED"
           if echo "$MODIFIED" | grep -q "^.specify/"; then
             echo "Spec files changed in PR - OK"
             exit 0
           fi
+
           # If no .specify changes, check PR body for a 'Spec' section
           BODY=$(jq -r .pull_request.body <<< "$GITHUB_EVENT_PAYLOAD")
           if echo "$BODY" | grep -qi "spec"; then
             echo "PR body contains spec section - OK"
             exit 0
           fi
+
           echo "Spec artifact not found in PR and PR body lacks 'spec' section." >&2
           echo "Add .specify/specs/<feature>/spec.md or include a 'Spec' section in PR body." >&2
           exit 1
