@@ -22,7 +22,7 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == 'staging' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: "Staging"
+    environment: "Preview – mj-score-manager-tfvp"
 
     steps:
       - name: Ping Supabase DB (staging)
