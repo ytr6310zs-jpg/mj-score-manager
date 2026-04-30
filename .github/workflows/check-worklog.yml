@@ -1,0 +1,27 @@
+name: Check Worklog Presence
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-worklog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PR contains worklog note or .worklog changes
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+          MODIFIED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || true)
+          echo "Modified files: $MODIFIED"
+          if echo "$MODIFIED" | grep -q "^.worklog/"; then
+            echo "Worklog file changed in PR - OK"
+            exit 0
+          fi
+          BODY=$(jq -r .pull_request.body "$GITHUB_EVENT_PATH")
+          if echo "$BODY" | grep -qi "worklog"; then
+            echo "PR body contains worklog note - OK"
+            exit 0
+          fi
+          echo "PR lacks worklog evidence: add .worklog/logs/<date>.md or include 'worklog' note in PR body." >&2
+          exit 1
