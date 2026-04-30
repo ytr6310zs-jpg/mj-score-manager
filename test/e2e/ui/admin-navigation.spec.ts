@@ -40,6 +40,6 @@ test.describe("Admin navigation", () => {
     await adminMenuItem.click();
 
     await expect(page).toHaveURL(`${BASE_URL}/admin`);
-    await expect(page.locator("text=管理")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "管理" })).toBeVisible();
   });
 });

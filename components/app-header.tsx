@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 import { logoutAction } from "@/app/login/actions";
-import type { RoleCode } from "@/lib/auth";
 import { Button, buttonVariants } from "@/components/ui/button";
+import type { RoleCode } from "@/lib/auth";
 
 type NavTarget = "input" | "matches" | "stats" | "admin";
 
