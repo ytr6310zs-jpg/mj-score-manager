@@ -104,7 +104,7 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900/70 sm:text-sm">
           Mahjong Score Manager
         </p>
-        <Menu current={current} setNavigatingTo={setNavigatingTo} navigatingTo={navigatingTo} canAccessAdmin={canAccessAdmin} sessionUser={sessionUser} />
+        <Menu pathname={pathname} current={current} setNavigatingTo={setNavigatingTo} navigatingTo={navigatingTo} canAccessAdmin={canAccessAdmin} sessionUser={sessionUser} />
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -145,12 +145,14 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
 }
 
 function Menu({
+  pathname,
   current,
   setNavigatingTo,
   navigatingTo,
   canAccessAdmin,
   sessionUser,
 }: {
+  pathname: string | null;
   current: NavTarget;
   setNavigatingTo: Dispatch<SetStateAction<null | NavTarget>>;
   navigatingTo: null | NavTarget;
@@ -220,7 +222,7 @@ function Menu({
                 className: "w-full text-left",
               })}
               onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                if (current === "admin" || navigatingTo) {
+                if ((current === "admin" && pathname === "/admin") || navigatingTo) {
                   e.preventDefault();
                   return;
                 }
