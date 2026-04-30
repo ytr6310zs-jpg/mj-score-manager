@@ -38,6 +38,7 @@ export async function loginAction(
   const totpSecret = totpSecretRaw && totpSecretRaw !== "MFA_TOTP_SECRET" ? totpSecretRaw : "";
   const cookieStore = await cookies();
   const preauthUser = String(cookieStore.get(PREAUTH_COOKIE_NAME)?.value ?? "").trim();
+  const isOtpOnlyStep = Boolean(_prevState?.requireOtp && otp.trim() && !password);
 
   const handleInvalidCredential = () => {
     const currentFailures = Number(cookieStore.get(LOGIN_FAILURE_COOKIE_NAME)?.value ?? "0");
@@ -73,7 +74,7 @@ export async function loginAction(
     return null;
   };
 
-  if (!userId || (!(_prevState?.requireOtp) && !password)) {
+  if (!userId || (!password && !isOtpOnlyStep)) {
     return { error: "ユーザーIDとパスワードを入力してください。", message: null, requireOtp: false, userId };
   }
 
@@ -99,31 +100,33 @@ export async function loginAction(
     return { error: "ユーザーIDまたはパスワードが一致しません。", message: null, requireOtp: false, userId };
   }
 
-  const matched = await compare(password, user.passwordHash);
-  if (!matched) {
-    const lock = handleInvalidCredential();
-    if (lock) {
-      return lock;
+  if (!isOtpOnlyStep) {
+    const matched = await compare(password, user.passwordHash);
+    if (!matched) {
+      const lock = handleInvalidCredential();
+      if (lock) {
+        return lock;
+      }
+      return { error: "ユーザーIDまたはパスワードが一致しません。", message: null, requireOtp: false, userId };
     }
-    return { error: "ユーザーIDまたはパスワードが一致しません。", message: null, requireOtp: false, userId };
-  }
 
-  if (totpSecret && !otp.trim()) {
-    // Mark pre-authenticated user for short time so next submission can be OTP-only.
-    cookieStore.set(PREAUTH_COOKIE_NAME, String(userId), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 5,
-    });
+    if (totpSecret && !otp.trim()) {
+      // Mark pre-authenticated user for short time so next submission can be OTP-only.
+      cookieStore.set(PREAUTH_COOKIE_NAME, String(userId), {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 5,
+      });
 
-    return {
-      error: null,
-      message: "パスワード認証に成功しました。ワンタイムパスワードを入力してください。",
-      requireOtp: true,
-      userId,
-    };
+      return {
+        error: null,
+        message: "パスワード認証に成功しました。ワンタイムパスワードを入力してください。",
+        requireOtp: true,
+        userId,
+      };
+    }
   }
 
   if (totpSecret) {
