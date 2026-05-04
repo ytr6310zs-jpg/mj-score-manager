@@ -1,4 +1,5 @@
 import type { PlayerStats } from "@/lib/stats";
+import { RANK_BADGE } from "@/lib/stats-rank-theme";
 import React from "react";
 
 interface StatsSummaryTableProps {
@@ -44,7 +45,15 @@ export const StatsSummaryTable: React.FC<StatsSummaryTableProps> = ({ stats, tit
         <tbody>
           {stats.map((p) => (
             <tr key={p.name} className="border-t h-8">
-              <td className="px-2 py-0 text-center align-middle leading-4">{p.rank}</td>
+              <td className="px-2 py-0 text-center align-middle leading-4">
+                {RANK_BADGE[p.rank] ? (
+                  <span className={`inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded px-1 text-[10px] font-bold ${RANK_BADGE[p.rank]}`}>
+                    {p.rank}
+                  </span>
+                ) : (
+                  p.rank
+                )}
+              </td>
               <td className="px-2 py-0 align-middle leading-4 whitespace-nowrap">{p.name}</td>
               <td className="px-2 py-0 text-right tabular-nums align-middle leading-4">{p.games}</td>
               <td className={`px-2 py-0 text-right tabular-nums align-middle leading-4 ${p.totalScore >= 0 ? "text-emerald-700" : "text-destructive"}`}>
