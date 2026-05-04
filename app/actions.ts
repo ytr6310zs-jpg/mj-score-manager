@@ -85,7 +85,7 @@ export async function saveScoreAction(
       nameToId.set(r.name, r.id);
     }
 
-    type RowValue = string | number | boolean | null;
+    type RowValue = string | number | boolean | null | number[];
 
     const row: Record<string, RowValue> = {
       tournament_id: tournamentId,
@@ -101,13 +101,9 @@ export async function saveScoreAction(
       tobi_player_id: tobiPlayers.length === 1 ? (nameToId.get(tobiPlayers[0]) ?? null) : null,
       tobashi_player: tobashiPlayer ?? null,
       tobashi_player_id: tobashiPlayer ? (nameToId.get(tobashiPlayer) ?? null) : null,
-      tobashi_player_ids: JSON.stringify(
-        tobashiPlayers.map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined)
-      ),
+      tobashi_player_ids: tobashiPlayers.map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
       yakitori_players: [...yakitoriPlayers].join(","),
-      yakitori_player_ids: JSON.stringify(
-        [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined)
-      ),
+      yakitori_player_ids: [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
       notes,
       created_by_user_id: session.uid,
       updated_by_user_id: session.uid,
