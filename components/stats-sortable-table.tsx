@@ -165,7 +165,7 @@ export default function StatsSortableTable({
 
   return (
     <table className="min-w-full border-collapse text-sm">
-      <thead>
+      <thead className="bg-emerald-50">
         <tr className="border-b-2 border-emerald-800/20 bg-emerald-50 text-xs font-semibold text-emerald-900">
           <th className="sticky left-0 top-0 z-30 bg-emerald-50 px-3 py-2.5 text-left">名前</th>
           {header("totalScore", "合計")}
