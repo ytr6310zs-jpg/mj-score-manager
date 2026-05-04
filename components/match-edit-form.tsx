@@ -11,10 +11,11 @@ import { Label } from "@/components/ui/label";
 import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
+import useYakumans from "@/lib/useYakumans";
 import type { MatchResult } from "@/lib/matches";
 import { setLastTournamentId } from "@/lib/tournament-preference";
 import type { TournamentOption } from "@/lib/tournaments";
-import YAKUMANS from "@/lib/yakumans";
+import { YAKUMANS } from "@/lib/yakumans";
 
 const initialState: EditMatchState = {
   success: false,
@@ -54,6 +55,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
   const router = useRouter();
   const [state, formAction] = useActionState(editMatchAction, initialState);
   const [pending, startTransition] = useTransition();
+  const { yakumans: yakumanList } = useYakumans();
   const [clientError, setClientError] = useState<string | null>(null);
   const [duplicatePlayerError, setDuplicatePlayerError] = useState<string | null>(null);
   const [tournamentId, setTournamentId] = useState<string>(
@@ -434,7 +436,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
       <YakumanSelectionPanel
         className="space-y-2 border-b border-emerald-200 pb-4"
         activePlayerNames={activePlayerNames}
-        yakumanOptions={YAKUMANS}
+        yakumanOptions={yakumanList || YAKUMANS}
         value={pendingYakumans}
         onChange={setPendingYakumans}
         onErrorChange={setClientError}
