@@ -264,7 +264,7 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
                   })}
                 </div>
 
-                <div className="hidden overflow-x-auto md:block">
+                <div className="hidden overflow-auto max-h-[70vh] md:block">
                   {/* PC: sortable table component */}
                   <StatsSortableTable stats={stats} topSets={topSets} />
                 </div>
