@@ -75,4 +75,47 @@ describe("score input to stats reflection (e2e-like)", () => {
     assert.strictEqual(dave.lastCount, 1, "last rank should be reflected");
     assert.strictEqual(dave.tobiCount, 1, "tobi should be reflected");
   });
+
+  it("reflects multi-tobashi (tobashiPlayers array) into ranked entries", () => {
+    const formData = buildFormData({
+      tournamentId: 1,
+      gameDate: "2026-04-27",
+      gameType: "4p",
+      player1: "Alice",
+      player2: "Bob",
+      player3: "Carol",
+      player4: "Dave",
+      score1: "350",
+      score2: "100",
+      score3: "-150",
+      score4: "-300",
+      tobiPlayers: "Carol,Dave",
+      tobashiPlayers: JSON.stringify(["Alice", "Bob"]),
+      tobashiPlayer: "Alice",
+      notes: "multi-tobashi test",
+    });
+
+    const parsed = validateAndParseMatchForm(formData);
+    assert.ok(parsed.ok, "multi-tobashi form should pass validation");
+    assert.deepStrictEqual(parsed.data.tobashiPlayers, ["Alice", "Bob"], "tobashiPlayers should contain both players");
+
+    const entries = buildRankedEntries(
+      parsed.data.players,
+      parsed.data.scores,
+      parsed.data.yakitoriPlayers,
+      parsed.data.tobiPlayers,
+      parsed.data.tobashiPlayer,
+      parsed.data.tobashiPlayers
+    );
+
+    const alice = entries.find((e) => e.player === "Alice");
+    const bob = entries.find((e) => e.player === "Bob");
+    const carol = entries.find((e) => e.player === "Carol");
+    assert.ok(alice?.isTobashi, "Alice should be tobashi");
+    assert.ok(bob?.isTobashi, "Bob should be tobashi");
+    assert.ok(!carol?.isTobashi, "Carol should not be tobashi");
+
+    const summary = summarize(entries);
+    assert.strictEqual(summary.filter((r) => r.tobashiCount === 1).length, 2, "both tobashi players should have tobashiCount=1");
+  });
 });

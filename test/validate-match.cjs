@@ -152,6 +152,45 @@ function run() {
   assert.ok(!res.ok, 'out-of-range score should fail');
   assert.ok(/スコア/.test(res.message || ''), 'error message should mention score range constraint');
 
+  // tobashiPlayers: JSON array form (multi-tobashi)
+  fd = fdFrom({
+    gameDate: '2026-04-06',
+    gameType: '4p',
+    player1: 'A',
+    player2: 'B',
+    player3: 'C',
+    player4: 'D',
+    score1: '250',
+    score2: '100',
+    score3: '-200',
+    score4: '-150',
+    tobiPlayers: 'C,D',
+    tobashiPlayers: JSON.stringify(['A', 'B']),
+    tobashiPlayer: 'A',
+  });
+  res = validateAndParseMatchForm(fd);
+  assert.ok(res.ok, 'multi-tobashi JSON array form should parse');
+  assert.deepStrictEqual(res.data.tobashiPlayers, ['A', 'B'], 'tobashiPlayers should contain both players');
+
+  // tobashiPlayers: fallback to single tobashiPlayer when tobashiPlayers absent
+  fd = fdFrom({
+    gameDate: '2026-04-06',
+    gameType: '4p',
+    player1: 'A',
+    player2: 'B',
+    player3: 'C',
+    player4: 'D',
+    score1: '250',
+    score2: '100',
+    score3: '-200',
+    score4: '-150',
+    tobiPlayer: 'C',
+    tobashiPlayer: 'D',
+  });
+  res = validateAndParseMatchForm(fd);
+  assert.ok(res.ok, 'single tobashiPlayer fallback should parse');
+  assert.deepStrictEqual(res.data.tobashiPlayers, ['D'], 'tobashiPlayers should fall back to tobashiPlayer value');
+
   // tournament filter parser contract (used by matches/stats/print)
   const params = resolveFilterParams({
     filterRaw: 'year',
