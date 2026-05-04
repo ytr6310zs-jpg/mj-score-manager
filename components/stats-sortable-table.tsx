@@ -197,7 +197,7 @@ export default function StatsSortableTable({
               key={player.name}
               className={`border-b border-emerald-100 ${rowBg} transition-colors hover:bg-emerald-50/40`}
             >
-              <td className={`sticky left-0 z-10 px-3 py-2 font-semibold ${rowBg}`}>{player.name}</td>
+              <td className={`sticky left-0 z-10 bg-white px-3 py-2 font-semibold ${rowBg}`}>{player.name}</td>
               <td
                 className={`px-3 py-2 text-right font-semibold tabular-nums ${
                   player.totalScore >= 0 ? "text-emerald-700" : "text-destructive"
