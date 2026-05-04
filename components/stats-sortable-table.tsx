@@ -149,7 +149,7 @@ export default function StatsSortableTable({
   const header = (key: SortKey, label: React.ReactNode, align = "right") => {
     const isActive = sortKey === key;
     return (
-      <th className={`sticky top-0 z-20 bg-emerald-50 px-3 py-2.5 text-${align} border-b-2 border-emerald-800/20`}>
+      <th className={`bg-emerald-50 px-3 py-2.5 text-${align} border-b-2 border-emerald-800/20`}>
         <button
           type="button"
           onClick={() => toggleSort(key)}
@@ -165,9 +165,9 @@ export default function StatsSortableTable({
 
   return (
     <table className="min-w-full border-separate border-spacing-0 text-sm">
-      <thead className="bg-emerald-50">
+      <thead className="sticky top-0 z-20 bg-emerald-50">
         <tr className="text-xs font-semibold text-emerald-900">
-          <th className="sticky left-0 top-0 z-30 bg-emerald-50 px-3 py-2.5 text-left border-b-2 border-emerald-800/20">名前</th>
+          <th className="sticky left-0 z-30 bg-emerald-50 px-3 py-2.5 text-left border-b-2 border-emerald-800/20">名前</th>
           {header("totalScore", "合計")}
           {header("rank", "順位", "center")}
           {header("games", "対局数")}
