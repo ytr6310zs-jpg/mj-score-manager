@@ -49,6 +49,7 @@ export type ParsedMatchData = {
   scores: number[];
   tobiPlayers: string[];
   tobashiPlayer: string | null;
+  tobashiPlayers: string[];
   yakitoriPlayers: Set<string>;
   notes: string;
   total: number;
@@ -116,6 +117,18 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
       return single ? [single] : [];
     })();
   const tobashiPlayer = parseOptionalPlayer(formData.get("tobashiPlayer"));
+  // tobashiPlayers: JSON array from multi-select checkboxes (new), falls back to single tobashiPlayer
+  const tobashiPlayersRaw = parseString(formData.get("tobashiPlayers"));
+  const tobashiPlayers: string[] = tobashiPlayersRaw
+    ? (() => {
+        try {
+          const parsed = JSON.parse(tobashiPlayersRaw);
+          return Array.isArray(parsed) ? parsed.filter((n): n is string => typeof n === "string" && n !== NONE_VALUE) : [];
+        } catch {
+          return [];
+        }
+      })()
+    : tobashiPlayer ? [tobashiPlayer] : [];
   const yakitoriPlayers = new Set(
     activeSlots
       .filter((slot) => formData.get(`yakitori${slot}`) === "on")
@@ -123,7 +136,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
       .filter(Boolean)
   );
 
-  if ((tobiPlayers.length > 0 && !tobashiPlayer) || (tobiPlayers.length === 0 && tobashiPlayer)) {
+  if ((tobiPlayers.length > 0 && tobashiPlayers.length === 0) || (tobiPlayers.length === 0 && tobashiPlayers.length > 0)) {
     return { ok: false, message: "飛びと飛ばしは両方セットで指定してください。" };
   }
 
@@ -131,11 +144,11 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
     return { ok: false, message: "飛び対象は同卓プレイヤーから選択してください。" };
   }
 
-  if (tobashiPlayer && !players.includes(tobashiPlayer)) {
+  if (tobashiPlayers.some((p) => !players.includes(p))) {
     return { ok: false, message: "飛ばし者は同卓プレイヤーから選択してください。" };
   }
 
-  if (tobashiPlayer && tobiPlayers.includes(tobashiPlayer)) {
+  if (tobashiPlayers.some((p) => tobiPlayers.includes(p))) {
     return { ok: false, message: "飛び対象と飛ばし者に同じプレイヤーは指定できません。" };
   }
 
@@ -152,6 +165,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
       scores: resolvedScores,
       tobiPlayers,
       tobashiPlayer,
+      tobashiPlayers,
       yakitoriPlayers,
       notes,
       total,
@@ -164,7 +178,8 @@ export function buildRankedEntries(
   scores: number[],
   yakitoriPlayers: Set<string>,
   tobiPlayers: string[],
-  tobashiPlayer: string | null
+  tobashiPlayer: string | null,
+  tobashiPlayers: string[] = []
 ) {
   const ranked = players
     .map((player, index) => ({
@@ -186,7 +201,7 @@ export function buildRankedEntries(
     score: scores[index],
     rank: rankBySlot.get(index + 1) ?? players.length,
     isTobi: tobiPlayers.includes(player),
-    isTobashi: tobashiPlayer === player,
+    isTobashi: tobashiPlayers.length > 0 ? tobashiPlayers.includes(player) : tobashiPlayer === player,
     isYakitori: yakitoriPlayers.has(player),
   })) as GameEntry[];
 }
