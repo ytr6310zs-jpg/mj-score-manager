@@ -231,8 +231,11 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
     const activePlayerSet = new Set(activePlayerNames);
     setTobiPlayers((current) => current.filter((name) => activePlayerSet.has(name)));
     setTobashiPlayers((current) => current.filter((name) => activePlayerSet.has(name)));
+  }, [activePlayerNames]);
+
+  useEffect(() => {
     setTobashiPlayers((current) => current.filter((name) => !tobiPlayers.includes(name)));
-  }, [activePlayerNames, tobiPlayers]);
+  }, [tobiPlayers]);
 
   useEffect(() => {
     if (gameType === "3p") {

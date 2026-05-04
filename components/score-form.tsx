@@ -174,14 +174,13 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
 
   useEffect(() => {
     const playerNames = new Set(activePlayers.map((entry) => entry.name));
-
     setTobiPlayers((current) => current.filter((player) => playerNames.has(player)));
+    setTobashiPlayers((current) => current.filter((p) => playerNames.has(p)));
+  }, [activePlayers]);
 
-    if (tobashiPlayers.length > 0 && !playerNames.has(tobashiPlayers[0])) {
-      setTobashiPlayers((current) => current.filter((p) => playerNames.has(p)));
-    }
+  useEffect(() => {
     setTobashiPlayers((current) => current.filter((p) => !tobiPlayers.includes(p)));
-  }, [activePlayers, tobashiPlayers, tobiPlayers]);
+  }, [tobiPlayers]);
 
   useEffect(() => {
     const selectedPlayers = activeSlots
