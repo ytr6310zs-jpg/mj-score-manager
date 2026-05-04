@@ -33,12 +33,13 @@ export async function saveScoreAction(
     scores: resolvedScores,
     tobiPlayers,
     tobashiPlayer,
+    tobashiPlayers,
     yakitoriPlayers,
     notes,
     total,
   } = validated.data;
 
-  const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayers, tobashiPlayer);
+  const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayers, tobashiPlayer, tobashiPlayers);
   const rankedEntries = [...entries].sort((left, right) => left.rank - right.rank);
   const topPlayer = rankedEntries[0]?.player ?? "";
   const lastPlayer = rankedEntries[rankedEntries.length - 1]?.player ?? "";
@@ -68,6 +69,7 @@ export async function saveScoreAction(
       ...players,
       ...tobiPlayers,
       ...(tobashiPlayer ? [tobashiPlayer] : []),
+      ...tobashiPlayers,
       ...[...yakitoriPlayers],
     ]));
     const { data: playerRows, error: playerResolveErr } = await supabase
@@ -99,6 +101,9 @@ export async function saveScoreAction(
       tobi_player_id: tobiPlayers.length === 1 ? (nameToId.get(tobiPlayers[0]) ?? null) : null,
       tobashi_player: tobashiPlayer ?? null,
       tobashi_player_id: tobashiPlayer ? (nameToId.get(tobashiPlayer) ?? null) : null,
+      tobashi_player_ids: JSON.stringify(
+        tobashiPlayers.map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined)
+      ),
       yakitori_players: [...yakitoriPlayers].join(","),
       yakitori_player_ids: JSON.stringify(
         [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined)

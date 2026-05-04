@@ -67,10 +67,20 @@ function buildPlayerAccumulators(matches: MatchResult[]): Map<string, PlayerAccu
       if (p.rank === playerCount) acc.lastCount += 1;
       if (p.rank === 2) acc.secondCount += 1;
       if (p.rank === 3) acc.thirdCount += 1;
-      if (p.isTobashi) acc.tobashiCount += 1;
       if (p.isTobi) acc.tobiCount += 1;
       if (p.isYakitori) acc.yakitoriCount += 1;
       acc.yakumanCount += p.yakumans?.length ?? 0;
+    }
+
+    // tobashiCount: use tobashiPlayerIds for multi-tobashi support
+    if (match.tobashiPlayerIds && match.tobashiPlayerIds.length > 0) {
+      const tobashiNames = match.players
+        .filter((p) => p.id !== null && match.tobashiPlayerIds!.includes(p.id))
+        .map((p) => p.name.trim());
+      for (const name of tobashiNames) {
+        const acc = playerMap.get(name);
+        if (acc) acc.tobashiCount += 1;
+      }
     }
   }
 
