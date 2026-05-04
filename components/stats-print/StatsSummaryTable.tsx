@@ -2,8 +2,11 @@ import type { PlayerStats } from "@/lib/stats";
 import { RANK_BADGE } from "@/lib/stats-rank-theme";
 import React from "react";
 
+type RankSets = { first: string[]; second: string[]; third: string[] };
+
 interface StatsSummaryTableProps {
   stats: PlayerStats[];
+  topSets: Record<string, RankSets>;
   title: string;
 }
 
@@ -15,7 +18,22 @@ function score(v: number) {
   return String(v);
 }
 
-export const StatsSummaryTable: React.FC<StatsSummaryTableProps> = ({ stats, title }) => (
+function medalBadge(topSets: Record<string, RankSets>, metric: string, playerName: string, value: React.ReactNode) {
+  const sets = topSets[metric];
+  if (!sets) return <>{value}</>;
+  let rank = 0;
+  if (sets.first?.includes(playerName)) rank = 1;
+  else if (sets.second?.includes(playerName)) rank = 2;
+  else if (sets.third?.includes(playerName)) rank = 3;
+  if (!rank) return <>{value}</>;
+  return (
+    <span className={`inline-flex items-center gap-0.5 rounded px-1 font-bold ${RANK_BADGE[rank]}`}>
+      {value}
+    </span>
+  );
+}
+
+export const StatsSummaryTable: React.FC<StatsSummaryTableProps> = ({ stats, topSets, title }) => (
   <section className="mb-6">
     <h2 className="font-semibold mb-2 text-emerald-900">{title}</h2>
     <div className="overflow-x-auto">
@@ -55,24 +73,24 @@ export const StatsSummaryTable: React.FC<StatsSummaryTableProps> = ({ stats, tit
                 )}
               </td>
               <td className="px-2 py-0 align-middle leading-4 whitespace-nowrap">{p.name}</td>
-              <td className="px-2 py-0 text-right tabular-nums align-middle leading-4">{p.games}</td>
+              <td className="px-2 py-0 text-right tabular-nums align-middle leading-4">{medalBadge(topSets, "games", p.name, p.games)}</td>
               <td className={`px-2 py-0 text-right tabular-nums align-middle leading-4 ${p.totalScore >= 0 ? "text-emerald-700" : "text-destructive"}`}>
                 {score(p.totalScore)}
               </td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{p.topCount}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{p.lastCount}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{pct(p.topRate)}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{pct(p.secondRate)}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{pct(p.thirdRate)}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{pct(p.lastAvoidanceRate)}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{p.tobashiCount}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{p.tobiCount}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{p.yakitoriCount}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{p.yakumanCount}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{pct(p.tobashiRate)}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{pct(p.tobiAvoidanceRate)}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{pct(p.yakitoriAvoidanceRate)}</td>
-              <td className="px-2 py-0 text-right align-middle leading-4">{pct(p.setaiRate)}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "topCount", p.name, p.topCount)}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "lastCount", p.name, p.lastCount)}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "topRate", p.name, pct(p.topRate))}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "secondRate", p.name, pct(p.secondRate))}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "thirdRate", p.name, pct(p.thirdRate))}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "lastAvoidanceRate", p.name, pct(p.lastAvoidanceRate))}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "tobashiCount", p.name, p.tobashiCount)}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "tobiCount", p.name, p.tobiCount)}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "yakitoriCount", p.name, p.yakitoriCount)}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "yakumanCount", p.name, p.yakumanCount)}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "tobashiRate", p.name, pct(p.tobashiRate))}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "tobiAvoidanceRate", p.name, pct(p.tobiAvoidanceRate))}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "yakitoriAvoidanceRate", p.name, pct(p.yakitoriAvoidanceRate))}</td>
+              <td className="px-2 py-0 text-right align-middle leading-4">{medalBadge(topSets, "setaiRate", p.name, pct(p.setaiRate))}</td>
             </tr>
           ))}
         </tbody>
