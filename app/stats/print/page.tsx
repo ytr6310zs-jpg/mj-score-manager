@@ -1,5 +1,6 @@
 import { resolveFilterParams } from "@/lib/filter-params";
 import { fetchMatchResults } from "@/lib/matches";
+import { computeTopSets, METRIC_DIRECTION, METRICS_TO_HIGHLIGHT } from "@/lib/metric-ranks";
 import { fetchPlayerStats } from "@/lib/stats";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
 import { fetchTournamentById } from "@/lib/tournaments";
@@ -66,6 +67,9 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
     largestSpreads: largestSpreadsYearly,
   } = await fetchStatsSubtables(yearStart, yearEnd, 5, { minGames: 20, tournamentId });
 
+  const topSets = computeTopSets(stats, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
+  const topSetsYearly = computeTopSets(statsYearly, METRICS_TO_HIGHLIGHT, METRIC_DIRECTION);
+
   const tournament = typeof tournamentId === "number" ? await fetchTournamentById(tournamentId) : null;
 
   // ヘッダー用文言生成
@@ -87,6 +91,7 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
   return (
     <ClientStatsPrintPage
       stats={stats}
+      topSets={topSets}
       yakumanEvents={yakumanEvents}
       highestScores={highestScores}
       lowestScores={lowestScores}
@@ -94,6 +99,7 @@ export default async function StatsPrintPage({ searchParams }: { searchParams?: 
       matches={matches}
       // yearly reference
       statsYearly={statsYearly}
+      topSetsYearly={topSetsYearly}
       yakumanEventsYearly={yakumanEventsYearly}
       highestScoresYearly={highestScoresYearly}
       lowestScoresYearly={lowestScoresYearly}

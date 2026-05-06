@@ -11,17 +11,17 @@ import { Label } from "@/components/ui/label";
 import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
+import useYakumans from "@/lib/useYakumans";
 import type { MatchResult } from "@/lib/matches";
 import { setLastTournamentId } from "@/lib/tournament-preference";
 import type { TournamentOption } from "@/lib/tournaments";
-import YAKUMANS from "@/lib/yakumans";
+import { YAKUMANS } from "@/lib/yakumans";
 
 const initialState: EditMatchState = {
   success: false,
   message: "",
 };
 
-const NONE_VALUE = "__none__";
 
 type GameType = "3p" | "4p";
 
@@ -54,6 +54,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
   const router = useRouter();
   const [state, formAction] = useActionState(editMatchAction, initialState);
   const [pending, startTransition] = useTransition();
+  const { yakumans: yakumanList } = useYakumans();
   const [clientError, setClientError] = useState<string | null>(null);
   const [duplicatePlayerError, setDuplicatePlayerError] = useState<string | null>(null);
   const [tournamentId, setTournamentId] = useState<string>(
@@ -82,7 +83,9 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
           .filter(Boolean)
       : []
   );
-  const [tobashiPlayer, setTobashiPlayer] = useState(match.tobashiPlayer || NONE_VALUE);
+  const [tobashiPlayers, setTobashiPlayers] = useState<string[]>(
+    match.players.filter((p) => p.isTobashi).map((p) => p.name)
+  );
   const [yakitoriFlags, setYakitoriFlags] = useState<Record<number, boolean>>({
     1: match.players[0]?.isYakitori ?? false,
     2: match.players[1]?.isYakitori ?? false,
@@ -227,15 +230,12 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
   useEffect(() => {
     const activePlayerSet = new Set(activePlayerNames);
     setTobiPlayers((current) => current.filter((name) => activePlayerSet.has(name)));
+    setTobashiPlayers((current) => current.filter((name) => activePlayerSet.has(name)));
+  }, [activePlayerNames]);
 
-    if (tobashiPlayer !== NONE_VALUE && !activePlayerSet.has(tobashiPlayer)) {
-      setTobashiPlayer(NONE_VALUE);
-    }
-
-    if (tobashiPlayer !== NONE_VALUE) {
-      setTobiPlayers((current) => current.filter((name) => name !== tobashiPlayer));
-    }
-  }, [activePlayerNames, tobashiPlayer]);
+  useEffect(() => {
+    setTobashiPlayers((current) => current.filter((name) => !tobiPlayers.includes(name)));
+  }, [tobiPlayers]);
 
   useEffect(() => {
     if (gameType === "3p") {
@@ -263,7 +263,8 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
       form.append(`yakitori${slot}`, yakitoriFlags[slot] ? "on" : "off");
     });
     form.append("tobiPlayers", tobiPlayers.join(","));
-    form.append("tobashiPlayer", tobashiPlayer === NONE_VALUE ? "" : tobashiPlayer);
+    form.append("tobashiPlayers", JSON.stringify(tobashiPlayers));
+    form.append("tobashiPlayer", tobashiPlayers[0] ?? "");
     form.append("notes", notes);
 
     const activePlayerSet = new Set(
@@ -355,7 +356,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
                   onValueChange={(value) => {
                     setPlayers((prev) => ({ ...prev, [slot]: value }));
                     setTobiPlayers((current) => current.filter((name) => name !== value));
-                    if (value === tobashiPlayer) setTobashiPlayer(NONE_VALUE);
+                    setTobashiPlayers((current) => current.filter((name) => name !== value));
                   }}
                   options={playerList}
                   exclude={activeSlots
@@ -434,7 +435,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
       <YakumanSelectionPanel
         className="space-y-2 border-b border-emerald-200 pb-4"
         activePlayerNames={activePlayerNames}
-        yakumanOptions={YAKUMANS}
+        yakumanOptions={yakumanList || YAKUMANS}
         value={pendingYakumans}
         onChange={setPendingYakumans}
         onErrorChange={setClientError}
@@ -449,7 +450,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
           <div id="tobiPlayer" className="space-y-2 rounded-md border border-border/70 bg-white/70 p-3">
             {playersToCheck.map((player) => {
               const checked = tobiPlayers.includes(player);
-              const disabled = player === tobashiPlayer;
+              const disabled = tobashiPlayers.includes(player);
               return (
                 <label key={`tobi-${player}`} className="flex items-center gap-2 text-sm">
                   <input
@@ -471,30 +472,32 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
               );
             })}
           </div>
-          <Select
-            value={tobashiPlayer}
-            onValueChange={(value) => {
-              setTobashiPlayer(value);
-              if (value !== NONE_VALUE) {
-                setTobiPlayers((current) => current.filter((name) => name !== value));
-              }
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="飛ばし者" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE_VALUE}>なし</SelectItem>
-              {playersToCheck.map((player) => {
-                const isDisabled = tobiPlayers.includes(player) && player !== tobashiPlayer;
-                return (
-                  <SelectItem key={`tobashi-${player}`} value={player} disabled={isDisabled}>
-                    {player} が飛ばし
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2 rounded-md border border-border/70 bg-white/70 p-3">
+            {playersToCheck.map((player) => {
+              const checked = tobashiPlayers.includes(player);
+              const disabled = tobiPlayers.includes(player);
+              return (
+                <label key={`tobashi-${player}`} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border border-input"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      setTobashiPlayers((current) => {
+                        const next = event.target.checked
+                          ? current.includes(player) ? current : [...current, player]
+                          : current.filter((name) => name !== player);
+                        setTobiPlayers((tobiCurrent) => tobiCurrent.filter((name) => !next.includes(name)));
+                        return next;
+                      });
+                    }}
+                  />
+                  <span>{player} が飛ばし</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
       </div>
 

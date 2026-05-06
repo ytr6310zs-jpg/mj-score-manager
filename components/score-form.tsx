@@ -21,7 +21,6 @@ const initialState: SaveScoreState = {
   message: "",
 };
 
-const NONE_VALUE = "__none__";
 
 type GameType = "3p" | "4p";
 
@@ -57,7 +56,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
   const [scores, setScores] = useState<Record<number, string>>({});
   const [autoFilledSlot, setAutoFilledSlot] = useState<number | null>(null);
   const [tobiPlayers, setTobiPlayers] = useState<string[]>([]);
-  const [tobashiPlayer, setTobashiPlayer] = useState(NONE_VALUE);
+  const [tobashiPlayers, setTobashiPlayers] = useState<string[]>([]);
   const [yakitoriSlots, setYakitoriSlots] = useState<Record<number, boolean>>({});
   const [notes, setNotes] = useState("");
   const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>([]);
@@ -88,7 +87,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     setScores({});
     setAutoFilledSlot(null);
     setTobiPlayers([]);
-    setTobashiPlayer(NONE_VALUE);
+    setTobashiPlayers([]);
     setYakitoriSlots({});
     setNotes("");
     setPendingYakumans([]);
@@ -175,17 +174,13 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
 
   useEffect(() => {
     const playerNames = new Set(activePlayers.map((entry) => entry.name));
-
     setTobiPlayers((current) => current.filter((player) => playerNames.has(player)));
+    setTobashiPlayers((current) => current.filter((p) => playerNames.has(p)));
+  }, [activePlayers]);
 
-    if (tobashiPlayer !== NONE_VALUE && !playerNames.has(tobashiPlayer)) {
-      setTobashiPlayer(NONE_VALUE);
-    }
-
-    if (tobashiPlayer !== NONE_VALUE) {
-      setTobiPlayers((current) => current.filter((player) => player !== tobashiPlayer));
-    }
-  }, [activePlayers, tobashiPlayer]);
+  useEffect(() => {
+    setTobashiPlayers((current) => current.filter((p) => !tobiPlayers.includes(p)));
+  }, [tobiPlayers]);
 
   useEffect(() => {
     const selectedPlayers = activeSlots
@@ -321,13 +316,13 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
               return;
             }
 
-            if ((tobiPlayers.length === 0 && tobashiPlayer !== NONE_VALUE) || (tobiPlayers.length > 0 && tobashiPlayer === NONE_VALUE)) {
+            if ((tobiPlayers.length === 0 && tobashiPlayers.length > 0) || (tobiPlayers.length > 0 && tobashiPlayers.length === 0)) {
               e.preventDefault();
               setClientError("飛び対象と飛ばし者は両方セットで選択してください。");
               return;
             }
 
-            if (tobashiPlayer !== NONE_VALUE && tobiPlayers.includes(tobashiPlayer)) {
+            if (tobashiPlayers.some((p) => tobiPlayers.includes(p))) {
               e.preventDefault();
               setClientError("飛び対象と飛ばし者に同じプレイヤーは選べません。");
               return;
@@ -481,7 +476,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
               <div className="space-y-2 rounded-md border border-border/70 bg-white/70 p-3">
                 {activePlayers.map((player) => {
                   const checked = tobiPlayers.includes(player.name);
-                  const disabled = player.name === tobashiPlayer;
+                  const disabled = tobashiPlayers.includes(player.name);
                   return (
                     <label key={`tobi-${player.name}`} className="flex items-center gap-2 text-sm">
                       <input
@@ -508,31 +503,34 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
 
             <div className="space-y-2">
               <Label>飛ばし者</Label>
-                <Select
-                  name="tobashiPlayer"
-                  value={tobashiPlayer}
-                  onValueChange={(value) => {
-                    setTobashiPlayer(value);
-                    if (value !== NONE_VALUE) {
-                      setTobiPlayers((current) => current.filter((name) => name !== value));
-                    }
-                  }}
-                >
-                <SelectTrigger>
-                  <SelectValue placeholder="なし" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>なし</SelectItem>
-                    {activePlayers.map((player) => {
-                      const isDisabled = tobiPlayers.includes(player.name) && player.name !== tobashiPlayer;
-                      return (
-                        <SelectItem key={`tobashi-${player.name}`} value={player.name} disabled={isDisabled}>
-                          {player.name}
-                        </SelectItem>
-                      );
-                    })}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2 rounded-md border border-border/70 bg-white/70 p-3">
+                {activePlayers.map((player) => {
+                  const checked = tobashiPlayers.includes(player.name);
+                  const disabled = tobiPlayers.includes(player.name);
+                  return (
+                    <label key={`tobashi-${player.name}`} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border border-input"
+                        checked={checked}
+                        disabled={disabled}
+                        onChange={(event) => {
+                          setTobashiPlayers((current) => {
+                            const next = event.target.checked
+                              ? current.includes(player.name) ? current : [...current, player.name]
+                              : current.filter((name) => name !== player.name);
+                            setTobiPlayers((tobiCurrent) => tobiCurrent.filter((name) => !next.includes(name)));
+                            return next;
+                          });
+                        }}
+                      />
+                      <span>{player.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <input type="hidden" name="tobashiPlayers" value={JSON.stringify(tobashiPlayers)} />
+              <input type="hidden" name="tobashiPlayer" value={tobashiPlayers[0] ?? ""} />
             </div>
 
             <div className="md:col-span-2">
