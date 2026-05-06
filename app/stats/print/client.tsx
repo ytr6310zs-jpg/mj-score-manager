@@ -9,14 +9,18 @@ import type { PlayerStats } from "@/lib/stats";
 import type { ScoreRank, SpreadRank, YakumanEvent } from "@/lib/stats-subtables";
 import "./print.css";
 
+type RankSets = { first: string[]; second: string[]; third: string[] };
+
 type Props = {
   stats: PlayerStats[];
+  topSets: Record<string, RankSets>;
   yakumanEvents: YakumanEvent[];
   highestScores: ScoreRank[];
   lowestScores: ScoreRank[];
   largestSpreads: SpreadRank[];
   matches: MatchResult[];
   statsYearly: PlayerStats[];
+  topSetsYearly: Record<string, RankSets>;
   yakumanEventsYearly: YakumanEvent[];
   highestScoresYearly: ScoreRank[];
   lowestScoresYearly: ScoreRank[];
@@ -29,12 +33,14 @@ type Props = {
 
 export default function ClientStatsPrintPage({
   stats,
+  topSets,
   yakumanEvents,
   highestScores,
   lowestScores,
   largestSpreads,
   matches,
   statsYearly,
+  topSetsYearly,
   yakumanEventsYearly,
   highestScoresYearly,
   lowestScoresYearly,
@@ -88,7 +94,7 @@ export default function ClientStatsPrintPage({
           </div>
 
           <div className="p-4">
-            <StatsSummaryTable stats={stats ?? []} title="成績集計" />
+            <StatsSummaryTable stats={stats ?? []} topSets={topSets ?? {}} title="成績集計" />
 
             <ExtraStatsTable
               yakumanEvents={yakumanEvents ?? []}
@@ -102,7 +108,7 @@ export default function ClientStatsPrintPage({
             <MatchHistoryTable matches={matches ?? []} />
 
             <div className="break-after-page page-break-after-always" />
-            <StatsSummaryTable stats={statsYearly ?? []} title="成績集計（今年・20試合以上）" />
+            <StatsSummaryTable stats={statsYearly ?? []} topSets={topSetsYearly ?? {}} title="成績集計（今年・20試合以上）" />
 
             <ExtraStatsTable
               yakumanEvents={yakumanEventsYearly ?? []}
