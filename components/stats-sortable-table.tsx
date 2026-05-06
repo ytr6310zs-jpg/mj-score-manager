@@ -149,7 +149,7 @@ export default function StatsSortableTable({
   const header = (key: SortKey, label: React.ReactNode, align = "right") => {
     const isActive = sortKey === key;
     return (
-      <th className={`sticky top-0 z-20 bg-emerald-50 px-3 py-2.5 text-${align}`}>
+      <th className={`bg-emerald-50 px-3 py-2.5 text-${align} border-b-2 border-emerald-800/20`}>
         <button
           type="button"
           onClick={() => toggleSort(key)}
@@ -164,10 +164,10 @@ export default function StatsSortableTable({
   };
 
   return (
-    <table className="min-w-full border-collapse text-sm">
-      <thead className="bg-emerald-50">
-        <tr className="border-b-2 border-emerald-800/20 bg-emerald-50 text-xs font-semibold text-emerald-900">
-          <th className="sticky left-0 top-0 z-30 bg-emerald-50 px-3 py-2.5 text-left">名前</th>
+    <table className="min-w-full border-separate border-spacing-0 text-sm">
+      <thead className="sticky top-0 z-20 bg-emerald-50">
+        <tr className="text-xs font-semibold text-emerald-900">
+          <th className="sticky left-0 z-30 bg-emerald-50 px-3 py-2.5 text-left border-b-2 border-emerald-800/20">名前</th>
           {header("totalScore", "合計")}
           {header("rank", "順位", "center")}
           {header("games", "対局数")}
@@ -187,7 +187,7 @@ export default function StatsSortableTable({
           {header("setaiRate", "接待率")}
         </tr>
       </thead>
-      <tbody>
+      <tbody className="[&>tr>td]:border-b [&>tr>td]:border-emerald-100">
         {sorted.map((player) => {
           const rowBg = "";
           const badgeCls = RANK_BADGE[player.rank] ?? "bg-transparent text-foreground";
@@ -195,9 +195,9 @@ export default function StatsSortableTable({
           return (
             <tr
               key={player.name}
-              className={`border-b border-emerald-100 ${rowBg} transition-colors hover:bg-emerald-50/40`}
+              className={`${rowBg} transition-colors hover:bg-emerald-50/40`}
             >
-              <td className={`sticky left-0 z-10 bg-white px-3 py-2 font-semibold ${rowBg}`}>{player.name}</td>
+              <td className={`sticky left-0 z-10 bg-white border-b border-emerald-100 px-3 py-2 font-semibold ${rowBg}`}>{player.name}</td>
               <td
                 className={`px-3 py-2 text-right font-semibold tabular-nums ${
                   player.totalScore >= 0 ? "text-emerald-700" : "text-destructive"
