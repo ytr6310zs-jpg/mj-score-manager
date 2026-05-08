@@ -530,7 +530,6 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
                 })}
               </div>
               <input type="hidden" name="tobashiPlayers" value={JSON.stringify(tobashiPlayers)} />
-              <input type="hidden" name="tobashiPlayer" value={tobashiPlayers[0] ?? ""} />
             </div>
 
             <div className="md:col-span-2">

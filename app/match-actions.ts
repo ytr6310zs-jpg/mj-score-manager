@@ -115,14 +115,13 @@ export async function editMatchAction(
     players,
     scores: resolvedScores,
     tobiPlayers,
-    tobashiPlayer,
     tobashiPlayers,
     yakitoriPlayers,
     notes,
     total,
   } = validated.data;
 
-  const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayers, tobashiPlayer, tobashiPlayers);
+  const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayers, tobashiPlayers);
   const rankedEntries = [...entries].sort((left, right) => left.rank - right.rank);
   const topPlayer = rankedEntries[0]?.player ?? "";
   const lastPlayer = rankedEntries[rankedEntries.length - 1]?.player ?? "";
@@ -152,7 +151,6 @@ export async function editMatchAction(
     const allNames = Array.from(new Set([
       ...players,
       ...tobiPlayers,
-      ...(tobashiPlayer ? [tobashiPlayer] : []),
       ...tobashiPlayers,
       ...[...yakitoriPlayers],
     ]));
@@ -166,10 +164,17 @@ export async function editMatchAction(
     }
     const nameToId = new Map<string, number>();
     for (const r of (playerRows ?? []) as Array<{ id: number; name: string }>) {
-      nameToId.set(r.name, r.id);
+      nameToId.set(r.name.trim(), r.id);
+    }
+
+    const unresolvedNames = allNames.filter((name) => !nameToId.has(name));
+    if (unresolvedNames.length > 0) {
+      return { success: false, message: "プレイヤーIDの解決に失敗しました。プレイヤーを再選択してから再度保存してください。" };
     }
 
     type RowValue = string | number | boolean | null | number[];
+
+    const tobashiPlayerIds = tobashiPlayers.map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined);
 
     const updatePayload: Record<string, RowValue> = {
       tournament_id: tournamentId,
@@ -183,9 +188,7 @@ export async function editMatchAction(
       last_player_id: nameToId.get(lastPlayer) ?? null,
       tobi_player: tobiPlayers.length > 0 ? tobiPlayers.join(",") : null,
       tobi_player_id: tobiPlayers.length === 1 ? (nameToId.get(tobiPlayers[0]) ?? null) : null,
-      tobashi_player: tobashiPlayer ?? null,
-      tobashi_player_id: tobashiPlayer ? (nameToId.get(tobashiPlayer) ?? null) : null,
-      tobashi_player_ids: tobashiPlayers.map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
+      tobashi_player_ids: tobashiPlayerIds,
       yakitori_players: [...yakitoriPlayers].join(","),
       yakitori_player_ids: [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
       notes,
@@ -199,7 +202,6 @@ export async function editMatchAction(
       updatePayload[`score${entry.slot}`] = entry.score;
       updatePayload[`rank${entry.slot}`] = entry.rank;
       updatePayload[`is_tobi${entry.slot}`] = entry.isTobi;
-      updatePayload[`is_tobashi${entry.slot}`] = entry.isTobashi;
       updatePayload[`is_yakitori${entry.slot}`] = entry.isYakitori;
     }
 
@@ -209,7 +211,6 @@ export async function editMatchAction(
       updatePayload.score4 = null;
       updatePayload.rank4 = null;
       updatePayload.is_tobi4 = false;
-      updatePayload.is_tobashi4 = false;
       updatePayload.is_yakitori4 = false;
     }
 
