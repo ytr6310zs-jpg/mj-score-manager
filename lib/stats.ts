@@ -73,20 +73,12 @@ function buildPlayerAccumulators(matches: MatchResult[]): Map<string, PlayerAccu
     }
 
     // tobashiCount: use tobashiPlayerIds for multi-tobashi support
-    // Fall back to legacy tobashiPlayerId for records created before the multi-tobashi migration
     if (match.tobashiPlayerIds && match.tobashiPlayerIds.length > 0) {
       const tobashiNames = match.players
         .filter((p) => p.id !== null && match.tobashiPlayerIds!.includes(p.id))
         .map((p) => p.name.trim());
       for (const name of tobashiNames) {
         const acc = playerMap.get(name);
-        if (acc) acc.tobashiCount += 1;
-      }
-    } else if (match.tobashiPlayerId !== null && match.tobashiPlayerId !== undefined) {
-      // Legacy fallback: single tobashiPlayerId (pre-multi-tobashi data)
-      const tobashiPlayer = match.players.find((p) => p.id === match.tobashiPlayerId);
-      if (tobashiPlayer) {
-        const acc = playerMap.get(tobashiPlayer.name.trim());
         if (acc) acc.tobashiCount += 1;
       }
     }

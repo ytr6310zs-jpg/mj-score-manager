@@ -34,8 +34,8 @@ function run() {
     score2: '100',
     score3: '-200',
     score4: '-150',
-    tobiPlayer: 'C',
-    tobashiPlayer: 'D',
+    tobiPlayers: 'C',
+    tobashiPlayers: JSON.stringify(['D']),
     yakitori1: 'on',
     notes: 'ok',
   });
@@ -110,7 +110,7 @@ function run() {
     score2: '100',
     score3: '-200',
     score4: '-150',
-    tobiPlayer: 'C',
+    tobiPlayers: 'C',
   });
   res = validateAndParseMatchForm(fd);
   assert.ok(!res.ok, 'missing tobashi should fail');
@@ -128,8 +128,8 @@ function run() {
     score2: '100',
     score3: '-200',
     score4: '-150',
-    tobiPlayer: 'C',
-    tobashiPlayer: 'C',
+    tobiPlayers: 'C',
+    tobashiPlayers: JSON.stringify(['C']),
   });
   res = validateAndParseMatchForm(fd);
   assert.ok(!res.ok, 'same tobi/tobashi should fail');
@@ -166,13 +166,12 @@ function run() {
     score4: '-150',
     tobiPlayers: 'C,D',
     tobashiPlayers: JSON.stringify(['A', 'B']),
-    tobashiPlayer: 'A',
   });
   res = validateAndParseMatchForm(fd);
   assert.ok(res.ok, 'multi-tobashi JSON array form should parse');
   assert.deepStrictEqual(res.data.tobashiPlayers, ['A', 'B'], 'tobashiPlayers should contain both players');
 
-  // tobashiPlayers: fallback to single tobashiPlayer when tobashiPlayers absent
+  // no fallback: tobashiPlayer only should not be accepted
   fd = fdFrom({
     gameDate: '2026-04-06',
     gameType: '4p',
@@ -188,8 +187,8 @@ function run() {
     tobashiPlayer: 'D',
   });
   res = validateAndParseMatchForm(fd);
-  assert.ok(res.ok, 'single tobashiPlayer fallback should parse');
-  assert.deepStrictEqual(res.data.tobashiPlayers, ['D'], 'tobashiPlayers should fall back to tobashiPlayer value');
+  assert.ok(!res.ok, 'single tobashiPlayer fallback should not parse');
+  assert.ok(/飛びと飛ばし/.test(res.message || ''), 'error message should mention tobi/tobashi pair requirement');
 
   // tournament filter parser contract (used by matches/stats/print)
   const params = resolveFilterParams({

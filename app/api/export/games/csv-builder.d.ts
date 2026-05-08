@@ -14,7 +14,7 @@ interface MatchRow {
   topPlayerId?: number | null;
   lastPlayerId?: number | null;
   tobiPlayerId?: number | null;
-  tobashiPlayerId?: number | null;
+  tobashiPlayerIds?: number[];
   yakitoriPlayerIds?: number[];
 }
 

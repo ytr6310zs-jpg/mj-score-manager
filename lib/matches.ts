@@ -32,8 +32,6 @@ export type MatchResult = {
   lastPlayerId: number | null;
   tobiPlayer: string | null;
   tobiPlayerId: number | null;
-  tobashiPlayer: string | null;
-  tobashiPlayerId: number | null;
   tobashiPlayerIds: number[];
   yakitoriPlayers: string[];
   yakitoriPlayerIds: number[];
@@ -91,7 +89,7 @@ export async function fetchMatchResults(startDate?: string, endDate?: string, op
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
 
   try {
-    const selection = `id,tournament_id,tournaments(name),date,game_type,player_count,player1,player2,player3,player4,player1_id,player2_id,player3_id,player4_id,score1,score2,score3,score4,rank1,rank2,rank3,rank4,is_tobi1,is_tobi2,is_tobi3,is_tobi4,is_tobashi1,is_tobashi2,is_tobashi3,is_tobashi4,is_yakitori1,is_yakitori2,is_yakitori3,is_yakitori4,score_total,top_player,top_player_id,last_player,last_player_id,tobi_player,tobi_player_id,tobashi_player,tobashi_player_id,tobashi_player_ids,yakitori_players,yakitori_player_ids,notes,created_at`;
+    const selection = `id,tournament_id,tournaments(name),date,game_type,player_count,player1,player2,player3,player4,player1_id,player2_id,player3_id,player4_id,score1,score2,score3,score4,rank1,rank2,rank3,rank4,is_tobi1,is_tobi2,is_tobi3,is_tobi4,is_yakitori1,is_yakitori2,is_yakitori3,is_yakitori4,score_total,top_player,top_player_id,last_player,last_player_id,tobi_player,tobi_player_id,tobashi_player_ids,yakitori_players,yakitori_player_ids,notes,created_at`;
 
     let qb = supabase.from("games").select(selection);
     if (typeof options.tournamentId === "number") qb = qb.eq("tournament_id", options.tournamentId);
@@ -111,20 +109,25 @@ export async function fetchMatchResults(startDate?: string, endDate?: string, op
     const games = rows.map((row) => {
       const playerCount = toInt(row["player_count"] ?? row["playerCount"]) || 3;
       const slots = playerCount >= 4 ? [1, 2, 3, 4] : [1, 2, 3];
+      const rawTobashiIds = row["tobashi_player_ids"];
+      const tobashiPlayerIds: number[] = Array.isArray(rawTobashiIds)
+        ? (rawTobashiIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
+        : [];
 
       const players: MatchPlayer[] = slots
         .map((slot) => {
           const name = toString(row[`player${slot}`]);
           if (!name) return null;
           const rawId = row[`player${slot}_id`];
+          const playerId = rawId !== null && rawId !== undefined ? Number(rawId) : null;
           return {
             slot,
-            id: rawId !== null && rawId !== undefined ? Number(rawId) : null,
+            id: playerId,
             name,
             score: toInt(row[`score${slot}`]),
             rank: toInt(row[`rank${slot}`]) || slots.length,
             isTobi: toBool(row[`is_tobi${slot}`]),
-            isTobashi: toBool(row[`is_tobashi${slot}`]),
+            isTobashi: playerId !== null && tobashiPlayerIds.includes(playerId),
             isYakitori: toBool(row[`is_yakitori${slot}`]),
             yakumans: [],
           } as MatchPlayer;
@@ -139,10 +142,6 @@ export async function fetchMatchResults(startDate?: string, endDate?: string, op
       const rawYakitoriIds = row["yakitori_player_ids"];
       const yakitoriPlayerIds: number[] = Array.isArray(rawYakitoriIds)
         ? (rawYakitoriIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
-        : [];
-      const rawTobashiIds = row["tobashi_player_ids"];
-      const tobashiPlayerIds: number[] = Array.isArray(rawTobashiIds)
-        ? (rawTobashiIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
         : [];
       const rawTournament = row["tournaments"] as { name?: unknown } | Array<{ name?: unknown }> | null | undefined;
       const tournamentRelation = Array.isArray(rawTournament) ? rawTournament[0] : rawTournament;
@@ -161,8 +160,6 @@ export async function fetchMatchResults(startDate?: string, endDate?: string, op
         lastPlayerId: toNullableId(row["last_player_id"]),
         tobiPlayer: row["tobi_player"] ? String(row["tobi_player"]) : null,
         tobiPlayerId: toNullableId(row["tobi_player_id"]),
-        tobashiPlayer: row["tobashi_player"] ? String(row["tobashi_player"]) : null,
-        tobashiPlayerId: toNullableId(row["tobashi_player_id"]),
         tobashiPlayerIds,
         yakitoriPlayers: String(row["yakitori_players"] ?? "")
           .split(",")

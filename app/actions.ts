@@ -32,14 +32,13 @@ export async function saveScoreAction(
     players,
     scores: resolvedScores,
     tobiPlayers,
-    tobashiPlayer,
     tobashiPlayers,
     yakitoriPlayers,
     notes,
     total,
   } = validated.data;
 
-  const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayers, tobashiPlayer, tobashiPlayers);
+  const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayers, tobashiPlayers);
   const rankedEntries = [...entries].sort((left, right) => left.rank - right.rank);
   const topPlayer = rankedEntries[0]?.player ?? "";
   const lastPlayer = rankedEntries[rankedEntries.length - 1]?.player ?? "";
@@ -68,7 +67,6 @@ export async function saveScoreAction(
     const allNames = Array.from(new Set([
       ...players,
       ...tobiPlayers,
-      ...(tobashiPlayer ? [tobashiPlayer] : []),
       ...tobashiPlayers,
       ...[...yakitoriPlayers],
     ]));
@@ -99,8 +97,6 @@ export async function saveScoreAction(
       last_player_id: nameToId.get(lastPlayer) ?? null,
       tobi_player: tobiPlayers.length > 0 ? tobiPlayers.join(",") : null,
       tobi_player_id: tobiPlayers.length === 1 ? (nameToId.get(tobiPlayers[0]) ?? null) : null,
-      tobashi_player: tobashiPlayer ?? null,
-      tobashi_player_id: tobashiPlayer ? (nameToId.get(tobashiPlayer) ?? null) : null,
       tobashi_player_ids: tobashiPlayers.map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
       yakitori_players: [...yakitoriPlayers].join(","),
       yakitori_player_ids: [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
@@ -117,7 +113,6 @@ export async function saveScoreAction(
       row[`score${entry.slot}`] = entry.score;
       row[`rank${entry.slot}`] = entry.rank;
       row[`is_tobi${entry.slot}`] = entry.isTobi;
-      row[`is_tobashi${entry.slot}`] = entry.isTobashi;
       row[`is_yakitori${entry.slot}`] = entry.isYakitori;
     }
 
@@ -127,7 +122,6 @@ export async function saveScoreAction(
       row.score4 = null;
       row.rank4 = null;
       row.is_tobi4 = false;
-      row.is_tobashi4 = false;
       row.is_yakitori4 = false;
     }
 
