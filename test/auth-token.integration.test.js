@@ -9,7 +9,7 @@ import { createAuthToken, verifyAuthToken } from "../lib/auth.ts";
 // Use a dedicated test secret so tests never depend on env configuration
 const TEST_SECRET = 'test-secret-for-auth-token-unit-test-184';
 const ORIGINAL_SECRET = process.env.AUTH_SESSION_SECRET;
-/** @typedef {import("../lib/auth.ts").AuthSession} AuthSession */
+/** @typedef {import("../lib/auth").AuthSession} AuthSession */
 
 before(() => {
   process.env.AUTH_SESSION_SECRET = TEST_SECRET;
