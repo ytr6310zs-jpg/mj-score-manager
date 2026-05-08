@@ -35,6 +35,11 @@
   - `buildCompatibilityMatrix(matches: MatchResult[]): CompatibilityResult` — インメモリ集計（export してテスト対象にする）
   - `fetchCompatibilityMatrix(startDate?, endDate?, options): Promise<...>` — fetchMatchResults を呼び出し、buildCompatibilityMatrix に渡す
 
+- [ ] **T-11** `fetchCompatibilityMatrix` に minGames フィルタリングを追加
+  - `options: { tournamentId?: number; minGames?: number }` に拡張
+  - `buildCompatibilityMatrix` 実行後、各プレーヤーのゲーム数を `matches` から直接カウント
+  - `minGames` 閾値未満のプレーヤーを `players` リストと `matrix` から除外（ポストプロセス）
+
 ---
 
 ## Phase 2: ユニットテスト
@@ -46,6 +51,10 @@
   - wins+losses=0 → 勝率 0%
   - プレーヤー名 trim の確認
 
+- [ ] **T-21** minGames フィルタリングのユニットテストを追加
+  - minGames = 20: 1試合のみのプレーヤーが除外されることを検証
+  - minGames = 0 または undefined: 全プレーヤーが返ることを検証（「条件なし」選択時相当）
+
 ---
 
 ## Phase 3: ページ実装
@@ -54,10 +63,11 @@
   - metadata（タイトル: "相性表 | 麻雀成績入力"）
   - `export const dynamic = "force-dynamic"`
   - `getCurrentSession()` でセッション取得
-  - `resolveFilterParams()` でクエリパラメータ解析（minGames なし）
+  - `resolveFilterParams()` でクエリパラメータ解析（`minGamesRaw` を含む）
+  - `effectiveMinGames` の計算（stats ページと同じロジック: year フィルタ時デフォルト 20）
   - `fetchTournamentOptions()`, `fetchMatchDates()`, `fetchCompatibilityMatrix()` を並列呼び出し（Promise.all）
   - `AppHeader current="compatibility"` を設置
-  - `DateRangeFilter` を `showMinGames={false}` で設置、`actionPath="/compatibility"`
+  - `DateRangeFilter` を `showMinGames={true}` / `initialMinGames` で設置、`actionPath="/compatibility"`
   - マトリクステーブルを JSX で描画
     - `overflow-x-auto` ラップ
     - ヘッダー行・列にプレーヤー名
@@ -70,6 +80,12 @@
   - 同率は同順位（同じ背景色）
   - 色は `lib/stats-rank-theme.ts` の `RANK_ROW_BG` を再利用
   - 順位バッジは表示しない
+
+- [ ] **T-32** minGames フィルターのページ側実装（T-11 に対応）
+  - `resolveFilterParams` に `minGamesRaw: params?.minGames` を渡す
+  - `effectiveMinGames` を計算（year フィルタ時のデフォルト 20 を含む）
+  - `fetchCompatibilityMatrix` に `{ minGames: effectiveMinGames }` を渡す
+  - `DateRangeFilter` を `showMinGames={true}` に変更し `initialMinGames` を渡す
 
 ---
 
