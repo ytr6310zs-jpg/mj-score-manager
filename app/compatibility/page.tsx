@@ -8,6 +8,7 @@ import { resolveFilterParams } from "@/lib/filter-params";
 import { fetchCompatibilityMatrix, computeWinRate, type MatchupRecord } from "@/lib/compatibility";
 import { fetchMatchDates } from "@/lib/matches";
 import { getCurrentSession } from "@/lib/session";
+import { RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchTournamentOptions } from "@/lib/tournaments";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
+type WinRateRank = 1 | 2 | 3;
 
 function renderCellText(record: MatchupRecord | undefined): string | null {
   if (!record) return null;
@@ -26,6 +28,43 @@ function renderCellText(record: MatchupRecord | undefined): string | null {
   const drawPart = draws > 0 ? `${draws}分け` : "";
   const wr = computeWinRate(record);
   return `${wins}勝${losses}敗${drawPart}\n${wr.toFixed(1)}%`;
+}
+
+function buildTopWinRateRanksByRow(
+  players: string[],
+  matrix: Map<string, Map<string, MatchupRecord>> | undefined
+): Map<string, Map<string, WinRateRank>> {
+  const ranksByRow = new Map<string, Map<string, WinRateRank>>();
+
+  for (const row of players) {
+    const rowRecords = matrix?.get(row);
+    const candidates = players
+      .filter((col) => col !== row)
+      .flatMap((col) => {
+        const record = rowRecords?.get(col);
+        if (!record) return [];
+        if (record.wins === 0 && record.losses === 0 && record.draws === 0) return [];
+        return [{ col, winRate: Number(computeWinRate(record).toFixed(1)) }];
+      })
+      .sort((a, b) => b.winRate - a.winRate || a.col.localeCompare(b.col));
+
+    const rowRanks = new Map<string, WinRateRank>();
+    let currentRank = 0;
+    let prevWinRate: number | null = null;
+
+    for (const candidate of candidates) {
+      if (prevWinRate === null || candidate.winRate !== prevWinRate) {
+        currentRank += 1;
+        prevWinRate = candidate.winRate;
+      }
+      if (currentRank > 3) break;
+      rowRanks.set(candidate.col, currentRank as WinRateRank);
+    }
+
+    ranksByRow.set(row, rowRanks);
+  }
+
+  return ranksByRow;
 }
 
 export default async function CompatibilityPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
@@ -49,6 +88,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
 
   const players = result?.players ?? [];
   const matrix = result?.matrix;
+  const topWinRateRanksByRow = buildTopWinRateRanksByRow(players, matrix);
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
@@ -66,6 +106,9 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
             <h1 className="text-xl font-bold text-emerald-900">相性表</h1>
             <p className="mt-1 text-xs text-emerald-700/70">
               行プレーヤーから見た対戦戦績を表示します。勝率 = 勝数 ÷ (勝数 + 敗数) × 100
+            </p>
+            <p className="mt-1 text-xs text-emerald-700/70">
+              各行の上位3勝率（同率同順位）は成績集計と同じ配色で背景表示されます。
             </p>
           </div>
 
@@ -129,6 +172,8 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                           }
                           const record = matrix?.get(row)?.get(col);
                           const cellText = renderCellText(record);
+                          const winRateRank = topWinRateRanksByRow.get(row)?.get(col);
+                          const bgClass = winRateRank ? RANK_ROW_BG[winRateRank] : "bg-white";
                           if (!cellText) {
                             return (
                               <td
@@ -143,7 +188,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                           return (
                             <td
                               key={col}
-                              className="border-b border-r border-emerald-200 bg-white px-3 py-2 text-center"
+                              className={`border-b border-r border-emerald-200 px-3 py-2 text-center ${bgClass}`}
                             >
                               <div className="whitespace-nowrap font-medium text-emerald-900">{wld}</div>
                               <div className="whitespace-nowrap text-emerald-600">{wr}</div>
