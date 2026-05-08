@@ -108,7 +108,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
               行プレーヤーから見た対戦戦績を表示します。勝率 = 勝数 ÷ (勝数 + 敗数) × 100
             </p>
             <p className="mt-1 text-xs text-emerald-700/70">
-              各行の上位3勝率（同率同順位）は成績集計と同じ配色で背景表示されます。
+              各行の上位3勝率（同率同順位）は成績集計と同じ配色で勝率の文字背景を表示します。
             </p>
           </div>
 
@@ -140,13 +140,13 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                   <table className="min-w-full border-separate border-spacing-0 text-xs sm:text-sm">
                   <thead>
                     <tr>
-                      <th className="sticky left-0 top-0 z-30 border-b border-r border-emerald-200 bg-emerald-100 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap">
+                      <th className="sticky left-0 top-0 z-30 border-b border-r border-emerald-200 bg-emerald-100 px-2 py-1.5 text-center font-semibold text-emerald-900 whitespace-nowrap">
                         ↓行 vs 列→
                       </th>
                       {players.map((col) => (
                         <th
                           key={col}
-                          className="sticky top-0 z-20 border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap"
+                          className="sticky top-0 z-20 border-b border-r border-emerald-200 bg-emerald-50 px-2 py-1.5 text-center font-semibold text-emerald-900 whitespace-nowrap"
                         >
                           {col}
                         </th>
@@ -156,7 +156,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                   <tbody>
                     {players.map((row) => (
                       <tr key={row}>
-                        <th className="sticky left-0 z-10 border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap">
+                        <th className="sticky left-0 z-10 border-b border-r border-emerald-200 bg-emerald-50 px-2 py-1.5 text-center font-semibold text-emerald-900 whitespace-nowrap">
                           {row}
                         </th>
                         {players.map((col) => {
@@ -164,7 +164,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                             return (
                               <td
                                 key={col}
-                                className="border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-emerald-400"
+                                className="border-b border-r border-emerald-200 bg-emerald-50 px-2 py-1.5 text-center text-emerald-400"
                               >
                                 -
                               </td>
@@ -173,12 +173,12 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                           const record = matrix?.get(row)?.get(col);
                           const cellText = renderCellText(record);
                           const winRateRank = topWinRateRanksByRow.get(row)?.get(col);
-                          const bgClass = winRateRank ? RANK_ROW_BG[winRateRank] : "bg-white";
+                          const wrBgClass = winRateRank ? RANK_ROW_BG[winRateRank] : "";
                           if (!cellText) {
                             return (
                               <td
                                 key={col}
-                                className="border-b border-r border-emerald-200 bg-white px-3 py-2 text-center text-emerald-400"
+                                className="border-b border-r border-emerald-200 bg-white px-2 py-1.5 text-center text-emerald-400"
                               >
                                 -
                               </td>
@@ -188,10 +188,10 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                           return (
                             <td
                               key={col}
-                              className={`border-b border-r border-emerald-200 px-3 py-2 text-center ${bgClass}`}
+                              className="border-b border-r border-emerald-200 bg-white px-2 py-1.5 text-center"
                             >
                               <div className="whitespace-nowrap font-medium text-emerald-900">{wld}</div>
-                              <div className="whitespace-nowrap text-emerald-600">{wr}</div>
+                              <div className={`mx-auto inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-emerald-600 ${wrBgClass}`}>{wr}</div>
                             </td>
                           );
                         })}
