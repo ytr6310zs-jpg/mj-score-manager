@@ -133,3 +133,8 @@
   - Worklog
 
 - [ ] **T-61** `done_when` に「main マージ後に `npm run worklog:done` を実行」を明記する
+  
+<!-- done_when -->
+- **done_when**: main マージ後に `npm run worklog:done` を実行する
+  
+- [x] **T-61** `done_when` に「main マージ後に `npm run worklog:done` を実行」を明記する
