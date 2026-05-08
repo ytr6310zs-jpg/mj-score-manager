@@ -67,6 +67,23 @@ function toString(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function toIdArray(value: unknown): number[] {
+  if (Array.isArray(value)) {
+    return value.map(Number).filter((n) => Number.isFinite(n));
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed) ? parsed.map(Number).filter((n) => Number.isFinite(n)) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
 function parseEpoch(value: string): number {
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -109,17 +126,15 @@ export async function fetchMatchResults(startDate?: string, endDate?: string, op
     const games = rows.map((row) => {
       const playerCount = toInt(row["player_count"] ?? row["playerCount"]) || 3;
       const slots = playerCount >= 4 ? [1, 2, 3, 4] : [1, 2, 3];
-      const rawTobashiIds = row["tobashi_player_ids"];
-      const tobashiPlayerIds: number[] = Array.isArray(rawTobashiIds)
-        ? (rawTobashiIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
-        : [];
+      const tobashiPlayerIds = toIdArray(row["tobashi_player_ids"]);
 
       const players: MatchPlayer[] = slots
         .map((slot) => {
           const name = toString(row[`player${slot}`]);
           if (!name) return null;
           const rawId = row[`player${slot}_id`];
-          const playerId = rawId !== null && rawId !== undefined ? Number(rawId) : null;
+          const parsedPlayerId = rawId !== null && rawId !== undefined && String(rawId).trim() !== "" ? Number(rawId) : null;
+          const playerId = parsedPlayerId !== null && Number.isFinite(parsedPlayerId) ? parsedPlayerId : null;
           return {
             slot,
             id: playerId,
@@ -138,11 +153,12 @@ export async function fetchMatchResults(startDate?: string, endDate?: string, op
       const createdAtRaw = row["created_at"] ?? row["createdAt"] ?? null;
       const createdAt = createdAtRaw ? new Date(String(createdAtRaw)).toISOString() : "";
 
-      const toNullableId = (v: unknown) => (v !== null && v !== undefined ? Number(v) : null);
-      const rawYakitoriIds = row["yakitori_player_ids"];
-      const yakitoriPlayerIds: number[] = Array.isArray(rawYakitoriIds)
-        ? (rawYakitoriIds as unknown[]).map(Number).filter((n) => Number.isFinite(n))
-        : [];
+      const toNullableId = (v: unknown) => {
+        if (v === null || v === undefined || String(v).trim() === "") return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      const yakitoriPlayerIds = toIdArray(row["yakitori_player_ids"]);
       const rawTournament = row["tournaments"] as { name?: unknown } | Array<{ name?: unknown }> | null | undefined;
       const tournamentRelation = Array.isArray(rawTournament) ? rawTournament[0] : rawTournament;
 

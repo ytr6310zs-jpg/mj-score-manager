@@ -80,10 +80,17 @@ export async function saveScoreAction(
     }
     const nameToId = new Map<string, number>();
     for (const r of (playerRows ?? []) as Array<{ id: number; name: string }>) {
-      nameToId.set(r.name, r.id);
+      nameToId.set(r.name.trim(), r.id);
+    }
+
+    const unresolvedNames = allNames.filter((name) => !nameToId.has(name));
+    if (unresolvedNames.length > 0) {
+      return { success: false, message: "プレイヤーIDの解決に失敗しました。プレイヤーを再選択してから再度保存してください。" };
     }
 
     type RowValue = string | number | boolean | null | number[];
+
+    const tobashiPlayerIds = tobashiPlayers.map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined);
 
     const row: Record<string, RowValue> = {
       tournament_id: tournamentId,
@@ -97,7 +104,7 @@ export async function saveScoreAction(
       last_player_id: nameToId.get(lastPlayer) ?? null,
       tobi_player: tobiPlayers.length > 0 ? tobiPlayers.join(",") : null,
       tobi_player_id: tobiPlayers.length === 1 ? (nameToId.get(tobiPlayers[0]) ?? null) : null,
-      tobashi_player_ids: tobashiPlayers.map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
+      tobashi_player_ids: tobashiPlayerIds,
       yakitori_players: [...yakitoriPlayers].join(","),
       yakitori_player_ids: [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
       notes,
