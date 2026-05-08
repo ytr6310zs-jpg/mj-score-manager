@@ -2,11 +2,34 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { readSharedFilterState, buildSharedFilterSearchParams, hasExplicitParams, SharedFilterState } from "@/lib/filter-state-preference";
+import {
+  readSharedFilterState,
+  writeSharedFilterState,
+  buildSharedFilterSearchParams,
+  hasExplicitParams,
+} from "@/lib/filter-state-preference";
 
 type Props = {
   includeMinGames: boolean;
 };
+
+const today = new Date();
+const YEAR_START = `${today.getFullYear()}-01-01`;
+const YEAR_END = `${today.getFullYear()}-12-31`;
+
+/** URL の filter 値から start/end を決定する */
+function resolveStartEnd(
+  filterValue: string | null,
+  paramStart: string | null,
+  paramEnd: string | null,
+): { start: string; end: string } {
+  if (!filterValue) return { start: "", end: "" };
+  if (filterValue === "year") return { start: YEAR_START, end: YEAR_END };
+  if (filterValue === "custom") return { start: paramStart ?? "", end: paramEnd ?? "" };
+  // 日付単一（YYYY-MM-DD）
+  if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(filterValue)) return { start: filterValue, end: filterValue };
+  return { start: "", end: "" };
+}
 
 export default function FilterStateSync({ includeMinGames }: Props) {
   const router = useRouter();
@@ -18,55 +41,33 @@ export default function FilterStateSync({ includeMinGames }: Props) {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
     const explicit = hasExplicitParams(params, pathname);
     const stored = readSharedFilterState();
+
     if (explicit) {
-      // sync URL -> storage
-      if (stored) {
-        // merge: create SharedFilterState from params then write
-        const merged: Partial<SharedFilterState> = { filter: params.get("filter") ?? stored.filter };
-        if (params.get("filter") === "custom") {
-          merged.start = params.get("start") ?? stored.start;
-          merged.end = params.get("end") ?? stored.end;
-        } else if (params.get("filter") && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(params.get("filter") ?? "")) {
-          merged.start = params.get("filter") ?? stored.start;
-          merged.end = params.get("filter") ?? stored.end;
-        }
-        if (params.get("tournamentId")) merged.tournamentId = params.get("tournamentId") ?? undefined;
-        if (includeMinGames && params.get("minGames")) merged.minGames = params.get("minGames") ?? undefined;
-        try {
-          // write merged (fill missing from stored)
-          const next: SharedFilterState = {
-            filter: (merged.filter ?? stored.filter) as string,
-            start: (merged.start ?? stored.start) as string,
-            end: (merged.end ?? stored.end) as string,
-            tournamentId: merged.tournamentId ?? stored.tournamentId,
-            minGames: includeMinGames ? merged.minGames ?? stored.minGames : stored.minGames,
-          };
-          import("@/lib/filter-state-preference").then((m) => m.writeSharedFilterState(next)).catch(() => {});
-        } catch {
-          // ignore
-        }
-      } else if (params.toString()) {
-        // no stored, but explicit; create minimal stored
-        const created: SharedFilterState = {
-          filter: params.get("filter") ?? "year",
-          start: params.get("start") ?? "",
-          end: params.get("end") ?? "",
-          tournamentId: params.get("tournamentId") ?? undefined,
-          minGames: includeMinGames ? params.get("minGames") ?? undefined : undefined,
-        };
-        try {
-          import("@/lib/filter-state-preference").then((m) => m.writeSharedFilterState(created)).catch(() => {});
-        } catch {}
+      // URL の明示パラメータを正として保存状態を更新する
+      const filterVal = params.get("filter") ?? stored?.filter ?? "year";
+      const { start, end } = resolveStartEnd(filterVal, params.get("start"), params.get("end"));
+      const next = {
+        filter: filterVal,
+        start,
+        end,
+        tournamentId: params.get("tournamentId") ?? stored?.tournamentId,
+        minGames: includeMinGames
+          ? (params.get("minGames") ?? stored?.minGames)
+          : stored?.minGames,
+      };
+      try {
+        writeSharedFilterState(next);
+      } catch {
+        // ignore
       }
       return;
     }
 
-    // not explicit: if stored exists, replace URL once to reflect stored
-    if (!explicit && stored && !replacedRef.current) {
-      const params = buildSharedFilterSearchParams(stored, { includeMinGames });
+    // 明示パラメータなし: 保存済み状態を URL に反映（1回のみ）
+    if (stored && !replacedRef.current) {
+      const builtParams = buildSharedFilterSearchParams(stored, { includeMinGames });
       replacedRef.current = true;
-      const href = `${pathname}?${params.toString()}`;
-      router.replace(href);
+      router.replace(`${pathname}?${builtParams.toString()}`);
     }
   }, [includeMinGames, pathname, router, searchParams]);
 

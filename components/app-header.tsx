@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { readSharedFilterState, buildSharedFilterSearchParams } from "@/lib/filter-state-preference";
+import { readSharedFilterState, buildSharedFilterSearchParams, type SharedFilterState } from "@/lib/filter-state-preference";
 
 import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -60,6 +60,53 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
     } catch {
       // ignore
     }
+  }, []);
+
+  useEffect(() => {
+    function updateFromStored(detail?: SharedFilterState | null) {
+      try {
+        const stored = detail ?? readSharedFilterState();
+        if (!stored) {
+          setMatchesHref(null);
+          setStatsHref(null);
+          setCompatibilityHref(null);
+          return;
+        }
+        const mParams = buildSharedFilterSearchParams(stored, { includeMinGames: false });
+        setMatchesHref(`/matches?${mParams.toString()}`);
+        const sParams = buildSharedFilterSearchParams(stored, { includeMinGames: true });
+        setStatsHref(`/stats?${sParams.toString()}`);
+        const cParams = buildSharedFilterSearchParams(stored, { includeMinGames: true });
+        setCompatibilityHref(`/compatibility?${cParams.toString()}`);
+      } catch {
+        // ignore
+      }
+    }
+
+    const onCustom = (e: Event) => {
+      const ce = e as CustomEvent;
+      updateFromStored(ce.detail);
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === undefined) {
+        // ignore
+      }
+      if (e.key === "mj-score-manager:shared-filter") {
+        try {
+          const detail = e.newValue ? JSON.parse(e.newValue) : null;
+          updateFromStored(detail);
+        } catch {
+          updateFromStored(null);
+        }
+      }
+    };
+
+    window.addEventListener("mj:shared-filter-changed", onCustom as EventListener);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("mj:shared-filter-changed", onCustom as EventListener);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   useEffect(() => {

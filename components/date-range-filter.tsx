@@ -167,6 +167,11 @@ export default function DateRangeFilter({
 
     setIsDisabled(true);
 
+    const nextStart = value === "custom" ? (start || new Date().toISOString().slice(0, 10)) : value === "year" ? yearStart : value;
+    const nextEnd = value === "custom" ? (end || new Date().toISOString().slice(0, 10)) : value === "year" ? yearEnd : value;
+    try {
+      writeSharedFilterState({ filter: value, start: nextStart, end: nextEnd, tournamentId, minGames });
+    } catch {}
     setTimeout(() => {
       try {
         formRef.current?.requestSubmit?.();
@@ -174,9 +179,6 @@ export default function DateRangeFilter({
         formRef.current?.submit();
       }
     }, 0);
-    try {
-      writeSharedFilterState({ filter: value, start: value === "custom" ? (start ?? "") : value === "year" ? yearStart : value, end: value === "custom" ? (end ?? "") : value === "year" ? yearEnd : value, tournamentId, minGames });
-    } catch {}
   }
 
   function handleMinGamesChange(value: string) {
@@ -192,11 +194,15 @@ export default function DateRangeFilter({
         params.set("tournamentId", tournamentId);
       }
       const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
+      try {
+        writeSharedFilterState({ filter, start, end, tournamentId, minGames: value });
+      } catch {}
       window.location.href = target;
+    } else {
+      try {
+        writeSharedFilterState({ filter, start, end, tournamentId, minGames: value });
+      } catch {}
     }
-    try {
-      writeSharedFilterState({ filter, start, end, tournamentId, minGames: value });
-    } catch {}
   }
 
   function handleTournamentChange(value: string) {
@@ -224,10 +230,10 @@ export default function DateRangeFilter({
     }
 
     const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
-    window.location.href = target;
     try {
       writeSharedFilterState({ filter: nextFilter, start: nextStart, end: nextEnd, tournamentId: value, minGames });
     } catch {}
+    window.location.href = target;
   }
 
   function handleStartChange(value: string) {
