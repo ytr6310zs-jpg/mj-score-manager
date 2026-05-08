@@ -9,6 +9,7 @@ import { createAuthToken, verifyAuthToken } from "../lib/auth.ts";
 // Use a dedicated test secret so tests never depend on env configuration
 const TEST_SECRET = 'test-secret-for-auth-token-unit-test-184';
 const ORIGINAL_SECRET = process.env.AUTH_SESSION_SECRET;
+/** @typedef {import("../lib/auth.ts").AuthSession} AuthSession */
 
 before(() => {
   process.env.AUTH_SESSION_SECRET = TEST_SECRET;
@@ -22,11 +23,11 @@ after(() => {
   }
 });
 
-/** @type {import("../lib/auth.ts").AuthSession} */
+/** @type {AuthSession} */
 const adminSession = { uid: 1, userId: 'admin', displayName: '管理者', role: 'admin' };
-/** @type {import("../lib/auth.ts").AuthSession} */
+/** @type {AuthSession} */
 const editorSession = { uid: 2, userId: 'editor01', displayName: '編集者', role: 'editor' };
-/** @type {import("../lib/auth.ts").AuthSession} */
+/** @type {AuthSession} */
 const viewerSession = { uid: 3, userId: 'viewer01', displayName: '参照者', role: 'viewer' };
 
 describe('createAuthToken + verifyAuthToken roundtrip', () => {
