@@ -92,17 +92,18 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
             ) : players.length === 0 ? (
               <p className="text-sm text-emerald-700/70">該当期間のデータがありません。</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse text-xs sm:text-sm">
+              <div className="overflow-hidden rounded-lg border border-emerald-200 bg-emerald-50">
+                <div className="max-h-[70vh] overflow-auto bg-white">
+                  <table className="min-w-full border-separate border-spacing-0 text-xs sm:text-sm">
                   <thead>
                     <tr>
-                      <th className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap">
+                      <th className="sticky left-0 top-0 z-30 border-b border-r border-emerald-200 bg-emerald-100 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap">
                         ↓行 vs 列→
                       </th>
                       {players.map((col) => (
                         <th
                           key={col}
-                          className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap"
+                          className="sticky top-0 z-20 border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap"
                         >
                           {col}
                         </th>
@@ -112,7 +113,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                   <tbody>
                     {players.map((row) => (
                       <tr key={row}>
-                        <th className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap">
+                        <th className="sticky left-0 z-10 border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap">
                           {row}
                         </th>
                         {players.map((col) => {
@@ -120,7 +121,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                             return (
                               <td
                                 key={col}
-                                className="border border-emerald-200 bg-emerald-50/50 px-3 py-2 text-center text-emerald-400"
+                                className="border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-emerald-400"
                               >
                                 -
                               </td>
@@ -132,7 +133,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                             return (
                               <td
                                 key={col}
-                                className="border border-emerald-200 px-3 py-2 text-center text-emerald-400"
+                                className="border-b border-r border-emerald-200 bg-white px-3 py-2 text-center text-emerald-400"
                               >
                                 -
                               </td>
@@ -142,7 +143,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                           return (
                             <td
                               key={col}
-                              className="border border-emerald-200 px-3 py-2 text-center"
+                              className="border-b border-r border-emerald-200 bg-white px-3 py-2 text-center"
                             >
                               <div className="whitespace-nowrap font-medium text-emerald-900">{wld}</div>
                               <div className="whitespace-nowrap text-emerald-600">{wr}</div>
@@ -152,7 +153,8 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             )}
           </div>
