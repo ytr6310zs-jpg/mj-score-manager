@@ -75,8 +75,33 @@ jobs:
           steps.playwright-cache.outputs.cache-hit == 'true' &&
           steps.apt-playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright@latest install-deps
+      - name: Cache Supabase Docker image archive
+        id: supabase-image-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/supabase-docker-cache/supabase-images.tar
+          key: supabase-images-${{ runner.os }}-${{ hashFiles('supabase/config.toml') }}
+          restore-keys: |
+            supabase-images-${{ runner.os }}-
+      - name: Load cached Supabase Docker images
+        if: steps.supabase-image-cache.outputs.cache-hit == 'true'
+        run: |
+          set -euo pipefail
+          archive=/tmp/supabase-docker-cache/supabase-images.tar
+          if [ -f "$archive" ]; then
+            docker load -i "$archive"
+          fi
       - name: Start local Supabase
         run: npx supabase@2.84.2 start --exclude studio,imgproxy,inbucket,logflare,vector,storage,edge_runtime
+      - name: Save Supabase Docker images to cache archive
+        if: steps.supabase-image-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/supabase-docker-cache
+          images=$(docker ps --format '{{.Image}}' | sort -u | tr '\n' ' ')
+          if [ -n "$images" ]; then
+            docker save -o /tmp/supabase-docker-cache/supabase-images.tar $images
+          fi
       - name: Run migrations
         run: npx supabase@2.84.2 db push --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       - name: Run integration tests
