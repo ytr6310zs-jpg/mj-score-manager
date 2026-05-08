@@ -49,7 +49,7 @@ jobs:
       - name: Install
         run: npm ci
       - name: Start local Supabase
-        run: npx supabase@2.84.2 start
+        run: npx supabase@2.84.2 start --exclude studio,imgproxy,inbucket,logflare,vector,storage,edge_runtime
       - name: Run migrations
         run: npx supabase@2.84.2 db push --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       - name: Run integration tests
@@ -97,7 +97,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright@latest install-deps
       - name: Start local Supabase
-        run: npx supabase@2.84.2 start
+        run: npx supabase@2.84.2 start --exclude studio,imgproxy,inbucket,logflare,vector,storage,edge_runtime
       - name: Run migrations
         run: npx supabase@2.84.2 db push --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
       - name: Build Next.js
