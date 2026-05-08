@@ -33,48 +33,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
-  # ─────────────────────────────────────────────
-  # Job 2: migrate — DB 依存 Node.js テスト
-  # ─────────────────────────────────────────────
-  migrate:
+  # ─────────────────────────────────────────────────────────────
+  # Job 2: integration — DB 依存テスト全体（Supabase 起動 1回）
+  # migrate + e2e を統合し Supabase 二重起動を排除
+  # ─────────────────────────────────────────────────────────────
+  integration:
     runs-on: ubuntu-latest
     needs: [unit]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - name: Install
-        run: npm ci
-      - name: Start local Supabase
-        run: npx supabase@2.84.2 start --exclude studio,imgproxy,inbucket,logflare,vector,storage,edge_runtime
-      - name: Run migrations
-        run: npx supabase@2.84.2 db push --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-      - name: Run integration tests
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-          SUPABASE_URL: http://127.0.0.1:54321
-          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ACCESS_PASSWORD: ${{ secrets.ACCESS_PASSWORD }}
-        run: npm run test:integration
-      - name: Run Node.js E2E tests
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-          SUPABASE_URL: http://127.0.0.1:54321
-          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ACCESS_PASSWORD: ${{ secrets.ACCESS_PASSWORD }}
-        run: npm run test:e2e
-
-  # ─────────────────────────────────────────────
-  # Job 3: e2e — Playwright ブラウザ E2E
-  # ─────────────────────────────────────────────
-  e2e:
-    runs-on: ubuntu-latest
-    needs: [migrate]
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js
@@ -100,6 +65,22 @@ jobs:
         run: npx supabase@2.84.2 start --exclude studio,imgproxy,inbucket,logflare,vector,storage,edge_runtime
       - name: Run migrations
         run: npx supabase@2.84.2 db push --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ACCESS_PASSWORD: ${{ secrets.ACCESS_PASSWORD }}
+        run: npm run test:integration
+      - name: Run Node.js E2E tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ACCESS_PASSWORD: ${{ secrets.ACCESS_PASSWORD }}
+        run: npm run test:e2e
       - name: Build Next.js
         run: npm run build
       - name: Run Playwright browser E2E tests
