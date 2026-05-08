@@ -1,9 +1,7 @@
-const assert = require("node:assert/strict");
-const { describe, it } = require("node:test");
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
-require("ts-node").register({ transpileOnly: true, preferTsExts: true });
-
-const { validateAndParseMatchForm, buildRankedEntries } = require("../lib/validate-match.ts");
+import { buildRankedEntries, validateAndParseMatchForm } from "../lib/validate-match.ts";
 
 function buildFormData(payload) {
   const formData = new FormData();

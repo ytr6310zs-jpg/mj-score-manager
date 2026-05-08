@@ -1,17 +1,15 @@
 // Integration test for lib/authorization.ts
 // Verifies role-level allow/deny for each permission helper (Issue #184 acceptance criteria)
-require('ts-node').register({ transpileOnly: true, preferTsExts: true });
+import assert from "node:assert";
+import { describe, it } from "node:test";
 
-const assert = require('node:assert');
-const { describe, it } = require('node:test');
-
-const {
+import {
   isRoleCode,
   canAccessAdmin,
   canUseScoreInput,
   canEditMatches,
   canViewPages,
-} = require('../lib/authorization.ts');
+} from "../lib/authorization.ts";
 
 describe('isRoleCode', () => {
   it('returns true for valid role codes', () => {

@@ -1,10 +1,7 @@
-const assert = require('node:assert/strict');
+import assert from "node:assert/strict";
 
-// Ensure ts-node can require TypeScript modules
-require('ts-node').register({ transpileOnly: true, preferTsExts: true });
-
-const { validateAndParseMatchForm } = require('../lib/validate-match.ts');
-const { resolveFilterParams } = require('../lib/filter-params.ts');
+import { resolveFilterParams } from "../lib/filter-params.ts";
+import { validateAndParseMatchForm } from "../lib/validate-match.ts";
 
 function fdFrom(obj) {
   const fd = new FormData();
@@ -217,7 +214,7 @@ try {
   run();
   // success
   // eslint-disable-next-line no-console
-  console.log('validate-match tests passed');
+  console.log("validate-match tests passed");
   process.exit(0);
 } catch (err) {
   // eslint-disable-next-line no-console
