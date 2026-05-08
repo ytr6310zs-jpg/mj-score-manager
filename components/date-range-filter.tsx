@@ -1,11 +1,12 @@
 "use client";
 
 import {
-    getDefaultMinGamesForFilter,
-    getLoadingIndicatorPlacement,
-    shouldAutoSubmitOnMinGamesChange,
-    shouldShowMinGames,
+  getDefaultMinGamesForFilter,
+  getLoadingIndicatorPlacement,
+  shouldAutoSubmitOnMinGamesChange,
+  shouldShowMinGames,
 } from "@/components/date-range-filter-rules";
+import { writeSharedFilterState } from "@/lib/filter-state-preference";
 import { getLastTournamentId, setLastTournamentId } from "@/lib/tournament-preference";
 import type { TournamentOption } from "@/lib/tournaments";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -173,6 +174,9 @@ export default function DateRangeFilter({
         formRef.current?.submit();
       }
     }, 0);
+    try {
+      writeSharedFilterState({ filter: value, start: value === "custom" ? (start ?? "") : value === "year" ? yearStart : value, end: value === "custom" ? (end ?? "") : value === "year" ? yearEnd : value, tournamentId, minGames });
+    } catch {}
   }
 
   function handleMinGamesChange(value: string) {
@@ -190,6 +194,9 @@ export default function DateRangeFilter({
       const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
       window.location.href = target;
     }
+    try {
+      writeSharedFilterState({ filter, start, end, tournamentId, minGames: value });
+    } catch {}
   }
 
   function handleTournamentChange(value: string) {
@@ -218,6 +225,9 @@ export default function DateRangeFilter({
 
     const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
     window.location.href = target;
+    try {
+      writeSharedFilterState({ filter: nextFilter, start: nextStart, end: nextEnd, tournamentId: value, minGames });
+    } catch {}
   }
 
   function handleStartChange(value: string) {
@@ -237,6 +247,9 @@ export default function DateRangeFilter({
     }
 
     setIsDisabled(true);
+    try {
+      writeSharedFilterState({ filter, start, end, tournamentId, minGames });
+    } catch {}
   }
 
   const hasAvailable = Array.isArray(availableDates) && availableDates.length > 0;

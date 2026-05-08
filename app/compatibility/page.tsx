@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { AppHeader } from "@/components/app-header";
 import DateRangeFilter from "@/components/date-range-filter";
+import FilterStateSync from "@/components/filter-state-sync";
 import { FlashMessage } from "@/components/flash-message";
 import { computeWinRate, fetchCompatibilityMatrix, type MatchupRecord } from "@/lib/compatibility";
 import { resolveFilterParams } from "@/lib/filter-params";
@@ -109,6 +110,8 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
           current="compatibility"
           sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined}
         />
+
+        <FilterStateSync includeMinGames={true} />
 
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
