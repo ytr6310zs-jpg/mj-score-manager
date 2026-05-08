@@ -1,11 +1,12 @@
 "use client";
 
 import {
-    getDefaultMinGamesForFilter,
-    getLoadingIndicatorPlacement,
-    shouldAutoSubmitOnMinGamesChange,
-    shouldShowMinGames,
+  getDefaultMinGamesForFilter,
+  getLoadingIndicatorPlacement,
+  shouldAutoSubmitOnMinGamesChange,
+  shouldShowMinGames,
 } from "@/components/date-range-filter-rules";
+import { writeSharedFilterState } from "@/lib/filter-state-preference";
 import { getLastTournamentId, setLastTournamentId } from "@/lib/tournament-preference";
 import type { TournamentOption } from "@/lib/tournaments";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -166,6 +167,11 @@ export default function DateRangeFilter({
 
     setIsDisabled(true);
 
+    const nextStart = value === "custom" ? (start || new Date().toISOString().slice(0, 10)) : value === "year" ? yearStart : value;
+    const nextEnd = value === "custom" ? (end || new Date().toISOString().slice(0, 10)) : value === "year" ? yearEnd : value;
+    try {
+      writeSharedFilterState({ filter: value, start: nextStart, end: nextEnd, tournamentId, minGames });
+    } catch {}
     setTimeout(() => {
       try {
         formRef.current?.requestSubmit?.();
@@ -188,7 +194,14 @@ export default function DateRangeFilter({
         params.set("tournamentId", tournamentId);
       }
       const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
+      try {
+        writeSharedFilterState({ filter, start, end, tournamentId, minGames: value });
+      } catch {}
       window.location.href = target;
+    } else {
+      try {
+        writeSharedFilterState({ filter, start, end, tournamentId, minGames: value });
+      } catch {}
     }
   }
 
@@ -217,6 +230,9 @@ export default function DateRangeFilter({
     }
 
     const target = actionPath ? `${actionPath}?${params.toString()}` : `?${params.toString()}`;
+    try {
+      writeSharedFilterState({ filter: nextFilter, start: nextStart, end: nextEnd, tournamentId: value, minGames });
+    } catch {}
     window.location.href = target;
   }
 
@@ -237,6 +253,9 @@ export default function DateRangeFilter({
     }
 
     setIsDisabled(true);
+    try {
+      writeSharedFilterState({ filter, start, end, tournamentId, minGames });
+    } catch {}
   }
 
   const hasAvailable = Array.isArray(availableDates) && availableDates.length > 0;

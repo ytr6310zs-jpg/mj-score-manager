@@ -13,6 +13,7 @@ import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
 import { getLastTournamentId, setLastTournamentId } from "@/lib/tournament-preference";
+import { readSharedFilterState, writeSharedFilterState } from "@/lib/filter-state-preference";
 import type { TournamentOption } from "@/lib/tournaments";
 import useYakumans from "@/lib/useYakumans";
 
@@ -231,6 +232,13 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     }
 
     setLastTournamentId(Number(tournamentId));
+    try {
+      const stored = readSharedFilterState();
+      if (stored) {
+        stored.tournamentId = tournamentId;
+        writeSharedFilterState(stored);
+      }
+    } catch {}
   }, [tournamentId]);
 
   // Clear the local submitting guard when pending completes
@@ -248,6 +256,13 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     // Persist the tournament used for this successful save, then reset inputs
     try {
       setLastTournamentId(Number(tournamentId));
+      try {
+        const stored = readSharedFilterState();
+        if (stored) {
+          stored.tournamentId = tournamentId;
+          writeSharedFilterState(stored);
+        }
+      } catch {}
     } catch {
       // ignore
     }
