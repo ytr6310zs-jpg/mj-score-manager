@@ -1,8 +1,7 @@
-require('ts-node/register');
-const assert = require('node:assert');
-const { test } = require('node:test');
+import assert from "node:assert";
+import { test } from "node:test";
 
-const { insertYakumanOccurrences } = require('../lib/insert-yakuman');
+import { insertYakumanOccurrences } from "../lib/insert-yakuman.ts";
 
 function createMockSupabase({ playersRows = [], yakTypesRows = [] } = {}) {
   const state = {};
