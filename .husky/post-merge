@@ -1,0 +1,9 @@
+#!/bin/sh
+# post-merge: main ブランチへのマージ完了時に worklog done エントリを自動追記する
+BRANCH=$(git branch --show-current)
+if [ "$BRANCH" = "main" ]; then
+  LAST_MERGE_MSG=$(git log --merges --oneline -1 2>/dev/null || echo "")
+  node scripts/worklog.mjs done \
+    --summary "main へのマージ完了: ${LAST_MERGE_MSG}" \
+    --tags "main,merge"
+fi
