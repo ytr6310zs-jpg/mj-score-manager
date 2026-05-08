@@ -217,10 +217,57 @@ function extractLines(content, prefix) {
 
 // `generateReview` removed. Delegate `review` command to `scripts/summary-worklog.mjs`.
 
+function appendDoneEntry(args) {
+  ensureDir(LOG_DIR);
+
+  const current = now();
+  const day = fmtDate(current);
+  const filePath = path.join(LOG_DIR, `${day}.md`);
+  const tags = args.tags.length ? args.tags.join(", ") : "main,merge";
+  const summary = args.summary || "(完了内容を要約してください)";
+
+  // 当日ログがなければ新規作成
+  if (!fs.existsSync(filePath)) {
+    const header = [
+      `# Worklog ${day}`,
+      "",
+      "このファイルは AI 作業記録の自動生成で作成されます。",
+      "機密情報（鍵・トークン・個人情報）は記録しないでください。",
+      "",
+      "## Entries",
+      "",
+    ].join("\n");
+    fs.writeFileSync(filePath, header, "utf8");
+  }
+
+  // 直近のマージコミットメッセージを取得
+  const lastMerge = runGit("git log --merges --oneline -1");
+
+  const entry = [
+    `### ${fmtDateTime(current)}`,
+    `- branch: ${getBranch()}`,
+    `- tags: ${tags}`,
+    `- summary: ${summary}`,
+    lastMerge ? `- merge_commit: ${lastMerge}` : "",
+    "- status: done",
+    "",
+  ]
+    .filter((line) => line !== "")
+    .join("\n") + "\n";
+
+  fs.appendFileSync(filePath, entry, "utf8");
+  console.log(`Worklog done entry appended: ${path.relative(ROOT, filePath)}`);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.command === "start" || args.command === "touch") {
     appendWorklog(args);
+    return;
+  }
+
+  if (args.command === "done") {
+    appendDoneEntry(args);
     return;
   }
 

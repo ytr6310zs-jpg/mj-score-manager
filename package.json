@@ -37,6 +37,7 @@
     "worklog:start": "node scripts/worklog.mjs start",
     "worklog:review": "node scripts/worklog.mjs review",
     "worklog:generate": "node scripts/worklog.mjs start",
+    "worklog:done": "node scripts/worklog.mjs done",
     "worklog:summary": "node scripts/summary-worklog.mjs"
   },
   "dependencies": {

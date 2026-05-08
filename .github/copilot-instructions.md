@@ -39,6 +39,7 @@
 * **設計レビューと停止:** 設計資料を作成した後、エージェント自身が整合性・抜け漏れ・リスクを自己レビューし、その結果をユーザーへ提示して確認を求めること。自己レビューには `worklog` の作成確認を含めること。ユーザーの承認なしに実装フェーズへ進んではならない。
 * **設計承認後の委任:** ユーザーが設計を承認し実装を依頼した場合、実装・テスト・動作確認・コミット・push・PR作成は追加確認なしで完遂してよい。破壊的変更・高リスク変更・要件矛盾が新たに発覚した場合は例外として停止する。
 * **worklog 起票タイミング:** 実装フェーズ開始時点で当日 `worklog` を必ず起票すること（例: `npm run worklog:start -- --summary "Issue #<番号> 実装開始" --reason "..." --tags "issue-<番号>,implementation,worklog"`）。当日の実装作業完了までに、該当エントリが `.worklog/logs/YYYY-MM-DD.md` に存在していることを必須とする。
+* **worklog 完了記録:** develop→main PR 作成後（エージェント責務の末尾）には、`done_when` に「main マージ後に `npm run worklog:done` を実行」と明記すること。`main` ブランチで `git pull` / `git merge` を実行すると `.husky/post-merge` フックが自動で `worklog:done` エントリを追記する。手動で記録したい場合は `npm run worklog:done -- --summary "<完了内容>" --tags "main,merge,issue-<番号>"` を実行すること。
 * **品質管理:** * コミット前に `npm run build` を実行し、失敗時はコミットしない。
     * 可能な場合は `npm run lint` と `npm test` も実行し、結果をPR本文に記載する。
     * 修正を行うたびに `npm run build` を実行し、エラーがある場合は対応してから次の作業へ進むことを忘れない。
