@@ -40,6 +40,8 @@
 
 1. **Given** 相性表が表示されている、**When** DateRangeFilter で "2026年" を選択、**Then** 2026年内のゲームのみを対象とした戦績が再表示される
 2. **Given** 特定トーナメントを選択、**When** 相性表を表示、**Then** そのトーナメントの試合のみを集計した戦績が表示される
+3. **Given** 最低試合数に「20試合以上」を選択、**When** 相性表を表示、**Then** 期間内に 20 試合未満のプレーヤーは行・列ともに除外される
+4. **Given** 年次フィルタを選択しかつ最低試合数を変更していない、**When** 相性表を表示、**Then** デフォルト「20試合以上」が適用され 20 試合未満のプレーヤーが除外される（成績集計と同じ挙動）
 
 ---
 
@@ -63,6 +65,7 @@
 - 勝数・敗数が両方0（分けのみ）→ 勝率 0%
 - wins + losses = 0 の場合（分けのみ）→ 0除算回避: 勝率 0%
 - 3位以内の境界で同率が発生した場合 → 同順位として同じ色を適用（順位バッジは表示しない）
+- minGames 指定時に全プレーヤーが閾値未満になった場合 → 「データがありません」メッセージを表示
 
 ---
 
@@ -84,6 +87,8 @@
 | F-10 | admin / editor / viewer 全ロールが閲覧可能 |
 | F-11 | 各行プレーヤー視点で、対戦相手の勝率上位3位について勝率文字の背景色を付与する |
 | F-12 | 上位判定は勝率（小数1位）降順で行い、同率は同順位として同じ背景色を適用する |
+| F-13 | 最低試合数フィルタを提供する。UI は `DateRangeFilter` 内の 2 択セレクト（「試合数：20試合以上」/「試合数：条件なし」）で、20試合以上を選択した場合に 20 試合未満のプレーヤーを行・列から除外する |
+| F-14 | 年次フィルタ選択時の最低試合数デフォルトは「試合数：20試合以上」（成績集計と同一）。カスタム期間フィルタ時は「試合数：条件なし」がデフォルト。全期間フィルタ時はセレクト自体が非表示（条件なし固定）|
 
 ### 非機能要件
 
@@ -92,6 +97,7 @@
 | N-01 | モバイル・デスクトップともにスクロール対応（テーブルは `overflow-x-auto` でラップ）|
 | N-02 | 既存の Tailwind / コンポーネントスタイルに準拠 |
 | N-03 | Server Component + Server Action パターン（stats ページと同様）|
+| N-04 | minGames フィルタの挙動は `app/stats/page.tsx` と同一にし、URLパラメータ `minGames` で受け取る |
 
 ---
 
@@ -146,9 +152,9 @@ type CompatibilityMatrix = Map<string, Map<string, MatchupRecord>>;
 | ファイル | 種別 | 概要 |
 |---|---|---|
 | `app/compatibility/page.tsx` | 新規 | 相性表ページ（Server Component） |
-| `lib/compatibility.ts` | 新規 | 相性データ算出ロジック |
+| `lib/compatibility.ts` | 変更 | `fetchCompatibilityMatrix` の `options` に `minGames` を追加 |
+| `lib/compatibility-matrix.js` | 変更 | `buildCompatibilityMatrix` にプレーヤーゲーム数カウント機能を追加（または `fetchCompatibilityMatrix` でポストプロセス）|
 | `components/app-header.tsx` | 変更 | NavTarget に "compatibility" 追加、ナビリンク追加 |
-| `lib/authorization.ts` または型定義 | 変更 | NavTarget 型へ "compatibility" を追加（必要な場合） |
 
 ---
 

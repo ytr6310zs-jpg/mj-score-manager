@@ -71,19 +71,28 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
   const session = await getCurrentSession();
   const params = await (searchParams as Promise<SearchParams> | undefined);
 
-  const { filter, start, end, tournamentId } = resolveFilterParams({
+  const initialMinGamesRaw = Array.isArray(params?.minGames) ? params?.minGames[0] : params?.minGames;
+  const hasMinGamesParam = initialMinGamesRaw !== undefined;
+
+  const { filter, start, end, minGames, tournamentId } = resolveFilterParams({
     filterRaw: params?.filter,
     modeRaw: params?.mode,
     startRaw: params?.start,
     endRaw: params?.end,
+    minGamesRaw: params?.minGames,
     tournamentIdRaw: params?.tournamentId,
   });
+
+  const effectiveMinGames =
+    typeof minGames === "number" ? minGames
+    : !hasMinGamesParam && filter === "year" ? 20
+    : undefined;
 
   const [tournaments, { dates: availableDates, error: datesError }, { result, error }] =
     await Promise.all([
       fetchTournamentOptions(),
       fetchMatchDates({ tournamentId }),
-      fetchCompatibilityMatrix(start, end, { tournamentId }),
+      fetchCompatibilityMatrix(start, end, { tournamentId, minGames: effectiveMinGames }),
     ]);
 
   const players = result?.players ?? [];
@@ -120,7 +129,8 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                   initialStart={start}
                   initialEnd={end}
                   initialTournamentId={tournamentId ? String(tournamentId) : undefined}
-                  showMinGames={false}
+                  initialMinGames={effectiveMinGames !== undefined ? String(effectiveMinGames) : undefined}
+                  showMinGames={true}
                   actionPath="/compatibility"
                   availableDates={datesError ? undefined : availableDates}
                   tournaments={tournaments}
