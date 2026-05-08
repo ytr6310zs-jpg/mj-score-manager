@@ -4,10 +4,11 @@ import { Suspense } from "react";
 import { AppHeader } from "@/components/app-header";
 import DateRangeFilter from "@/components/date-range-filter";
 import { FlashMessage } from "@/components/flash-message";
+import { computeWinRate, fetchCompatibilityMatrix, type MatchupRecord } from "@/lib/compatibility";
 import { resolveFilterParams } from "@/lib/filter-params";
-import { fetchCompatibilityMatrix, computeWinRate, type MatchupRecord } from "@/lib/compatibility";
 import { fetchMatchDates } from "@/lib/matches";
 import { getCurrentSession } from "@/lib/session";
+import { RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchTournamentOptions } from "@/lib/tournaments";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type SearchParams = { [key: string]: string | string[] | undefined } | undefined;
+type WinRateRank = 1 | 2 | 3;
 
 function renderCellText(record: MatchupRecord | undefined): string | null {
   if (!record) return null;
@@ -26,6 +28,43 @@ function renderCellText(record: MatchupRecord | undefined): string | null {
   const drawPart = draws > 0 ? `${draws}分け` : "";
   const wr = computeWinRate(record);
   return `${wins}勝${losses}敗${drawPart}\n${wr.toFixed(1)}%`;
+}
+
+function buildTopWinRateRanksByRow(
+  players: string[],
+  matrix: Map<string, Map<string, MatchupRecord>> | undefined
+): Map<string, Map<string, WinRateRank>> {
+  const ranksByRow = new Map<string, Map<string, WinRateRank>>();
+
+  for (const row of players) {
+    const rowRecords = matrix?.get(row);
+    const candidates = players
+      .filter((col) => col !== row)
+      .flatMap((col) => {
+        const record = rowRecords?.get(col);
+        if (!record) return [];
+        if (record.wins === 0 && record.losses === 0 && record.draws === 0) return [];
+        return [{ col, winRate: Number(computeWinRate(record).toFixed(1)) }];
+      })
+      .sort((a, b) => b.winRate - a.winRate || a.col.localeCompare(b.col));
+
+    const rowRanks = new Map<string, WinRateRank>();
+    let currentRank = 0;
+    let prevWinRate: number | null = null;
+
+    for (const candidate of candidates) {
+      if (prevWinRate === null || candidate.winRate !== prevWinRate) {
+        currentRank += 1;
+        prevWinRate = candidate.winRate;
+      }
+      if (currentRank > 3) break;
+      rowRanks.set(candidate.col, currentRank as WinRateRank);
+    }
+
+    ranksByRow.set(row, rowRanks);
+  }
+
+  return ranksByRow;
 }
 
 export default async function CompatibilityPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
@@ -49,6 +88,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
 
   const players = result?.players ?? [];
   const matrix = result?.matrix;
+  const topWinRateRanksByRow = buildTopWinRateRanksByRow(players, matrix);
 
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
@@ -66,6 +106,9 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
             <h1 className="text-xl font-bold text-emerald-900">相性表</h1>
             <p className="mt-1 text-xs text-emerald-700/70">
               行プレーヤーから見た対戦戦績を表示します。勝率 = 勝数 ÷ (勝数 + 敗数) × 100
+            </p>
+            <p className="mt-1 text-xs text-emerald-700/70">
+              各行の上位3勝率（同率同順位）は成績集計と同じ配色で勝率の文字背景を表示します。
             </p>
           </div>
 
@@ -97,13 +140,13 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                   <table className="min-w-full border-separate border-spacing-0 text-xs sm:text-sm">
                   <thead>
                     <tr>
-                      <th className="sticky left-0 top-0 z-30 border-b border-r border-emerald-200 bg-emerald-100 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap">
+                      <th className="sticky left-0 top-0 z-30 border-b border-r border-emerald-200 bg-emerald-100 px-2 py-1.5 text-center font-semibold text-emerald-900 whitespace-nowrap">
                         ↓行 vs 列→
                       </th>
                       {players.map((col) => (
                         <th
                           key={col}
-                          className="sticky top-0 z-20 border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap"
+                          className="sticky top-0 z-20 border-b border-r border-emerald-200 bg-emerald-50 px-2 py-1.5 text-center font-semibold text-emerald-900 whitespace-nowrap"
                         >
                           {col}
                         </th>
@@ -113,7 +156,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                   <tbody>
                     {players.map((row) => (
                       <tr key={row}>
-                        <th className="sticky left-0 z-10 border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-900 whitespace-nowrap">
+                        <th className="sticky left-0 z-10 border-b border-r border-emerald-200 bg-emerald-50 px-2 py-1.5 text-center font-semibold text-emerald-900 whitespace-nowrap">
                           {row}
                         </th>
                         {players.map((col) => {
@@ -121,7 +164,7 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                             return (
                               <td
                                 key={col}
-                                className="border-b border-r border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-emerald-400"
+                                className="border-b border-r border-emerald-200 bg-emerald-50 px-2 py-1.5 text-center text-emerald-400"
                               >
                                 -
                               </td>
@@ -129,11 +172,13 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                           }
                           const record = matrix?.get(row)?.get(col);
                           const cellText = renderCellText(record);
+                          const winRateRank = topWinRateRanksByRow.get(row)?.get(col);
+                          const wrBgClass = winRateRank ? RANK_ROW_BG[winRateRank] : "";
                           if (!cellText) {
                             return (
                               <td
                                 key={col}
-                                className="border-b border-r border-emerald-200 bg-white px-3 py-2 text-center text-emerald-400"
+                                className="border-b border-r border-emerald-200 bg-white px-2 py-1.5 text-center text-emerald-400"
                               >
                                 -
                               </td>
@@ -143,10 +188,10 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                           return (
                             <td
                               key={col}
-                              className="border-b border-r border-emerald-200 bg-white px-3 py-2 text-center"
+                              className="border-b border-r border-emerald-200 bg-white px-2 py-1.5 text-center"
                             >
                               <div className="whitespace-nowrap font-medium text-emerald-900">{wld}</div>
-                              <div className="whitespace-nowrap text-emerald-600">{wr}</div>
+                              <div className={`mx-auto inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-emerald-600 ${wrBgClass}`}>{wr}</div>
                             </td>
                           );
                         })}

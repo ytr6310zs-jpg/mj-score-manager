@@ -73,6 +73,9 @@ export async function fetchCompatibilityMatrix(
 - `fetchCompatibilityMatrix()` でデータ取得
 - `DateRangeFilter` に `showMinGames={false}` を渡す（`/matches` と同様の方法）
 - マトリクステーブルを JSX で描画（Server Component 内でインライン実装）
+- 各行プレーヤーごとに対戦相手セルの勝率を算出し、上位3位まで背景色を適用
+  - 色は `lib/stats-rank-theme.ts` の `RANK_ROW_BG`（1位/2位/3位）を再利用
+  - 同率は同順位として同じ色を適用（順位バッジは表示しない）
 
 ### 3. ヘッダー変更（`components/app-header.tsx`）
 
@@ -135,6 +138,13 @@ function renderCell(record: MatchupRecord | undefined, isSelf: boolean): string 
   const drawPart = draws > 0 ? `${draws}分け` : "";
   const wr = computeWinRate(record);
   return `${wins}勝${losses}敗${drawPart}\n${wr.toFixed(1)}%`;
+}
+
+function buildTopWinRateRanksByRow(
+  players: string[],
+  matrix: Map<string, Map<string, MatchupRecord>>
+): Map<string, Map<string, 1 | 2 | 3>> {
+  // 行ごとに勝率（小数1位）で降順ソートし、同率同順位で1位〜3位を決定
 }
 ```
 

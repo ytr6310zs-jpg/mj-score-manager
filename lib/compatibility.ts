@@ -1,6 +1,6 @@
+import { buildCompatibilityMatrix, computeWinRate } from "./compatibility-matrix.js";
 import type { MatchQueryOptions } from "./matches";
 import { fetchMatchResults } from "./matches";
-import { buildCompatibilityMatrix, computeWinRate } from "./compatibility-matrix.js";
 
 export type MatchupRecord = {
   wins: number;
