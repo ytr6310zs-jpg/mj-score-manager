@@ -30,6 +30,12 @@ export function writeSharedFilterState(state: SharedFilterState): void {
     const normalized = normalizeSharedFilterState(state);
     if (!normalized) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    try {
+      // notify same-window listeners
+      window.dispatchEvent(new CustomEvent("mj:shared-filter-changed", { detail: normalized }));
+    } catch {
+      // ignore
+    }
   } catch {
     // ignore
   }
@@ -39,6 +45,9 @@ export function clearSharedFilterState(): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
+    try {
+      window.dispatchEvent(new CustomEvent("mj:shared-filter-changed", { detail: null }));
+    } catch {}
   } catch {
     // ignore
   }
