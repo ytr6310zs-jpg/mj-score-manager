@@ -1,8 +1,9 @@
-const assert = require("node:assert/strict");
-const { describe, it, before, after } = require("node:test");
-const { createClient } = require("@supabase/supabase-js");
+import assert from "node:assert/strict";
+import { after, before, describe, it } from "node:test";
 
-require("ts-node").register({ transpileOnly: true, preferTsExts: true });
+import { createClient } from "@supabase/supabase-js";
+import { fetchMatchResults } from "../lib/matches.ts";
+import { computePlayerStatsFromMatches } from "../lib/stats.ts";
 
 /**
  * DB-backed E2E test: Verify match save → stats aggregation reflection
@@ -127,11 +128,6 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
     insertedMatchId = gameInserted[0].id;
 
     // 2. Load fetchMatchResults and computePlayerStatsFromMatches via ts-node hook
-    const matchesModule = require("../lib/matches.ts");
-    const statsModule = require("../lib/stats.ts");
-    const { fetchMatchResults } = matchesModule;
-    const { computePlayerStatsFromMatches } = statsModule;
-
     // 3. Fetch transformed MatchResult via fetchMatchResults and select our inserted game
     const { matches, error: fetchError } = await fetchMatchResults(undefined, undefined, {});
     assert.ok(!fetchError, `Fetch match results failed: ${fetchError}`);
@@ -188,10 +184,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
     const match3pId = g3[0].id;
 
     // 2. Fetch and verify aggregation using fetchMatchResults
-    const matchesModule2 = require("../lib/matches.ts");
-    const { fetchMatchResults: fetchMatchResults2 } = matchesModule2;
-
-    const { matches: matches3p, error: fetch3pError } = await fetchMatchResults2(undefined, undefined, {});
+    const { matches: matches3p, error: fetch3pError } = await fetchMatchResults(undefined, undefined, {});
     assert.ok(!fetch3pError, `Fetch 3p match failed: ${fetch3pError}`);
 
     const match3p = matches3p.find((m) => Number(m.id) === Number(match3pId));
@@ -200,10 +193,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
     assert.strictEqual(match3p.players.length, 3, "3p match should have 3 players");
 
     // 3. Compute stats and verify
-    const statsModule2 = require("../lib/stats.ts");
-    const { computePlayerStatsFromMatches: compute2 } = statsModule2;
-
-    const stats3p = compute2([match3p], 1);
+    const stats3p = computePlayerStatsFromMatches([match3p], 1);
     const byName3p = Object.fromEntries(stats3p.map((s) => [s.name, s]));
     assert.ok(byName3p.Player3pWinner, "Player3pWinner should be in stats");
     assert.strictEqual(byName3p.Player3pWinner.topCount, 1, "Player3pWinner should have 1 win");

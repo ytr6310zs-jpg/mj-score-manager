@@ -1,6 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
-import { loadEnvConfig } from "@next/env";
+import { createRequire } from "node:module";
 
+// @next/env は ESM named export を持たないため CJS の require 経由でロード
+const _require = createRequire(import.meta.url);
+const { loadEnvConfig } = _require("@next/env") as {
+  loadEnvConfig: (dir: string) => void;
+};
 loadEnvConfig(process.cwd());
 
 /**

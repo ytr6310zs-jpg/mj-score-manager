@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { readSharedFilterState, buildSharedFilterSearchParams, type SharedFilterState } from "@/lib/filter-state-preference";
 
 import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -24,6 +25,9 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
   const [showIndicator, setShowIndicator] = useState(false);
   const canUseScoreInput = sessionUser?.role !== "viewer";
   const canAccessAdmin = sessionUser?.role === "admin";
+  const [matchesHref, setMatchesHref] = useState<string | null>(null);
+  const [statsHref, setStatsHref] = useState<string | null>(null);
+  const [compatibilityHref, setCompatibilityHref] = useState<string | null>(null);
 
   const delayTimerRef = useRef<number | null>(null);
   const timeoutTimerRef = useRef<number | null>(null);
@@ -41,6 +45,69 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
       timeoutTimerRef.current = null;
     }
   }, [pathname]);
+
+  useEffect(() => {
+    try {
+      const stored = readSharedFilterState();
+      if (stored) {
+        const mParams = buildSharedFilterSearchParams(stored, { includeMinGames: false });
+        setMatchesHref(`/matches?${mParams.toString()}`);
+        const sParams = buildSharedFilterSearchParams(stored, { includeMinGames: true });
+        setStatsHref(`/stats?${sParams.toString()}`);
+        const cParams = buildSharedFilterSearchParams(stored, { includeMinGames: true });
+        setCompatibilityHref(`/compatibility?${cParams.toString()}`);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    function updateFromStored(detail?: SharedFilterState | null) {
+      try {
+        const stored = detail ?? readSharedFilterState();
+        if (!stored) {
+          setMatchesHref(null);
+          setStatsHref(null);
+          setCompatibilityHref(null);
+          return;
+        }
+        const mParams = buildSharedFilterSearchParams(stored, { includeMinGames: false });
+        setMatchesHref(`/matches?${mParams.toString()}`);
+        const sParams = buildSharedFilterSearchParams(stored, { includeMinGames: true });
+        setStatsHref(`/stats?${sParams.toString()}`);
+        const cParams = buildSharedFilterSearchParams(stored, { includeMinGames: true });
+        setCompatibilityHref(`/compatibility?${cParams.toString()}`);
+      } catch {
+        // ignore
+      }
+    }
+
+    const onCustom = (e: Event) => {
+      const ce = e as CustomEvent;
+      updateFromStored(ce.detail);
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === undefined) {
+        // ignore
+      }
+      if (e.key === "mj-score-manager:shared-filter") {
+        try {
+          const detail = e.newValue ? JSON.parse(e.newValue) : null;
+          updateFromStored(detail);
+        } catch {
+          updateFromStored(null);
+        }
+      }
+    };
+
+    window.addEventListener("mj:shared-filter-changed", onCustom as EventListener);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("mj:shared-filter-changed", onCustom as EventListener);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
   useEffect(() => {
     if (navigatingTo) {
@@ -113,13 +180,13 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
             スコア入力
           </Link>
         ) : null}
-        <Link href="/matches" className={navClass("matches")} onClick={handleNavClick("matches")} aria-busy={navigatingTo === "matches"} aria-disabled={navigatingTo === "matches"}>
+        <Link href={matchesHref ?? "/matches"} className={navClass("matches")} onClick={handleNavClick("matches")} aria-busy={navigatingTo === "matches"} aria-disabled={navigatingTo === "matches"}>
           対局履歴
         </Link>
-        <Link href="/stats" className={navClass("stats")} onClick={handleNavClick("stats")} aria-busy={navigatingTo === "stats"} aria-disabled={navigatingTo === "stats"}>
+        <Link href={statsHref ?? "/stats"} className={navClass("stats")} onClick={handleNavClick("stats")} aria-busy={navigatingTo === "stats"} aria-disabled={navigatingTo === "stats"}>
           成績集計
         </Link>
-        <Link href="/compatibility" className={navClass("compatibility")} onClick={handleNavClick("compatibility")} aria-busy={navigatingTo === "compatibility"} aria-disabled={navigatingTo === "compatibility"}>
+        <Link href={compatibilityHref ?? "/compatibility"} className={navClass("compatibility")} onClick={handleNavClick("compatibility")} aria-busy={navigatingTo === "compatibility"} aria-disabled={navigatingTo === "compatibility"}>
           相性表
         </Link>
 

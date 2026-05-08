@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AppHeader } from "@/components/app-header";
 import CsvExportButton from "@/components/csv-export-button";
 import DateRangeFilter from "@/components/date-range-filter";
+import FilterStateSync from "@/components/filter-state-sync";
 import { FlashMessage } from "@/components/flash-message";
 import PdfExportButton from "@/components/pdf-export-button";
 import StatsSortableTable from "@/components/stats-sortable-table";
@@ -105,6 +106,8 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
       </Suspense>
       <div className="mx-auto max-w-screen-2xl space-y-6">
         <AppHeader current="stats" sessionUser={session ? { displayName: session.displayName, role: session.role } : undefined} />
+
+        <FilterStateSync includeMinGames={true} />
 
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">

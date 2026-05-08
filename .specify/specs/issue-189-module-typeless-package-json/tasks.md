@@ -1,0 +1,4 @@
+- [ ] Add explicit package module type and align runtime JS exports
+- [ ] Rename CommonJS tests to `.cjs` and update discovery commands
+- [ ] Add shared `ts-node` CJS register shim for TypeScript-backed tests
+- [ ] Validate unit/integration/e2e/build commands
