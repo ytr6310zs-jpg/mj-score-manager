@@ -7,8 +7,10 @@
 ## 設計
 
 - 設計概要:
+- Spec Kit: `.specify/specs/<feature>/spec.md` / `plan.md` / `tasks.md`
 - 影響範囲:
 - 検証方針:
+- 変更の背景や判断理由:
 
 ## 確認事項
 - [ ] `.github/copilot-instructions.md` の更新（必要な場合）または存在確認を行った
@@ -23,11 +25,18 @@
 - 実行コマンド:
 - 結果:
 - 動作確認:
+- CI ランや手動確認の具体的な結果:
 
 ## 未解決事項
 
 - なし / あり（内容を記載）
+- 破壊的変更や移行手順がある場合の注意点:
+
+## Worklog
+
+- `.worklog/logs/YYYY-MM-DD.md` に記録済み
+- 必要なら要点:
 
 ## 関連 Issue
 
-Fixes: #
+Fixes: #<番号>
