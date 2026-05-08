@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop, '**/feature/**' ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ─────────────────────────────────────────────
