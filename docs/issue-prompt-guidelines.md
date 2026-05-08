@@ -26,7 +26,7 @@
 1) Clarify（確認用）
 
 ```text
-Issue #<番号> を対応します。次を教えてください。
+Issue # を対応します。次を教えてください。
 1) 目的の要約
 2) 期待挙動（現状と理想）
 3) 優先度・期限
@@ -38,7 +38,7 @@ Issue #<番号> を対応します。次を教えてください。
 2) Design（設計フェーズ専用・実装禁止）
 
 ```text
-Issue #<番号> の設計フェーズのみ実施してください。
+Issue # の設計フェーズのみ実施してください。
 
 要件:
 - `.specify/specs/<feature>/spec.md`
@@ -59,12 +59,12 @@ Issue #<番号> の設計フェーズのみ実施してください。
 3) Implement（実装フェーズ専用）
 
 ```text
-Issue #<番号> は設計承認済みです。実装フェーズを実施してください。
+Issue # は設計承認済みです。実装フェーズを実施してください。
 
 開始前チェック:
 1) spec/plan/tasks の3点が存在すること
 2) 当日worklogを起票すること
-	`npm run worklog:start -- --summary "Issue #<番号> 実装開始" --reason "..." --tags "issue-<番号>,implementation,worklog"`
+	`npm run worklog:start -- --summary "Issue # 実装開始" --reason "..." --tags "issue-<番号>,implementation,worklog"`
 
 実施内容:
 - tasks.md に従って最小差分で実装
@@ -108,7 +108,7 @@ Worklog:
 - <必要なら要点>
 
 関連 Issue:
-- #<番号>
+- #
 ```
 
 必要に応じて、PR本文では次の補足も追記してください。
