@@ -8,7 +8,7 @@ import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { RoleCode } from "@/lib/auth";
 
-type NavTarget = "input" | "matches" | "stats" | "admin";
+type NavTarget = "input" | "matches" | "stats" | "compatibility" | "admin";
 
 type AppHeaderProps = {
   current: NavTarget;
@@ -118,6 +118,9 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
         </Link>
         <Link href="/stats" className={navClass("stats")} onClick={handleNavClick("stats")} aria-busy={navigatingTo === "stats"} aria-disabled={navigatingTo === "stats"}>
           成績集計
+        </Link>
+        <Link href="/compatibility" className={navClass("compatibility")} onClick={handleNavClick("compatibility")} aria-busy={navigatingTo === "compatibility"} aria-disabled={navigatingTo === "compatibility"}>
+          相性表
         </Link>
 
         {showIndicator && (
