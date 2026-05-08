@@ -48,7 +48,6 @@ export type ParsedMatchData = {
   players: string[];
   scores: number[];
   tobiPlayers: string[];
-  tobashiPlayer: string | null;
   tobashiPlayers: string[];
   yakitoriPlayers: Set<string>;
   notes: string;
@@ -116,8 +115,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
       const single = parseOptionalPlayer(formData.get("tobiPlayer"));
       return single ? [single] : [];
     })();
-  const tobashiPlayer = parseOptionalPlayer(formData.get("tobashiPlayer"));
-  // tobashiPlayers: JSON array from multi-select checkboxes (new), falls back to single tobashiPlayer
+  // tobashiPlayers: JSON array from multi-select checkboxes
   const tobashiPlayersRaw = parseString(formData.get("tobashiPlayers"));
   const tobashiPlayers: string[] = tobashiPlayersRaw
     ? (() => {
@@ -128,7 +126,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
           return [];
         }
       })()
-    : tobashiPlayer ? [tobashiPlayer] : [];
+    : [];
   const yakitoriPlayers = new Set(
     activeSlots
       .filter((slot) => formData.get(`yakitori${slot}`) === "on")
@@ -164,7 +162,6 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
       players,
       scores: resolvedScores,
       tobiPlayers,
-      tobashiPlayer,
       tobashiPlayers,
       yakitoriPlayers,
       notes,
@@ -178,7 +175,6 @@ export function buildRankedEntries(
   scores: number[],
   yakitoriPlayers: Set<string>,
   tobiPlayers: string[],
-  tobashiPlayer: string | null,
   tobashiPlayers: string[] = []
 ) {
   const ranked = players
@@ -201,7 +197,7 @@ export function buildRankedEntries(
     score: scores[index],
     rank: rankBySlot.get(index + 1) ?? players.length,
     isTobi: tobiPlayers.includes(player),
-    isTobashi: tobashiPlayers.length > 0 ? tobashiPlayers.includes(player) : tobashiPlayer === player,
+    isTobashi: tobashiPlayers.includes(player),
     isYakitori: yakitoriPlayers.has(player),
   })) as GameEntry[];
 }

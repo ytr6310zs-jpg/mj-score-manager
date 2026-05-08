@@ -264,7 +264,6 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
     });
     form.append("tobiPlayers", tobiPlayers.join(","));
     form.append("tobashiPlayers", JSON.stringify(tobashiPlayers));
-    form.append("tobashiPlayer", tobashiPlayers[0] ?? "");
     form.append("notes", notes);
 
     const activePlayerSet = new Set(

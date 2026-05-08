@@ -40,7 +40,7 @@ export async function GET(req: Request) {
     "score4",
     "scoreTotal",
     "tobiPlayer",
-    "tobashiPlayer",
+    "tobashiPlayers",
     "yakitoriPlayers",
     "notes",
   ];
@@ -61,11 +61,16 @@ export async function GET(req: Request) {
     while (names.length < 4) names.push("");
     const scores = players.map((p) => escapeCsv(p.score));
     while (scores.length < 4) scores.push("");
+    const tobashiPlayers = players
+      .filter((p) => p.id !== null && p.id !== undefined && (m.tobashiPlayerIds || []).includes(p.id))
+      .map((p) => p.name)
+      .filter(Boolean)
+      .join("; ");
 
     const tail = [
       escapeCsv(m.scoreTotal ?? ""),
       escapeCsv(m.tobiPlayer ?? ""),
-      escapeCsv(m.tobashiPlayer ?? ""),
+      escapeCsv(tobashiPlayers),
       escapeCsv((m.yakitoriPlayers || []).join("; ") || ""),
       escapeCsv(m.notes ?? ""),
     ];

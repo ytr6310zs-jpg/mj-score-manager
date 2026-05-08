@@ -42,8 +42,8 @@ describe("score input to stats reflection (e2e-like)", () => {
       score2: "100",
       score3: "-150",
       score4: "-300",
-      tobiPlayer: "Dave",
-      tobashiPlayer: "Alice",
+      tobiPlayers: "Dave",
+      tobashiPlayers: JSON.stringify(["Alice"]),
       yakitori2: "on",
       notes: "E2E-like flow test",
     });
@@ -56,7 +56,7 @@ describe("score input to stats reflection (e2e-like)", () => {
       parsed.data.scores,
       parsed.data.yakitoriPlayers,
       parsed.data.tobiPlayers,
-      parsed.data.tobashiPlayer
+      parsed.data.tobashiPlayers
     );
 
     const summary = summarize(entries);
@@ -91,7 +91,6 @@ describe("score input to stats reflection (e2e-like)", () => {
       score4: "-300",
       tobiPlayers: "Carol,Dave",
       tobashiPlayers: JSON.stringify(["Alice", "Bob"]),
-      tobashiPlayer: "Alice",
       notes: "multi-tobashi test",
     });
 
@@ -104,7 +103,6 @@ describe("score input to stats reflection (e2e-like)", () => {
       parsed.data.scores,
       parsed.data.yakitoriPlayers,
       parsed.data.tobiPlayers,
-      parsed.data.tobashiPlayer,
       parsed.data.tobashiPlayers
     );
 
