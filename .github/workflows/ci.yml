@@ -95,8 +95,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ACCESS_PASSWORD: ${{ secrets.ACCESS_PASSWORD }}
         run: npm run test:e2e
-      - name: Build Next.js
-        run: npm run build
       - name: Run Playwright browser E2E tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
