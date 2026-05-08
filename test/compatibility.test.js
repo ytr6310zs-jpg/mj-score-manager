@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { buildCompatibilityMatrix, computeWinRate } from "../lib/compatibility-matrix.js";
+import { buildCompatibilityMatrix, computeWinRate, filterCompatibilityByMinGames } from "../lib/compatibility-matrix.js";
 
 describe("computeWinRate", () => {
   it("wins + losses > 0 のとき正しい勝率を返す", () => {
@@ -139,5 +139,50 @@ describe("buildCompatibilityMatrix", () => {
     const { players } = buildCompatibilityMatrix(matches);
     const expected = ["佐藤", "鈴木", "田中"].sort((a, b) => a.localeCompare(b, "ja"));
     assert.deepStrictEqual(players, expected);
+  });
+});
+
+describe("filterCompatibilityByMinGames", () => {
+  const makeMatches = (playerGames) => {
+    // playerGames: { [name]: numberOfGames }
+    const matches = [];
+    for (const [name, count] of Object.entries(playerGames)) {
+      for (let i = 0; i < count; i++) {
+        matches.push({ players: [{ name, rank: 1 }, { name: "Dummy", rank: 2 }] });
+      }
+    }
+    return matches;
+  };
+
+  it("minGames = 20 のとき 1 試合のみのプレーヤーが除外される", () => {
+    const matches = makeMatches({ Alice: 20, Bob: 1 });
+    const raw = buildCompatibilityMatrix(matches);
+    const result = filterCompatibilityByMinGames(raw, matches, 20);
+    assert.ok(result.players.includes("Alice"));
+    assert.ok(!result.players.includes("Bob"));
+  });
+
+  it("全プレーヤーが閾値以上ならそのまま返る", () => {
+    const matches = makeMatches({ Alice: 20, Bob: 25 });
+    const raw = buildCompatibilityMatrix(matches);
+    const result = filterCompatibilityByMinGames(raw, matches, 20);
+    assert.ok(result.players.includes("Alice"));
+    assert.ok(result.players.includes("Bob"));
+  });
+
+  it("minGames = 0 を渡しても全プレーヤーが返る", () => {
+    const matches = makeMatches({ Alice: 1, Bob: 1 });
+    const raw = buildCompatibilityMatrix(matches);
+    const result = filterCompatibilityByMinGames(raw, matches, 0);
+    assert.ok(result.players.includes("Alice"));
+    assert.ok(result.players.includes("Bob"));
+  });
+
+  it("全プレーヤーが閾値未満のとき空のプレーヤーリストを返す", () => {
+    const matches = makeMatches({ Alice: 1, Bob: 1 });
+    const raw = buildCompatibilityMatrix(matches);
+    const result = filterCompatibilityByMinGames(raw, matches, 5);
+    assert.deepStrictEqual(result.players, []);
+    assert.strictEqual(result.matrix.size, 0);
   });
 });

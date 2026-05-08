@@ -13,3 +13,8 @@ export type CompatibilityResult = {
 
 export declare function computeWinRate(record: MatchupRecord): number;
 export declare function buildCompatibilityMatrix(matches: MatchResult[]): CompatibilityResult;
+export declare function filterCompatibilityByMinGames(
+  result: CompatibilityResult,
+  matches: MatchResult[],
+  minGames: number,
+): CompatibilityResult;

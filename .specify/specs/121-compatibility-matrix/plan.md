@@ -69,9 +69,20 @@ export async function fetchCompatibilityMatrix(
 `app/stats/page.tsx` に倣った Server Component として実装する。
 
 - `getCurrentSession()` でセッション取得（ミドルウェアが認証を保証済みだが、ヘッダー表示に必要）
-- `resolveFilterParams()` でクエリパラメータを解析（`minGames` は使用しない）
-- `fetchCompatibilityMatrix()` でデータ取得
-- `DateRangeFilter` に `showMinGames={false}` を渡す（`/matches` と同様の方法）
+- `resolveFilterParams()` でクエリパラメータを解析（`minGamesRaw` を含む）
+- `effectiveMinGames` の計算（stats ページと同じロジック）:
+  ```typescript
+  const initialMinGamesRaw = Array.isArray(params?.minGames) ? params?.minGames[0] : params?.minGames;
+  const hasMinGamesParam = initialMinGamesRaw !== undefined;
+  const { filter, start, end, minGames, tournamentId } = resolveFilterParams({
+    minGamesRaw: params?.minGames,
+    // ... その他パラメータ
+  });
+  const effectiveMinGames = typeof minGames === "number" ? minGames
+    : !hasMinGamesParam && filter === "year" ? 20 : undefined;
+  ```
+- `fetchCompatibilityMatrix()` でデータ取得（`{ minGames: effectiveMinGames }` を options に渡す）
+- `DateRangeFilter` に `showMinGames={true}` を渡す（`initialMinGames={String(effectiveMinGames ?? "")}` も設定）
 - マトリクステーブルを JSX で描画（Server Component 内でインライン実装）
 - 各行プレーヤーごとに対戦相手セルの勝率を算出し、上位3位まで背景色を適用
   - 色は `lib/stats-rank-theme.ts` の `RANK_ROW_BG`（1位/2位/3位）を再利用
@@ -118,8 +129,8 @@ components/
 | コンポーネント/関数 | 再利用方法 |
 |---|---|
 | `fetchMatchResults` | そのまま呼び出し。フィルタ（日付・トーナメント）を渡す |
-| `resolveFilterParams` | そのまま呼び出し。`minGamesRaw` は渡さない |
-| `DateRangeFilter` | `showMinGames={false}` で呼び出し |
+| `resolveFilterParams` | `minGamesRaw: params?.minGames` を含めて呼び出す |
+| `DateRangeFilter` | `showMinGames={true}` / `initialMinGames` で呼び出す |
 | `fetchMatchDates` | availableDates 取得に使用 |
 | `fetchTournamentOptions` | トーナメント一覧取得に使用 |
 | `getCurrentSession` | セッション取得に使用 |
@@ -159,7 +170,8 @@ function buildTopWinRateRanksByRow(
 2. 同着順 → 分け1
 3. 空の matches → 空のマトリクス
 4. 0除算回避（wins + losses = 0）→ 勝率 0%
-
+5. minGames フィルタリング: 2試合以上を選択した場合に参加ゲーム数が 1 のプレーヤーが除外されることを検証
+6. minGames = 0 または undefined の場合: 全プレーヤーが返ることを検証（「条件なし」選択時に相当）
 ---
 
 ## リスク・注意事項

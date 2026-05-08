@@ -1,4 +1,4 @@
-import { buildCompatibilityMatrix, computeWinRate } from "./compatibility-matrix.js";
+import { buildCompatibilityMatrix, computeWinRate, filterCompatibilityByMinGames } from "./compatibility-matrix.js";
 import type { MatchQueryOptions } from "./matches";
 import { fetchMatchResults } from "./matches";
 
@@ -17,16 +17,25 @@ export type CompatibilityResult = {
 
 export { buildCompatibilityMatrix, computeWinRate };
 
+type CompatibilityOptions = MatchQueryOptions & { minGames?: number };
+
 /** Supabase からゲームデータを取得し、相性マトリクスを算出する */
 export async function fetchCompatibilityMatrix(
   startDate?: string,
   endDate?: string,
-  options: MatchQueryOptions = {},
+  options: CompatibilityOptions = {},
 ): Promise<{ result: CompatibilityResult | null; error: string | null }> {
-  const { matches, error } = await fetchMatchResults(startDate, endDate, options);
+  const { minGames, ...matchOptions } = options;
+  const { matches, error } = await fetchMatchResults(startDate, endDate, matchOptions);
   if (error) {
     return { result: null, error };
   }
-  const result = buildCompatibilityMatrix(matches);
-  return { result, error: null };
+  const raw = buildCompatibilityMatrix(matches);
+
+  if (minGames && minGames > 0) {
+    const filtered = filterCompatibilityByMinGames(raw, matches, minGames);
+    return { result: filtered, error: null };
+  }
+
+  return { result: raw, error: null };
 }
