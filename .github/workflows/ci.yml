@@ -59,22 +59,14 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - name: Cache apt packages for Playwright system deps
-        id: apt-playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: apt-playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            apt-playwright-${{ runner.os }}-
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright@latest install --with-deps
+        run: npx playwright@latest install --with-deps chromium
       - name: Install Playwright system dependencies (cache hit)
-        if: >-
-          steps.playwright-cache.outputs.cache-hit == 'true' &&
-          steps.apt-playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright@latest install-deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: npx playwright@latest install-deps chromium
       - name: Cache Supabase Docker image archive
         id: supabase-image-cache
         uses: actions/cache@v4
