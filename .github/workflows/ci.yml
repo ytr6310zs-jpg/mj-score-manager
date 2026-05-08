@@ -55,11 +55,21 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Cache apt packages for Playwright system deps
+        id: apt-playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            apt-playwright-${{ runner.os }}-
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright@latest install --with-deps
       - name: Install Playwright system dependencies (cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        if: >-
+          steps.playwright-cache.outputs.cache-hit == 'true' &&
+          steps.apt-playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright@latest install-deps
       - name: Start local Supabase
         run: npx supabase@2.84.2 start --exclude studio,imgproxy,inbucket,logflare,vector,storage,edge_runtime
