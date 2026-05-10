@@ -132,7 +132,13 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
                   initialStart={start}
                   initialEnd={end}
                   initialTournamentId={tournamentId ? String(tournamentId) : undefined}
-                  initialMinGames={effectiveMinGames !== undefined ? String(effectiveMinGames) : undefined}
+                  initialMinGames={
+                    initialMinGamesRaw !== undefined
+                      ? initialMinGamesRaw
+                      : filter === "year"
+                        ? "20"
+                        : ""
+                  }
                   showMinGames={true}
                   actionPath="/compatibility"
                   availableDates={datesError ? undefined : availableDates}
