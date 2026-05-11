@@ -181,7 +181,8 @@ function resolveYakumanToken(token: string, yakumans: YakumanDef[]): YakumanDef 
   const byCode = yakumans.find((y) => normalizeForMatch(y.code) === normalized);
   if (byCode) return byCode;
 
-  const slashToken = token.split("/").map((v) => v.trim()).find((part) => {
+  // 役満名 / コード（半角・全角スラッシュ両対応）を許容
+  const slashToken = token.split(/[\/／]/).map((v) => v.trim()).find((part) => {
     const normalizedPart = normalizeForMatch(part);
     return yakumans.some((y) => normalizeForMatch(y.code) === normalizedPart);
   });

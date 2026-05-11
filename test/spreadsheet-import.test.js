@@ -33,7 +33,7 @@ describe("parseSpreadsheetMatrix", () => {
       ["gameNo", "player", "yakuman", "count"],
       ["1", "A", "大三元 / DA", "1"],
       ["1", "A", "大三元 / DA", "2"],
-      ["2", "B", "国士無双 / KY", ""],
+      ["2", "B", "国士無双 ／ KY", ""],
     ];
 
     const parsed = parseSpreadsheetMatrix(matrix, "春季リーグ_2026-05-01", YAKUMANS);
