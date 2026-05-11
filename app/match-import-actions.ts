@@ -2,11 +2,16 @@
 
 import { saveScoreAction, type SaveScoreState } from "@/app/actions";
 import { canUseScoreInput } from "@/lib/authorization";
+import {
+  buildMissingPlayerInsertRows,
+  buildMissingYakumanTypeInsertRows,
+  collectImportEntitiesForSelectedRows,
+} from "@/lib/import-entity-sync";
 import { getCurrentSession } from "@/lib/session";
 import {
-    buildImportDedupeKey,
-    findFuzzyPlayerCandidates,
-    parseSpreadsheetMatrix,
+  buildImportDedupeKey,
+  findFuzzyPlayerCandidates,
+  parseSpreadsheetMatrix,
 } from "@/lib/spreadsheet-import";
 import YAKUMANS from "@/lib/yakumans";
 import { createClient } from "@supabase/supabase-js";
@@ -494,31 +499,24 @@ export async function confirmMatchImportAction(
 
     const existingKeys = await fetchExistingImportKeys(supabaseUrl, supabaseKey, payload.tournamentId, payload.gameDate);
 
-    // Ensure missing players referenced by selected rows exist in `players` table.
     const selectedRows = payload.rows.filter((r) => selectedIds.has(r.rowId));
-    const allPlayerNamesSet = new Set<string>();
-    for (const r of selectedRows) {
-      for (const n of r.players) {
-        if (n && n.trim()) allPlayerNamesSet.add(n.trim());
-      }
-    }
+    const collected = collectImportEntitiesForSelectedRows(selectedRows, selectedIds);
 
-    const allPlayerNames = Array.from(allPlayerNamesSet);
-    if (allPlayerNames.length > 0) {
+    // Ensure missing players referenced by selected rows exist in `players` table.
+    if (collected.playerNames.length > 0) {
       try {
-        const { data: existingPlayers } = await supabase.from("players").select("name").in("name", allPlayerNames);
-        const existingNames = new Set<string>((existingPlayers ?? []).map((r: Record<string, unknown>) => String(r["name"] ?? "").trim()));
-        const missingNames = allPlayerNames.filter((n) => !existingNames.has(n));
-        if (missingNames.length > 0) {
-          const toInsert = missingNames.map((n) => ({ name: n }));
+        const { data: existingPlayers } = await supabase.from("players").select("name").in("name", collected.playerNames);
+        const existingNames = (existingPlayers ?? []).map((r: Record<string, unknown>) => String(r["name"] ?? "").trim());
+        const toInsert = buildMissingPlayerInsertRows(collected.playerNames, existingNames);
+        if (toInsert.length > 0) {
           try {
             // use upsert to avoid unique-constraint race conditions
             await supabase.from("players").upsert(toInsert, { onConflict: "name" });
           } catch {
             // fall back to inserting one-by-one in case upsert is unavailable
-            for (const nm of missingNames) {
+            for (const nm of toInsert) {
               try {
-                await supabase.from("players").insert([{ name: nm }]);
+                await supabase.from("players").insert([nm]);
               } catch {
                 // ignore insert errors (likely duplicate)
               }
@@ -531,38 +529,16 @@ export async function confirmMatchImportAction(
     }
 
     // Ensure missing yakuman types referenced by selected rows exist in `yakuman_types` table.
-    const codeToName = new Map<string, string>();
-    for (const r of selectedRows) {
-      for (const entry of r.yakumanSelections) {
-        const idx = r.players.indexOf(entry.playerName);
-        if (idx < 0) continue;
-        const playerName = (r.matchedPlayers?.[idx] ?? r.players[idx]) ?? "";
-        if (!playerName) continue;
-        const code = String(entry.yakumanCode ?? "").trim();
-        const name = String(entry.yakumanName ?? code).trim() || code;
-        if (!code) continue;
-        if (!codeToName.has(code)) codeToName.set(code, name);
-      }
-    }
-
-    const wantedCodes = Array.from(codeToName.keys());
+    const wantedCodes = Array.from(collected.yakumanCodeToName.keys());
     if (wantedCodes.length > 0) {
       try {
         const { data: existingYaks } = await supabase.from("yakuman_types").select("code").in("code", wantedCodes as string[]);
-        const existingCodes = new Set<string>((existingYaks ?? []).map((r: Record<string, unknown>) => String(r["code"] ?? "").trim()));
-        const missingCodes = wantedCodes.filter((c) => !existingCodes.has(c));
-        if (missingCodes.length > 0) {
+        const existingCodes = (existingYaks ?? []).map((r: Record<string, unknown>) => String(r["code"] ?? "").trim());
+        if (wantedCodes.length > existingCodes.length) {
           // determine current max sort_order
           const { data: last } = await supabase.from("yakuman_types").select("sort_order").order("sort_order", { ascending: false }).limit(1);
           const maxOrder = last && last.length > 0 ? Number((last[0] as Record<string, unknown>)["sort_order"] ?? 0) : 0;
-          const toInsert = missingCodes.map((code, i) => ({
-            code,
-            name: codeToName.get(code) ?? code,
-            points: 32000,
-            description: "",
-            sort_order: maxOrder + 10 * (i + 1),
-            is_active: true,
-          }));
+          const toInsert = buildMissingYakumanTypeInsertRows(collected.yakumanCodeToName, existingCodes, maxOrder);
           try {
             await supabase.from("yakuman_types").insert(toInsert);
           } catch (ie) {

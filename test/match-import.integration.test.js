@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import {
+  buildMissingPlayerInsertRows,
+  buildMissingYakumanTypeInsertRows,
+  collectImportEntitiesForSelectedRows,
+} from "../lib/import-entity-sync.ts";
 import { buildImportDedupeKey } from "../lib/spreadsheet-import.ts";
 
 /**
@@ -70,5 +75,58 @@ describe("Authorization checks", () => {
     // canUseScoreInput(session.role) チェックは Server Action に実装されており、
     // E2E テスト（Playwright）で検証される
     assert.ok(true);
+  });
+});
+
+describe("Import entity auto-creation", () => {
+  it("collects missing player names and yakuman codes from selected rows", () => {
+    const rows = [
+      {
+        rowId: 0,
+        players: ["Alice", "New Player"],
+        matchedPlayers: ["Alice"],
+        yakumanSelections: [
+          { playerName: "New Player", yakumanCode: "NY", yakumanName: "新役満" },
+          { playerName: "Alice", yakumanCode: "DA", yakumanName: "大三元" },
+        ],
+      },
+      {
+        rowId: 1,
+        players: ["Ignored A", "Ignored B"],
+        matchedPlayers: ["Ignored A", "Ignored B"],
+        yakumanSelections: [{ playerName: "Ignored A", yakumanCode: "IG", yakumanName: "ignored" }],
+      },
+    ];
+
+    const selectedIds = new Set([0]);
+    const collected = collectImportEntitiesForSelectedRows(rows, selectedIds);
+
+    assert.deepStrictEqual(collected.playerNames.sort(), ["Alice", "New Player"]);
+    assert.strictEqual(collected.yakumanCodeToName.get("NY"), "新役満");
+    assert.strictEqual(collected.yakumanCodeToName.get("DA"), "大三元");
+    assert.strictEqual(collected.yakumanCodeToName.has("IG"), false);
+  });
+
+  it("builds insert rows only for missing players", () => {
+    const rows = buildMissingPlayerInsertRows(["Alice", "Bob", "New Player"], ["Alice", "Bob"]);
+    assert.deepStrictEqual(rows, [{ name: "New Player" }]);
+  });
+
+  it("builds yakuman type rows with requested defaults", () => {
+    const codeToName = new Map([
+      ["NY", "新役満"],
+      ["KZ", "数え役満"],
+    ]);
+    const rows = buildMissingYakumanTypeInsertRows(codeToName, ["KZ"], 40);
+
+    assert.strictEqual(rows.length, 1);
+    assert.deepStrictEqual(rows[0], {
+      code: "NY",
+      name: "新役満",
+      points: 32000,
+      description: "",
+      sort_order: 50,
+      is_active: true,
+    });
   });
 });
