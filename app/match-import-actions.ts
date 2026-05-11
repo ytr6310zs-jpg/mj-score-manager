@@ -7,7 +7,6 @@ import {
     buildImportDedupeKey,
     findFuzzyPlayerCandidates,
     parseGameNoFromNotes,
-    parseSpreadsheetIdFromUrl,
     parseSpreadsheetMatrix,
 } from "@/lib/spreadsheet-import";
 import YAKUMANS from "@/lib/yakumans";
@@ -119,10 +118,9 @@ function resolveGoogleEnv(): { spreadsheetEmail: string; privateKey: string } | 
   };
 }
 
-async function loadSheetMatrixByUrl(sheetUrl: string, sheetTitleFromForm: string): Promise<{ matrix: string[][]; sheetTitle: string }> {
-  const spreadsheetId = parseSpreadsheetIdFromUrl(sheetUrl);
+async function loadSheetMatrixBySpreadsheetId(spreadsheetId: string, sheetTitleFromForm: string): Promise<{ matrix: string[][]; sheetTitle: string }> {
   if (!spreadsheetId) {
-    throw new Error("Google スプレッドシート URL の形式が不正です。");
+    throw new Error("Google スプレッドシート ID が設定されていません。");
   }
 
   const env = resolveGoogleEnv();
@@ -274,14 +272,14 @@ export async function previewMatchImportAction(
     return { ...EMPTY_PREVIEW, message: "この操作を実行する権限がありません。" };
   }
 
-  const sheetUrl = toTrimmed(formData.get("sheetUrl"));
   const sheetTitle = toTrimmed(formData.get("sheetTitle"));
   const tournamentIdRaw = toTrimmed(formData.get("tournamentId"));
   const gameDateRaw = toTrimmed(formData.get("gameDate"));
 
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
   const tournamentId = Number(tournamentIdRaw);
-  if (!sheetUrl) {
-    return { ...EMPTY_PREVIEW, message: "Google スプレッドシート URL を入力してください。" };
+  if (!spreadsheetId) {
+    return { ...EMPTY_PREVIEW, message: "Google スプレッドシート ID が設定されていません。" };
   }
   if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
     return { ...EMPTY_PREVIEW, message: "大会を選択してください。" };
@@ -294,7 +292,7 @@ export async function previewMatchImportAction(
   }
 
   try {
-    const loaded = await loadSheetMatrixByUrl(sheetUrl, sheetTitle);
+    const loaded = await loadSheetMatrixBySpreadsheetId(spreadsheetId, sheetTitle);
     const parsed = parseSpreadsheetMatrix(loaded.matrix, loaded.sheetTitle, YAKUMANS);
 
     const gameDate = gameDateRaw || parsed.inferredDate || "";

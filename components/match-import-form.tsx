@@ -84,17 +84,12 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
       <CardHeader>
         <CardTitle>スプレッドシート一括インポート（PoC）</CardTitle>
         <CardDescription>
-          Google スプレッドシート URL を指定してプレビューを作成し、行単位で取り込みを確定します。
+          設定済みの Google スプレッドシートからプレビューを作成し、行単位で取り込みを確定します。
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form action={previewAction} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="sheetUrl">Google スプレッドシート URL</Label>
-              <Input id="sheetUrl" name="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/..." required />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="sheetTitle">シート名（任意）</Label>
               <Input id="sheetTitle" name="sheetTitle" placeholder="大会名・開催日" />
@@ -105,7 +100,7 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
               <Input id="gameDate" name="gameDate" type="date" />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="tournamentId">大会</Label>
               <select
                 id="tournamentId"
@@ -129,18 +124,20 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
         </form>
 
         {previewState.message ? (
-          <Alert className={previewState.success ? "" : "border-destructive/50 text-destructive"}>
+          <Alert className={previewState.success ? "border-emerald-100 bg-emerald-50" : "border-destructive/50 bg-destructive/5 text-destructive"}>
             <AlertDescription>{previewState.message}</AlertDescription>
           </Alert>
         ) : null}
 
         {previewState.warnings && previewState.warnings.length > 0 ? (
-          <Alert>
+          <Alert className="border-amber-100 bg-amber-50">
             <AlertDescription>
-              <p className="mb-2 font-semibold">解析時の警告</p>
-              <ul className="list-disc pl-5">
+              <p className="mb-2 font-semibold text-amber-900">解析時の警告</p>
+              <ul className="ml-4 space-y-1 text-sm text-amber-800">
                 {previewState.warnings.map((warning, index) => (
-                  <li key={`${warning}-${index}`}>{warning}</li>
+                  <li key={`${warning}-${index}`} className="list-disc">
+                    {warning}
+                  </li>
                 ))}
               </ul>
             </AlertDescription>

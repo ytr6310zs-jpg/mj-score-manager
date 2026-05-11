@@ -220,19 +220,12 @@ function applyYakumanRows(
 
     if (!gameNoRaw && !playerName && !yakumanRaw && !countRaw) continue;
 
+    // 最低限必須の3つのフィールドがない場合はスキップ（警告なし）
+    if (!gameNoRaw || !playerName || !yakumanRaw) continue;
+
     const gameNo = Number(gameNoRaw);
     if (!Number.isInteger(gameNo) || gameNo < MIN_GAME_NO || gameNo > MAX_GAME_NO) {
       warnings.push(`役満テーブル${rowIndex + 1}行目: gameNo が不正です`);
-      continue;
-    }
-
-    if (!playerName) {
-      warnings.push(`役満テーブル${rowIndex + 1}行目: player が未入力です`);
-      continue;
-    }
-
-    if (!yakumanRaw) {
-      warnings.push(`役満テーブル${rowIndex + 1}行目: yakuman が未入力です`);
       continue;
     }
 
