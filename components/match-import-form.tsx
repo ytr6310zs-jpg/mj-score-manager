@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { TournamentOption } from "@/lib/tournaments";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
 
 type MatchImportFormProps = {
@@ -19,7 +19,6 @@ const PREVIEW_INITIAL: MatchImportPreviewState = { success: false, message: "" }
 const CONFIRM_INITIAL: MatchImportConfirmState = { success: false, message: "" };
 
 export function MatchImportForm({ tournaments }: MatchImportFormProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -42,19 +41,11 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
     else params.delete("tournamentId");
 
     const next = params.toString();
-    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+    const nextUrl = next ? `${pathname}?${next}` : pathname;
+    window.history.replaceState(null, "", nextUrl);
   };
 
-  const [previewState, previewAction, previewPending] = useActionState(
-    async (prev: MatchImportPreviewState, formData: FormData) => {
-      const sheetTitle = String(formData.get("sheetTitle") ?? "").trim();
-      const gameDate = String(formData.get("gameDate") ?? "").trim();
-      const tournamentId = String(formData.get("tournamentId") ?? "").trim();
-      updateQueryParams(sheetTitle, gameDate, tournamentId);
-      return previewMatchImportAction(prev, formData);
-    },
-    PREVIEW_INITIAL
-  );
+  const [previewState, previewAction, previewPending] = useActionState(previewMatchImportAction, PREVIEW_INITIAL);
   const [confirmState, confirmAction, confirmPending] = useActionState(confirmMatchImportAction, CONFIRM_INITIAL);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
   const [conflictResolutionMap, setConflictResolutionMap] = useState<Record<string, "tobi" | "tobashi">>({});
@@ -124,7 +115,13 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form action={previewAction} className="space-y-4">
+        <form
+          action={previewAction}
+          className="space-y-4"
+          onSubmit={() => {
+            updateQueryParams(sheetTitleValue, gameDateValue, tournamentIdValue);
+          }}
+        >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="sheetTitle">シート名（任意）</Label>
