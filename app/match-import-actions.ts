@@ -124,7 +124,85 @@ function resolveGoogleEnv(): { spreadsheetEmail: string; privateKey: string } | 
   };
 }
 
-async function loadSheetMatrixBySpreadsheetId(spreadsheetId: string, sheetTitleFromForm: string): Promise<{ matrix: string[][]; sheetTitle: string }> {
+function buildSheetDateTokens(gameDate: string): string[] {
+  const value = gameDate.trim();
+  if (!value) return [];
+
+  const compact = value.replace(/[^0-9]/g, "");
+  if (compact.length !== 8) return [value];
+
+  const year = compact.slice(0, 4);
+  const month = compact.slice(4, 6);
+  const day = compact.slice(6, 8);
+
+  return [
+    compact,
+    `${year}-${month}-${day}`,
+    `${year}/${month}/${day}`,
+    `${year}.${month}.${day}`,
+    `${year}_${month}_${day}`,
+  ];
+}
+
+function resolveTargetSheet(
+  doc: GoogleSpreadsheet,
+  sheetTitleFromForm: string,
+  gameDateFromForm: string
+): { sheet: GoogleSpreadsheet["sheetsByIndex"][number]; errorMessage?: string } {
+  if (sheetTitleFromForm) {
+    const byTitle = doc.sheetsByTitle[sheetTitleFromForm];
+    if (!byTitle) {
+      return {
+        sheet: doc.sheetsByIndex[0],
+        errorMessage: `シート名「${sheetTitleFromForm}」が見つかりません。`,
+      };
+    }
+    return { sheet: byTitle };
+  }
+
+  const envSheetTitle = String(process.env.GOOGLE_SHEET_TITLE ?? "").trim();
+  if (envSheetTitle) {
+    const byEnvTitle = doc.sheetsByTitle[envSheetTitle];
+    if (byEnvTitle) {
+      return { sheet: byEnvTitle };
+    }
+  }
+
+  const tokens = buildSheetDateTokens(gameDateFromForm);
+  if (tokens.length > 0) {
+    const candidates = doc.sheetsByIndex.filter((sheet) => {
+      const title = sheet.title;
+      return tokens.some((token) => title.includes(token));
+    });
+
+    if (candidates.length === 1) {
+      return { sheet: candidates[0] };
+    }
+
+    if (candidates.length > 1) {
+      const names = candidates.map((sheet) => sheet.title).slice(0, 5).join(", ");
+      return {
+        sheet: doc.sheetsByIndex[0],
+        errorMessage: `対局日に一致するシートが複数あります。シート名を指定してください（候補: ${names}）。`,
+      };
+    }
+  }
+
+  if (doc.sheetsByIndex[0]) {
+    return { sheet: doc.sheetsByIndex[0] };
+  }
+
+  return {
+    sheet: doc.sheetsByIndex[0],
+    errorMessage: "対象シートが見つかりません。",
+  };
+}
+
+async function loadSheetMatrixBySpreadsheetId(
+  spreadsheetId: string,
+  sheetTitleFromForm: string,
+  gameDateFromForm: string
+): Promise<{ matrix: string[][]; sheetTitle: string; selectionWarning?: string }> {
   if (!spreadsheetId) {
     throw new Error("Google スプレッドシート ID が設定されていません。");
   }
@@ -143,9 +221,14 @@ async function loadSheetMatrixBySpreadsheetId(spreadsheetId: string, sheetTitleF
   const doc = new GoogleSpreadsheet(spreadsheetId, auth);
   await doc.loadInfo();
 
-  const sheet = sheetTitleFromForm ? doc.sheetsByTitle[sheetTitleFromForm] : doc.sheetsByIndex[0];
+  const resolved = resolveTargetSheet(doc, sheetTitleFromForm, gameDateFromForm);
+  if (resolved.errorMessage) {
+    throw new Error(resolved.errorMessage);
+  }
+
+  const sheet = resolved.sheet;
   if (!sheet) {
-    throw new Error("対象シートが見つかりません。");
+    throw new Error("対象シートが見つかりません。シート名を入力してください。");
   }
 
   const matrix = (await sheet.getCellsInRange("A1:ZZ300")) as string[][];
@@ -317,7 +400,7 @@ export async function previewMatchImportAction(
   }
 
   try {
-    const loaded = await loadSheetMatrixBySpreadsheetId(spreadsheetId, sheetTitle);
+    const loaded = await loadSheetMatrixBySpreadsheetId(spreadsheetId, sheetTitle, gameDateRaw);
     const parsed = parseSpreadsheetMatrix(loaded.matrix, loaded.sheetTitle, YAKUMANS);
 
     const gameDate = gameDateRaw || parsed.inferredDate || "";
@@ -362,7 +445,8 @@ export async function previewMatchImportAction(
     };
   } catch (error) {
     console.error("previewMatchImportAction error:", error);
-    return { ...EMPTY_PREVIEW, message: "プレビューの作成に失敗しました。URL と権限設定を確認してください。" };
+    const detail = error instanceof Error ? error.message : "";
+    return { ...EMPTY_PREVIEW, message: detail || "プレビューの作成に失敗しました。シート設定と権限設定を確認してください。" };
   }
 }
 
