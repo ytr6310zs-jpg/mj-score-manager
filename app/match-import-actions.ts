@@ -44,6 +44,12 @@ export type ImportPreviewRow = {
   duplicate: boolean;
   ready: boolean;
   issues: string[];
+  issuesByColumn: {
+    player: string[];
+    score: string[];
+    flags: string[];
+    duplicate: string[];
+  };
   conflictingFlagPlayers: string[];
   fuzzyCandidates: Record<string, string[]>;
 };
@@ -201,6 +207,12 @@ function buildPreviewRows(
   parsedGames.forEach((game, index) => {
     const rowId = index;
     const issues: string[] = [];
+    const issuesByColumn = {
+      player: [] as string[],
+      score: [] as string[],
+      flags: [] as string[],
+      duplicate: [] as string[],
+    };
     const fuzzyCandidates: Record<string, string[]> = {};
     const matchedPlayers: string[] = [];
 
@@ -213,19 +225,31 @@ function buildPreviewRows(
 
       const candidates = findFuzzyPlayerCandidates(playerName, knownPlayers);
       fuzzyCandidates[playerName] = candidates;
-      issues.push(candidates.length > 0 ? `プレーヤー未一致: ${playerName}` : `プレーヤーが見つかりません: ${playerName}`);
+      const issue = candidates.length > 0 ? `プレーヤー未一致: ${playerName}` : `プレーヤーが見つかりません: ${playerName}`;
+      issues.push(issue);
+      issuesByColumn.player.push(issue);
     }
 
     const total = game.scores.reduce((sum, value) => sum + value, 0);
     if (total !== 0) {
-      issues.push(`合計点が 0 ではありません (${total})`);
+      const issue = `合計点が 0 ではありません (${total})`;
+      issues.push(issue);
+      issuesByColumn.score.push(issue);
+    }
+
+    if ((game.tobiPlayers.length > 0) !== (game.tobashiPlayers.length > 0)) {
+      const issue = "飛びと飛ばしは両方セットで指定してください";
+      issues.push(issue);
+      issuesByColumn.flags.push(issue);
     }
 
     const dedupePlayers = matchedPlayers.length === game.players.length ? matchedPlayers : game.players;
     const dedupeKey = buildImportDedupeKey(tournamentId, gameDate, game.gameNo, dedupePlayers);
     const duplicate = existingKeys.has(dedupeKey) || seenKeys.has(dedupeKey);
     if (duplicate) {
-      issues.push("重複データのためスキップ対象です");
+      const issue = "重複データのためスキップ対象です";
+      issues.push(issue);
+      issuesByColumn.duplicate.push(issue);
     }
     seenKeys.add(dedupeKey);
 
@@ -241,6 +265,7 @@ function buildPreviewRows(
       duplicate,
       ready,
       issues,
+      issuesByColumn,
       conflictingFlagPlayers: game.conflictingFlagPlayers,
       fuzzyCandidates,
     });
@@ -457,7 +482,6 @@ export async function confirmMatchImportAction(
 
       fd.append("tobiPlayers", mapNames(resolvedTobiPlayers, row.players, row.matchedPlayers).join(","));
       fd.append("tobashiPlayers", JSON.stringify(mapNames(resolvedTobashiPlayers, row.players, row.matchedPlayers)));
-      fd.append("allowUnpairedTobiTobashi", "1");
       fd.append("notes", `SPREADSHEET_IMPORT gameNo=${row.gameNo}`);
 
       const normalizedYakuman = row.yakumanSelections

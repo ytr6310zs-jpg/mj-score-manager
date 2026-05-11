@@ -161,6 +161,7 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                       <th className="px-3 py-2 text-left">プレーヤー</th>
                       <th className="px-3 py-2 text-left">合計</th>
                       <th className="px-3 py-2 text-left">状態</th>
+                      <th className="px-3 py-2 text-left">取込不可理由</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -229,6 +230,26 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                               })}
                             </div>
                           ) : null}
+                        </td>
+                        <td className="px-3 py-2">
+                          {row.ready ? (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          ) : (
+                            <div className="space-y-1 text-xs">
+                              {row.issuesByColumn.player.map((issue, idx) => (
+                                <p key={`player-${row.rowId}-${idx}`} className="text-amber-800">プレーヤー列: {issue}</p>
+                              ))}
+                              {row.issuesByColumn.score.map((issue, idx) => (
+                                <p key={`score-${row.rowId}-${idx}`} className="text-amber-800">合計列: {issue}</p>
+                              ))}
+                              {row.issuesByColumn.flags.map((issue, idx) => (
+                                <p key={`flags-${row.rowId}-${idx}`} className="text-amber-800">飛び/飛ばし列: {issue}</p>
+                              ))}
+                              {row.issuesByColumn.duplicate.map((issue, idx) => (
+                                <p key={`dup-${row.rowId}-${idx}`} className="text-amber-800">重複判定: {issue}</p>
+                              ))}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
