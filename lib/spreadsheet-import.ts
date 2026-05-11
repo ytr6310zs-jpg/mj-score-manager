@@ -59,11 +59,24 @@ function parseScore(raw: string): number | null {
 
 function parseGameDateFromTitle(sheetTitle: string): string | null {
   const normalized = sheetTitle.trim();
-  const match = normalized.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
+
+  // 例: 2026-05-11 / 2026.5.11 / 2026/05/11
+  const separated = normalized.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (separated) {
+    const year = Number(separated[1]);
+    const month = Number(separated[2]);
+    const day = Number(separated[3]);
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+  }
+
+  // 例: 大会1_20260511 / 20260511
+  const compact = normalized.match(/(?:^|[^0-9])(\d{4})(\d{2})(\d{2})(?:[^0-9]|$)/);
+  if (!compact) return null;
+  const year = Number(compact[1]);
+  const month = Number(compact[2]);
+  const day = Number(compact[3]);
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
   return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
@@ -123,7 +136,7 @@ function findMainHeaderRow(matrix: string[][]): number {
   for (let rowIndex = 0; rowIndex < Math.min(matrix.length, 10); rowIndex += 1) {
     const row = matrix[rowIndex] ?? [];
     const first = normalizeForMatch(normalizeText(row[0]));
-    if (first !== "player" && first !== "name") continue;
+    if (first !== "player" && first !== "name" && first !== "プレーヤー" && first !== "プレイヤー" && first !== "氏名") continue;
 
     const hasGameNo = row.slice(1).some((cell) => {
       const gameNo = Number(normalizeText(cell));

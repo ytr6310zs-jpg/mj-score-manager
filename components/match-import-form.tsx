@@ -131,7 +131,7 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
 
         {previewState.warnings && previewState.warnings.length > 0 ? (
           <Alert className="border-amber-100 bg-amber-50">
-            <AlertDescription>
+            <div className="leading-relaxed">
               <p className="mb-2 font-semibold text-amber-900">解析時の警告</p>
               <ul className="ml-4 space-y-1 text-sm text-amber-800">
                 {previewState.warnings.map((warning, index) => (
@@ -140,7 +140,7 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                   </li>
                 ))}
               </ul>
-            </AlertDescription>
+            </div>
           </Alert>
         ) : null}
 
