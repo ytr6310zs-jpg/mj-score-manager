@@ -160,14 +160,6 @@ function resolveTargetSheet(
     return { sheet: byTitle };
   }
 
-  const envSheetTitle = String(process.env.GOOGLE_SHEET_TITLE ?? "").trim();
-  if (envSheetTitle) {
-    const byEnvTitle = doc.sheetsByTitle[envSheetTitle];
-    if (byEnvTitle) {
-      return { sheet: byEnvTitle };
-    }
-  }
-
   const tokens = buildSheetDateTokens(gameDateFromForm);
   if (tokens.length > 0) {
     const candidates = doc.sheetsByIndex.filter((sheet) => {
@@ -185,6 +177,14 @@ function resolveTargetSheet(
         sheet: doc.sheetsByIndex[0],
         errorMessage: `対局日に一致するシートが複数あります。シート名を指定してください（候補: ${names}）。`,
       };
+    }
+  }
+
+  const envSheetTitle = String(process.env.GOOGLE_SHEET_TITLE ?? "").trim();
+  if (envSheetTitle) {
+    const byEnvTitle = doc.sheetsByTitle[envSheetTitle];
+    if (byEnvTitle) {
+      return { sheet: byEnvTitle };
     }
   }
 
