@@ -1,4 +1,5 @@
 import { expect, Page, test } from "@playwright/test";
+import { generate } from "otplib";
 
 /**
  * Browser E2E test for bulk match import flow
@@ -19,8 +20,35 @@ import { expect, Page, test } from "@playwright/test";
  */
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
+const E2E_LOGIN_USER_ID = process.env.E2E_LOGIN_USER_ID || "admin";
+const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD || "ChangeMe_184";
+const TOTP_SECRET_RAW = String(process.env.MFA_TOTP_SECRET ?? "").trim();
+const TOTP_SECRET = TOTP_SECRET_RAW && TOTP_SECRET_RAW !== "MFA_TOTP_SECRET" ? TOTP_SECRET_RAW : "";
 
 test.describe("Match Import Flow (E2E)", () => {
+  test.beforeEach(async ({ page }) => {
+    // Ensure we're authenticated before each test to avoid middleware redirect to /login
+    await page.goto(`${BASE_URL}/login`);
+    const userIdInput = page.locator('input[name="userId"], input#userId').first();
+    const passwordInput = page.locator('input[name="password"], input#password').first();
+    await expect(userIdInput).toBeVisible();
+    await expect(passwordInput).toBeVisible();
+    await userIdInput.fill(E2E_LOGIN_USER_ID);
+    await passwordInput.fill(E2E_LOGIN_PASSWORD);
+
+    const loginButton = page.locator('button[type="submit"], button:has-text("ログイン")').first();
+    await loginButton.click();
+
+    if (TOTP_SECRET) {
+      const otpInput = page.locator('input[name="otp"], input#otp').first();
+      await expect(otpInput).toBeVisible({ timeout: 10000 });
+      const code = await generate({ secret: TOTP_SECRET, digits: 6, period: 30 });
+      await otpInput.fill(code);
+      await loginButton.click();
+    }
+
+    await page.waitForURL((url) => url.pathname === "/" || url.pathname === "/matches", { timeout: 10000 });
+  });
   test("should display import form with correct field order", async ({ page }) => {
     await page.goto(`${BASE_URL}/matches/import`);
 
