@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { TournamentOption } from "@/lib/tournaments";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useMemo, useState } from "react";
 
 type MatchImportFormProps = {
@@ -18,7 +19,42 @@ const PREVIEW_INITIAL: MatchImportPreviewState = { success: false, message: "" }
 const CONFIRM_INITIAL: MatchImportConfirmState = { success: false, message: "" };
 
 export function MatchImportForm({ tournaments }: MatchImportFormProps) {
-  const [previewState, previewAction, previewPending] = useActionState(previewMatchImportAction, PREVIEW_INITIAL);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [sheetTitleValue, setSheetTitleValue] = useState(() => searchParams.get("sheetTitle") ?? "");
+  const [gameDateValue, setGameDateValue] = useState(() => searchParams.get("gameDate") ?? "");
+  const [tournamentIdValue, setTournamentIdValue] = useState(
+    () => searchParams.get("tournamentId") ?? (tournaments[0] ? String(tournaments[0].id) : "")
+  );
+
+  const updateQueryParams = (sheetTitle: string, gameDate: string, tournamentId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (sheetTitle) params.set("sheetTitle", sheetTitle);
+    else params.delete("sheetTitle");
+
+    if (gameDate) params.set("gameDate", gameDate);
+    else params.delete("gameDate");
+
+    if (tournamentId) params.set("tournamentId", tournamentId);
+    else params.delete("tournamentId");
+
+    const next = params.toString();
+    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+  };
+
+  const [previewState, previewAction, previewPending] = useActionState(
+    async (prev: MatchImportPreviewState, formData: FormData) => {
+      const sheetTitle = String(formData.get("sheetTitle") ?? "").trim();
+      const gameDate = String(formData.get("gameDate") ?? "").trim();
+      const tournamentId = String(formData.get("tournamentId") ?? "").trim();
+      updateQueryParams(sheetTitle, gameDate, tournamentId);
+      return previewMatchImportAction(prev, formData);
+    },
+    PREVIEW_INITIAL
+  );
   const [confirmState, confirmAction, confirmPending] = useActionState(confirmMatchImportAction, CONFIRM_INITIAL);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
   const [conflictResolutionMap, setConflictResolutionMap] = useState<Record<string, "tobi" | "tobashi">>({});
@@ -92,12 +128,26 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="sheetTitle">シート名（任意）</Label>
-              <Input id="sheetTitle" name="sheetTitle" placeholder="大会名・開催日" />
+              <Input
+                id="sheetTitle"
+                name="sheetTitle"
+                placeholder="大会名・開催日"
+                value={sheetTitleValue}
+                onChange={(event) => setSheetTitleValue(event.target.value)}
+                onBlur={() => updateQueryParams(sheetTitleValue, gameDateValue, tournamentIdValue)}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="gameDate">対局日（任意）</Label>
-              <Input id="gameDate" name="gameDate" type="date" />
+              <Input
+                id="gameDate"
+                name="gameDate"
+                type="date"
+                value={gameDateValue}
+                onChange={(event) => setGameDateValue(event.target.value)}
+                onBlur={() => updateQueryParams(sheetTitleValue, gameDateValue, tournamentIdValue)}
+              />
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -106,7 +156,12 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                 id="tournamentId"
                 name="tournamentId"
                 required
-                defaultValue={tournaments[0] ? String(tournaments[0].id) : ""}
+                value={tournamentIdValue}
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+                  setTournamentIdValue(nextValue);
+                  updateQueryParams(sheetTitleValue, gameDateValue, nextValue);
+                }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 {tournaments.map((tournament) => (
