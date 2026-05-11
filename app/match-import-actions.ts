@@ -306,7 +306,10 @@ function buildPreviewRows(
 
       const candidates = findFuzzyPlayerCandidates(playerName, knownPlayers);
       fuzzyCandidates[playerName] = candidates;
-      const issue = candidates.length > 0 ? `プレーヤー未一致: ${playerName}` : `プレーヤーが見つかりません: ${playerName}`;
+      const issue =
+        candidates.length > 0
+          ? `プレーヤー未一致: ${playerName}（取り込み時に自動作成）`
+          : `プレーヤーが見つかりません: ${playerName}（取り込み時に自動作成）`;
       issues.push(issue);
       issuesByColumn.player.push(issue);
     }
@@ -334,7 +337,11 @@ function buildPreviewRows(
     }
     seenKeys.add(dedupeKey);
 
-    const ready = issues.length === 0;
+    // Missing players are treated as warnings because import flow can auto-create them.
+    const ready =
+      issuesByColumn.score.length === 0 &&
+      issuesByColumn.flags.length === 0 &&
+      issuesByColumn.duplicate.length === 0;
 
     rows.push({
       rowId,

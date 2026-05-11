@@ -243,7 +243,11 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                         <td className={`px-3 py-2 ${row.total === 0 ? "text-emerald-700" : "text-destructive"}`}>{row.total}</td>
                         <td className="px-3 py-2">
                           {row.ready ? (
-                            <span className="rounded bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-900">取込可能</span>
+                            row.issuesByColumn.player.length > 0 ? (
+                              <span className="rounded bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">取込可能（自動追加あり）</span>
+                            ) : (
+                              <span className="rounded bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-900">取込可能</span>
+                            )
                           ) : (
                             <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">要確認</span>
                           )}
@@ -279,12 +283,16 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                           ) : null}
                         </td>
                         <td className="px-3 py-2">
-                          {row.ready ? (
+                          {row.ready &&
+                          row.issuesByColumn.player.length === 0 &&
+                          row.issuesByColumn.score.length === 0 &&
+                          row.issuesByColumn.flags.length === 0 &&
+                          row.issuesByColumn.duplicate.length === 0 ? (
                             <span className="text-xs text-muted-foreground">-</span>
                           ) : (
                             <div className="space-y-1 text-xs">
                               {row.issuesByColumn.player.map((issue, idx) => (
-                                <p key={`player-${row.rowId}-${idx}`} className="text-amber-800">プレーヤー列: {issue}</p>
+                                <p key={`player-${row.rowId}-${idx}`} className="text-sky-800">プレーヤー列: {issue}</p>
                               ))}
                               {row.issuesByColumn.score.map((issue, idx) => (
                                 <p key={`score-${row.rowId}-${idx}`} className="text-amber-800">合計列: {issue}</p>
