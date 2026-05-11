@@ -113,6 +113,26 @@ function run() {
   assert.ok(!res.ok, 'missing tobashi should fail');
   assert.ok(/飛びと飛ばし/.test(res.message || ''), 'error message should mention tobi/tobashi pair requirement');
 
+  // import option: allow unpaired tobi/tobashi
+  fd = fdFrom({
+    gameDate: '2026-04-06',
+    gameType: '4p',
+    player1: 'A',
+    player2: 'B',
+    player3: 'C',
+    player4: 'D',
+    score1: '250',
+    score2: '100',
+    score3: '-200',
+    score4: '-150',
+    tobiPlayers: 'C',
+    allowUnpairedTobiTobashi: '1',
+  });
+  res = validateAndParseMatchForm(fd);
+  assert.ok(res.ok, 'unpaired flags should pass only with import option');
+  assert.deepStrictEqual(res.data.tobiPlayers, ['C']);
+  assert.deepStrictEqual(res.data.tobashiPlayers, []);
+
   // same tobi/tobashi
   fd = fdFrom({
     gameDate: '2026-04-06',

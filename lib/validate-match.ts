@@ -134,7 +134,11 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
       .filter(Boolean)
   );
 
-  if ((tobiPlayers.length > 0 && tobashiPlayers.length === 0) || (tobiPlayers.length === 0 && tobashiPlayers.length > 0)) {
+  // インポート時は片側のみ指定のデータを許容する
+  const allowUnpairedTobiTobashi = parseString(formData.get("allowUnpairedTobiTobashi")) === "1";
+
+  if (!allowUnpairedTobiTobashi
+    && ((tobiPlayers.length > 0 && tobashiPlayers.length === 0) || (tobiPlayers.length === 0 && tobashiPlayers.length > 0))) {
     return { ok: false, message: "飛びと飛ばしは両方セットで指定してください。" };
   }
 

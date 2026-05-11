@@ -391,10 +391,12 @@ export async function confirmMatchImportAction(
     const existingKeys = await fetchExistingImportKeys(supabaseUrl, supabaseKey, payload.tournamentId, payload.gameDate);
     let importedCount = 0;
     let skippedCount = 0;
+    let unselectedCount = 0;
+    const failedReasons: string[] = [];
 
     for (const row of payload.rows) {
       if (!selectedIds.has(row.rowId)) {
-        skippedCount += 1;
+        unselectedCount += 1;
         continue;
       }
 
@@ -455,6 +457,7 @@ export async function confirmMatchImportAction(
 
       fd.append("tobiPlayers", mapNames(resolvedTobiPlayers, row.players, row.matchedPlayers).join(","));
       fd.append("tobashiPlayers", JSON.stringify(mapNames(resolvedTobashiPlayers, row.players, row.matchedPlayers)));
+      fd.append("allowUnpairedTobiTobashi", "1");
       fd.append("notes", `SPREADSHEET_IMPORT gameNo=${row.gameNo}`);
 
       const normalizedYakuman = row.yakumanSelections
@@ -478,6 +481,9 @@ export async function confirmMatchImportAction(
       const result: SaveScoreState = await saveScoreAction({ success: false, message: "" }, fd);
       if (!result.success) {
         skippedCount += 1;
+        if (failedReasons.length < 3) {
+          failedReasons.push(`試合#${row.gameNo}: ${result.message}`);
+        }
         continue;
       }
 
@@ -489,8 +495,8 @@ export async function confirmMatchImportAction(
       success: importedCount > 0,
       message:
         importedCount > 0
-          ? `取り込み完了: ${importedCount} 行を保存しました（${skippedCount} 行をスキップ）。`
-          : `取り込み対象を保存できませんでした（${skippedCount} 行をスキップ）。`,
+          ? `取り込み完了: ${importedCount} 行を保存しました（選択行スキップ ${skippedCount} / 選択外 ${unselectedCount}）。`
+          : `取り込み対象を保存できませんでした（選択行スキップ ${skippedCount} / 選択外 ${unselectedCount}）。${failedReasons.length > 0 ? ` 主な理由: ${failedReasons.join(" / ")}` : ""}`,
       importedCount,
       skippedCount,
     };
