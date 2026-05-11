@@ -2,7 +2,7 @@
 title: Feature Specification: スプレッドシート入力による一括インポート
 owner: @you
 created: 2026-05-11
-status: Implemented
+status: Draft
 issue: #183
 feature_branch: feature/issue-183-spreadsheet-import
 priority: P1
@@ -22,6 +22,38 @@ deadline: 2026-05-31
 - 事前プレビューを挟んだ安全な一括インポートを実現する
 - 既存フォームと併存できる入力手段を追加する
 
+ユーザーストーリー
+--
+
+### User Story 1 - テンプレート記入 (Priority: P1)
+ログイン済みユーザーがスプレッドシート用テンプレートをコピーし、1試合1列の書式で対局結果を入力できる。
+
+**Independent Test**: テンプレートを開いた時点で、試合ごとの入力枠が 40 試合まで 1 列ずつ用意され、役満テーブルに役満名/コードプルダウンが設定されていることを確認できる。
+
+**Acceptance Scenarios**:
+1. **Given** テンプレートを開く、**When** 試合セルを編集する、**Then** 1 試合 1 列のセルに `スコア,フラグ...` 形式で入力できる
+2. **Given** 40 試合以内の対局群、**When** テンプレートへ入力する、**Then** 40 試合までの列構成で記録できる
+3. **Given** 役満情報を入力する、**When** 役満テーブルの `yakuman` 列を編集する、**Then** 役満名/コードの候補をプルダウンから選択できる
+
+### User Story 2 - 一括インポートとプレビュー (Priority: P1)
+ユーザーが記入済みのテンプレートを Web アプリへ取り込み、行ごとの確認を経て保存できる。
+
+**Independent Test**: インポート画面で Google スプレッドシート URL を指定し、取り込み前プレビューでバリデーション警告を修正できることを確認できる。
+
+**Acceptance Scenarios**:
+1. **Given** 記入済みテンプレート、**When** インポートを実行する、**Then** 解析結果のプレビューが表示される
+2. **Given** 同一セルに `T` と `TB` が同時指定される、**When** プレビューを表示する、**Then** 警告が表示されてどちらを残すか修正できる
+3. **Given** 役満テーブルに同一 `gameNo + player + yakuman` が重複する、**When** 取り込み解析する、**Then** `count` に集約して表示される
+
+### User Story 3 - モバイルでの確認 (Priority: P2)
+モバイル利用中のユーザーが、インポート結果の確認と確定を無理なく行える。
+
+**Independent Test**: スマートフォン幅でインポート画面を開き、プレビューと確定操作が可能であることを確認できる。
+
+**Acceptance Scenarios**:
+1. **Given** スマートフォン幅の画面、**When** インポート画面を開く、**Then** ファイル選択・URL入力・プレビュー確認が操作できる
+2. **Given** プレビューが表示されている、**When** 行ごとの確定/スキップを行う、**Then** 画面崩れなく操作できる
+
 受け入れ条件
 --
 - テンプレートの主表は 1 試合 1 列である
@@ -29,6 +61,7 @@ deadline: 2026-05-31
 - フラグ区切りは `,` `，` `、` `/` `／` `;` `；` を許容し、大文字小文字を区別しない
 - テンプレートに役満テーブルが含まれ、`yakuman` 列で役満名/コードプルダウンを選択できる
 - 役満テーブルは初期 20 行を持ち、運用で可変追加できる
+- 役満テーブルの `player` 列は設定シートのプレーヤー一覧を参照したプルダウンとする
 - テンプレートはコピー可能で、コピー後も入力用の書式が維持される
 - スコア、焼き鳥、飛ばし、飛びを試合セルに記入できる
 - 役満情報は `gameNo` 単位で別テーブルに記入できる
@@ -38,63 +71,100 @@ deadline: 2026-05-31
 - 同一 `gameNo + player + yakuman` の重複は `count` 集約する
 - 既存入力フォームは残し、追加入力方式として併存できる
 - モバイル幅でもインポート確認と確定操作が破綻しない
-- **未登録プレイヤーは自動作成される**（スプレッドシートから抽出した名前を採用）
-- **未知役満は「名/コード」形式で自動作成される**（点数: 32000、説明: 空、並び順: MAX+10、状態: 有効）
-- **プレーヤー未登録警告は非ブロッキング**（プレビューで「取込可能（自動追加あり）」と表示、行を選択可能）
-- **重複取り込みは自動排除**（`import_dedupe_key` カラムのユニーク制約で DB レベルで防止）
+- 操作回数は現行フォーム比 30% 以上削減し、入力時間は 20% 以上短縮できるかを評価できる
 
-実装概要
+データフォーマット定義（PoC）
 --
-### 自動作成メカニズム
+- 入力元は Google スプレッドシート URL のみ（PoC ではファイルアップロードを対象外とする）
+- シート名は `大会名・開催日`（例: `春季リーグ_2026-05-01`）
+- 主表（試合入力）
+	- 行ヘッダーはプレーヤー名
+	- 列ヘッダーは試合番号 1..40（1 試合 1 列）
+	- セル値は `score[,flag...]` 形式
+	- `score` は符号付き整数
+	- `flag` は `Y`（焼き鳥）/`T`（飛ばし）/`TB`（飛び）
+	- 区切り文字は `,` `，` `、` `/` `／` `;` `；` を許容
+- 役満テーブル（別領域）
+	- 列: `gameNo` / `player` / `yakuman` / `count`
+	- 初期 20 行を用意し、必要に応じて行追加可能
+	- `player` は設定シートのプレーヤー一覧からプルダウン
+	- `yakuman` は役満名/コード（例: `大三元 / DA`）のプルダウン
+	- 同一 `gameNo + player + yakuman` は `count` 集約
+- 解析時は主表と役満テーブルを突合し、試合番号単位で構造化する
 
-#### プレイヤー自動作成フロー
-1. `previewMatchImportAction()` で Google スプレッドシートを読み込み、主表から全プレイヤー名を抽出
-2. DB に存在しないプレイヤー名を「未登録」と判定、プレビュー行の issue として記録（非ブロッキング）
-3. ユーザーが「取り込み可能（自動追加あり）」の行を選択して確定
-4. `confirmMatchImportAction()` で `collectImportEntitiesForSelectedRows()` を呼び出し、未登録プレイヤー名の集合を取得
-5. `buildMissingPlayerInsertRows()` で DB への挿入行を生成、`upsert` で一括作成
+重複取り込みポリシー（PoC）
+--
+- 重複判定キー: `tournament + gameDate + gameNo + sorted(playerNames)`
+- 重複時の既定動作: 取り込み対象から除外（スキップ）し、プレビューで理由を表示
+- 上書き更新は PoC 範囲外（将来検討）
 
-#### 役満自動作成フロー
-1. `parseSpreadsheetMatrix()` で役満テーブルを解析
-2. `resolveYakumanToken()` で以下の順序で照合:
-   - 完全一致（コード一致）
-   - スラッシュ分割形式（「役満名 / コード」→ コード抽出）
-   - コロン形式（「コード:役満名」→ コード抽出）
-   - **ad-hoc 役満**（2文字以上の英数字コード且つ有効な名/コード形式なら自動生成）
-   - 名前部分一致
-3. ad-hoc 役満は `buildAdhocYakumanDef()` で YakumanDef オブジェクトを生成
-4. 確定時に `buildMissingYakumanTypeInsertRows()` で DB 挿入行を生成
+権限要件
+--
+- `admin` / `editor`: テンプレート取得、インポート実行、プレビュー修正、確定が可能
+- `viewer`: 閲覧のみ（インポート実行不可）
 
-**属性値**（自動作成時）:
-- 役満コード: スプレッドシート抽出値（形式検証済み）
-- 役満名: スプレッドシート抽出値
-- 点数: 32000
-- 説明: （空文字列）
-- 並び順: MAX(sort_order) + 10
-- 状態: 有効（is_active=true）
+PoC 合格基準の測定方法
+--
+- 比較対象
+	- 現行方式: `score-form` で手入力
+	- PoC 方式: スプレッドシート入力 + プレビュー確定
+- シナリオ
+	- 4人打ち 20 試合、役満 2 件、`T/TB` 競合を 1 試合含む同一データセット
+- 計測
+	- 操作回数: クリック/タップ/選択の総数
+	- 入力時間: 計測開始（入力開始）から保存完了まで
+- サンプル
+	- 同一操作者で 3 回実施し中央値を採用
+- 合格ライン
+	- 操作回数 30% 以上削減
+	- 入力時間 20% 以上短縮
 
-### 非ブロッキング警告
-- **スコア/フラグ/重複**: ブロッキング（ready=false、チェックボックス無効）
-- **プレイヤー未登録**: 非ブロッキング（ready=true、警告表示、自動作成ラベル付き）
-- UI 表示: スカイブルー（sky-800）で警告を色分け
+影響範囲
+--
+- 新規インポート UI（例: `app/matches/import/page.tsx` 相当）
+- インポート用サーバー処理・バリデーション（例: `app/*-actions.ts` または `lib/*`）
+- テンプレート生成/説明資産（例: `scripts/sheets/*`）
+- 設定シート（プレーヤー一覧、役満一覧）
+- 役満定義の再利用元 `lib/yakumans.ts`
+- 既存の対局入力/編集フローとの連携
 
-### 重複排除ポリシー
-- **重複判定キー**: `tournament + gameDate + gameNo + sorted(playerNames)`
-- **DB レベル**: `import_dedupe_key` カラムに判定キーを格納、部分ユニークインデックスで重複を防止
-- **二重登録防止**: DB 制約により、同一対局の重複インポートは自動スキップ
+制約
+--
+- 既存フォームを置き換えず、追加の入力経路として実装する
+- 役満候補は `lib/yakumans.ts` の既存正規定義を利用する
+- 1試合4列方式との互換入力は提供しない（新フォーマットのみ対応）
+- `T` と `TB` の同時指定は自動確定せず、プレビューで明示的に修正させる
+- 取り込み前の確認ステップを省略しない
+- モバイル対応はインポート画面の確認フローを優先する（テンプレート編集自体の完全なモバイル最適化は PoC での評価対象）
+- PoC の入力元は Google スプレッドシート URL のみとし、ファイルアップロードは対象外とする
 
 テスト
 --
-- **Unit Tests**: `test/spreadsheet-import.test.js` (9 tests) — セルパース、フラグゆれ、T/TB 競合、役満集約、未知役満解析
-- **Integration Tests**: `test/match-import.integration.test.js` (3 tests) — entity sync helpers 検証
-- **Server Action Tests**: Google Sheets API エラーハンドリング、権限制御
-- **E2E Tests**: `test/e2e/ui/match-import.spec.ts` (6 tests) — Playwright によるプレビュー・確定フロー検証
-- **Build & Lint**: `npm run build` ✓、`npm run lint` ✓
+- ユニット: セルパース（score/flags）、区切りと大小文字ゆれ、`T/TB` 競合検知、役満テーブル集約、プレーヤー照合
+- E2E: インポート画面でのプレビュー、行単位のスキップ/確定、モバイル幅での基本操作
+
+実装追記（2026-05-11）
+--
+- 未登録プレイヤーは取り込み確定時に自動作成する（警告表示は非ブロッキング）
+- 未登録役満は取り込み確定時に `yakuman_types` へ自動作成する
+	- 点数: `32000`
+	- 説明: `""`
+	- 並び順: `MAX(sort_order) + 10`
+	- 状態: `is_active = true`
+- 役満の存在確認は `lib/yakumans.ts` ではなく、`yakuman_types` テーブルを正として判定する
+- `import_dedupe_key` による DB レベルの重複排除を導入する
+- 未知役満は `役満名 / コード` または `コード:役満名` 形式を許容し、形式が妥当なら ad-hoc として取り込み継続する
+
+追加テスト実績（2026-05-11）
+--
+- Unit: `test/spreadsheet-import.test.js`（未知役満形式、役満コード単体の存在確認）
+- Integration: `test/match-import.integration.test.js`（entity sync helper）
+- E2E: `test/e2e/ui/match-import.spec.ts`（プレビュー/選択/確定フロー）
 
 参考
 --
 - `lib/yakumans.ts`
-- `lib/spreadsheet-import.ts`
-- `lib/import-entity-sync.ts`
-- `app/match-import-actions.ts`
-- `components/match-import-form.tsx`
+- `scripts/sheets/import-players-from-sheet.mjs`
+- `scripts/sheets/export-stats-sheet.mjs`
+- `app/matches/page.tsx`
+- `app/matches/[createdAt]/edit/page.tsx`

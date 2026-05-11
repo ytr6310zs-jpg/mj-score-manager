@@ -13,7 +13,7 @@ import {
   findFuzzyPlayerCandidates,
   parseSpreadsheetMatrix,
 } from "@/lib/spreadsheet-import";
-import YAKUMANS from "@/lib/yakumans";
+import type { YakumanDef } from "@/lib/yakumans";
 import { createClient } from "@supabase/supabase-js";
 import { JWT } from "google-auth-library";
 import { GoogleSpreadsheet } from "google-spreadsheet";
@@ -248,6 +248,38 @@ async function fetchKnownPlayerNames(supabaseUrl: string, supabaseKey: string): 
   return (data as Array<{ name: string }>).map((row) => row.name.trim()).filter(Boolean);
 }
 
+async function fetchActiveYakumanDefs(supabaseUrl: string, supabaseKey: string): Promise<YakumanDef[]> {
+  const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+  const { data, error } = await supabase
+    .from("yakuman_types")
+    .select("code,name,points")
+    .eq("is_active", true);
+
+  if (error || !data) {
+    throw new Error("役満種別一覧の取得に失敗しました。");
+  }
+
+  return (data as Array<Record<string, unknown>>)
+    .map((row) => {
+      const code = String(row["code"] ?? "").trim();
+      const name = String(row["name"] ?? "").trim();
+      const pointsRaw = row["points"];
+      let points: number | null = null;
+      if (typeof pointsRaw === "number" && Number.isFinite(pointsRaw)) {
+        points = pointsRaw;
+      } else if (pointsRaw !== null && pointsRaw !== undefined) {
+        const parsed = Number(pointsRaw);
+        points = Number.isFinite(parsed) ? parsed : null;
+      }
+      return {
+        code,
+        name,
+        points,
+      } satisfies YakumanDef;
+    })
+    .filter((row) => row.code.length > 0 && row.name.length > 0);
+}
+
 async function fetchExistingImportKeys(
   supabaseUrl: string,
   supabaseKey: string,
@@ -406,7 +438,8 @@ export async function previewMatchImportAction(
 
   try {
     const loaded = await loadSheetMatrixBySpreadsheetId(spreadsheetId, sheetTitle, gameDateRaw);
-    const parsed = parseSpreadsheetMatrix(loaded.matrix, loaded.sheetTitle, YAKUMANS);
+    const yakumans = await fetchActiveYakumanDefs(supabaseUrl, supabaseKey);
+    const parsed = parseSpreadsheetMatrix(loaded.matrix, loaded.sheetTitle, yakumans);
 
     const gameDate = gameDateRaw || parsed.inferredDate || "";
     if (!gameDate) {

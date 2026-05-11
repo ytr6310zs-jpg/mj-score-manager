@@ -104,6 +104,27 @@ describe("parseSpreadsheetMatrix", () => {
     assert.strictEqual(parsed.games[0].yakumanSelections[0].yakumanName, "役満テスト");
     assert.strictEqual(parsed.warnings.some((w) => w.includes("役満が解決できません")), false);
   });
+
+  it("役満コード単体は 定義一覧に存在する場合のみ解決する", () => {
+    const matrix = [
+      ["player", "1"],
+      ["A", "100"],
+      ["B", "-100"],
+      ["C", "0"],
+      ["D", "0"],
+      [],
+      ["gameNo", "player", "yakuman", "count"],
+      ["1", "A", "DA", "1"],
+    ];
+
+    const parsedWithDef = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsedWithDef.games[0].yakumanSelections.length, 1);
+    assert.strictEqual(parsedWithDef.games[0].yakumanSelections[0].yakumanCode, "DA");
+
+    const parsedWithoutDef = parseSpreadsheetMatrix(matrix, "x", []);
+    assert.strictEqual(parsedWithoutDef.games[0].yakumanSelections.length, 0);
+    assert.strictEqual(parsedWithoutDef.warnings.some((w) => w.includes("役満が解決できません")), true);
+  });
 });
 
 describe("dedupe and fuzzy helpers", () => {
