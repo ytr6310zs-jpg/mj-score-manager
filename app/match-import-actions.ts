@@ -6,7 +6,6 @@ import { getCurrentSession } from "@/lib/session";
 import {
     buildImportDedupeKey,
     findFuzzyPlayerCandidates,
-    parseGameNoFromNotes,
     parseSpreadsheetMatrix,
 } from "@/lib/spreadsheet-import";
 import YAKUMANS from "@/lib/yakumans";
@@ -251,46 +250,21 @@ async function fetchExistingImportKeys(
   gameDate: string
 ): Promise<Set<string>> {
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
-  let data: Array<Record<string, unknown>> | null = null;
-
-  const withDedupeKey = await supabase
+  const { data, error } = await supabase
     .from("games")
-    .select("tournament_id,date,player1,player2,player3,player4,notes,import_dedupe_key")
+    .select("import_dedupe_key")
     .eq("tournament_id", tournamentId)
-    .eq("date", gameDate);
+    .eq("date", gameDate)
+    .not("import_dedupe_key", "is", null);
 
-  if (withDedupeKey.error) {
-    const fallback = await supabase
-      .from("games")
-      .select("tournament_id,date,player1,player2,player3,player4,notes")
-      .eq("tournament_id", tournamentId)
-      .eq("date", gameDate);
-
-    if (fallback.error || !fallback.data) {
-      throw new Error("重複判定用データの取得に失敗しました。");
-    }
-    data = fallback.data as Array<Record<string, unknown>>;
-  } else {
-    data = (withDedupeKey.data ?? []) as Array<Record<string, unknown>>;
+  if (error || !data) {
+    throw new Error("重複判定用データの取得に失敗しました。");
   }
 
   const keys = new Set<string>();
-  for (const row of data) {
-    const byColumn = String(row.import_dedupe_key ?? "").trim();
-    if (byColumn) {
-      keys.add(byColumn);
-      continue;
-    }
-
-    const gameNo = parseGameNoFromNotes(String(row.notes ?? ""));
-    if (!gameNo) continue;
-    const players = [row.player1, row.player2, row.player3, row.player4]
-      .map((name) => String(name ?? "").trim())
-      .filter(Boolean);
-    const tid = Number(row.tournament_id ?? 0);
-    const date = String(row.date ?? "").trim();
-    if (!tid || !date || players.length < 3) continue;
-    keys.add(buildImportDedupeKey(tid, date, gameNo, players));
+  for (const row of data as Array<Record<string, unknown>>) {
+    const key = String(row.import_dedupe_key ?? "").trim();
+    if (key) keys.add(key);
   }
   return keys;
 }

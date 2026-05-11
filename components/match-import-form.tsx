@@ -119,30 +119,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
           }}
         >
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="sheetTitle">シート名（任意）</Label>
-              <Input
-                id="sheetTitle"
-                name="sheetTitle"
-                placeholder="大会名・開催日"
-                value={sheetTitleValue}
-                onChange={(event) => setSheetTitleValue(event.target.value)}
-                onBlur={() => updateQueryParams(sheetTitleValue, gameDateValue, tournamentIdValue)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gameDate">対局日（任意）</Label>
-              <Input
-                id="gameDate"
-                name="gameDate"
-                type="date"
-                value={gameDateValue}
-                onChange={(event) => setGameDateValue(event.target.value)}
-                onBlur={() => updateQueryParams(sheetTitleValue, gameDateValue, tournamentIdValue)}
-              />
-            </div>
-
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="tournamentId">大会</Label>
               <select
@@ -163,6 +139,30 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gameDate">対局日（任意）</Label>
+              <Input
+                id="gameDate"
+                name="gameDate"
+                type="date"
+                value={gameDateValue}
+                onChange={(event) => setGameDateValue(event.target.value)}
+                onBlur={() => updateQueryParams(sheetTitleValue, gameDateValue, tournamentIdValue)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sheetTitle">シート名（任意）</Label>
+              <Input
+                id="sheetTitle"
+                name="sheetTitle"
+                placeholder="大会名・開催日"
+                value={sheetTitleValue}
+                onChange={(event) => setSheetTitleValue(event.target.value)}
+                onBlur={() => updateQueryParams(sheetTitleValue, gameDateValue, tournamentIdValue)}
+              />
             </div>
           </div>
 
