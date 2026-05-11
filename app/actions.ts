@@ -37,6 +37,8 @@ export async function saveScoreAction(
     notes,
     total,
   } = validated.data;
+  const importDedupeKeyRaw = String(formData.get("importDedupeKey") ?? "").trim();
+  const importDedupeKey = importDedupeKeyRaw.length > 0 ? importDedupeKeyRaw.slice(0, 512) : null;
 
   const entries = buildRankedEntries(players, resolvedScores, yakitoriPlayers, tobiPlayers, tobashiPlayers);
   const rankedEntries = [...entries].sort((left, right) => left.rank - right.rank);
@@ -108,6 +110,7 @@ export async function saveScoreAction(
       yakitori_players: [...yakitoriPlayers].join(","),
       yakitori_player_ids: [...yakitoriPlayers].map((n) => nameToId.get(n)).filter((id): id is number => id !== undefined),
       notes,
+      import_dedupe_key: importDedupeKey,
       created_by_user_id: session.uid,
       updated_by_user_id: session.uid,
       created_at: new Date().toISOString(),
@@ -134,6 +137,9 @@ export async function saveScoreAction(
 
     const { data: insertedGames, error: insertErr } = await supabase.from("games").insert([row]).select("id");
     if (insertErr || !insertedGames || (Array.isArray(insertedGames) && insertedGames.length === 0)) {
+      if (insertErr?.code === "23505" && importDedupeKey) {
+        return { success: false, message: "重複データのため保存できませんでした。" };
+      }
       console.error("Save score insert error:", insertErr);
       return { success: false, message: "データ保存に失敗しました。" };
     }

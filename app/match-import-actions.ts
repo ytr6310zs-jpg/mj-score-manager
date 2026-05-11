@@ -251,18 +251,37 @@ async function fetchExistingImportKeys(
   gameDate: string
 ): Promise<Set<string>> {
   const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
-  const { data, error } = await supabase
+  let data: Array<Record<string, unknown>> | null = null;
+
+  const withDedupeKey = await supabase
     .from("games")
-    .select("tournament_id,date,player1,player2,player3,player4,notes")
+    .select("tournament_id,date,player1,player2,player3,player4,notes,import_dedupe_key")
     .eq("tournament_id", tournamentId)
     .eq("date", gameDate);
 
-  if (error || !data) {
-    throw new Error("重複判定用データの取得に失敗しました。");
+  if (withDedupeKey.error) {
+    const fallback = await supabase
+      .from("games")
+      .select("tournament_id,date,player1,player2,player3,player4,notes")
+      .eq("tournament_id", tournamentId)
+      .eq("date", gameDate);
+
+    if (fallback.error || !fallback.data) {
+      throw new Error("重複判定用データの取得に失敗しました。");
+    }
+    data = fallback.data as Array<Record<string, unknown>>;
+  } else {
+    data = (withDedupeKey.data ?? []) as Array<Record<string, unknown>>;
   }
 
   const keys = new Set<string>();
-  for (const row of data as Array<Record<string, unknown>>) {
+  for (const row of data) {
+    const byColumn = String(row.import_dedupe_key ?? "").trim();
+    if (byColumn) {
+      keys.add(byColumn);
+      continue;
+    }
+
     const gameNo = parseGameNoFromNotes(String(row.notes ?? ""));
     if (!gameNo) continue;
     const players = [row.player1, row.player2, row.player3, row.player4]
@@ -566,7 +585,7 @@ export async function confirmMatchImportAction(
 
       fd.append("tobiPlayers", mapNames(resolvedTobiPlayers, row.players, row.matchedPlayers).join(","));
       fd.append("tobashiPlayers", JSON.stringify(mapNames(resolvedTobashiPlayers, row.players, row.matchedPlayers)));
-      fd.append("notes", `SPREADSHEET_IMPORT gameNo=${row.gameNo}`);
+      fd.append("importDedupeKey", dedupeKey);
 
       const normalizedYakuman = row.yakumanSelections
         .map((entry) => {
