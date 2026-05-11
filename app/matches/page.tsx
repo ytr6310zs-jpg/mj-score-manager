@@ -72,10 +72,19 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
 
         <div className="rounded-xl border border-white/70 bg-white/90 shadow-xl backdrop-blur">
           <div className="border-b border-emerald-100 px-4 py-4 sm:px-6">
-            <h1 className="text-xl font-bold text-emerald-900">対局履歴</h1>
-            <p className="mt-1 text-xs text-emerald-700/70">
-              日付順に、各対局の順位・スコア・特記事項を確認できます。
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-bold text-emerald-900">対局履歴</h1>
+                <p className="mt-1 text-xs text-emerald-700/70">
+                  日付順に、各対局の順位・スコア・特記事項を確認できます。
+                </p>
+              </div>
+              {canEdit ? (
+                <Link href="/matches/import" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  一括インポート（PoC）
+                </Link>
+              ) : null}
+            </div>
           </div>
 
           <div className="p-4">
@@ -264,7 +273,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
             )}
 
             {/* CSV 出力（表の下部右寄せ） */}
-            <div className="flex justify-end mt-3">
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
               <CsvExportButton
                 apiPath="/api/export/games"
                 className="rounded bg-emerald-600 px-3 text-sm text-white h-10 flex items-center justify-center"
