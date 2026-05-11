@@ -1,7 +1,7 @@
 "use client";
 
 import type { MatchImportConfirmState, MatchImportPreviewState } from "@/app/match-import-actions";
-import { confirmMatchImportAction, previewMatchImportAction, type ImportPreviewRow } from "@/app/match-import-actions";
+import { confirmMatchImportAction, previewMatchImportAction } from "@/app/match-import-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,11 +99,7 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
         [key]: value,
       };
     });
-  }
 
-  function renderIssue(row: ImportPreviewRow): string {
-    if (row.issues.length === 0) return "";
-    return row.issues.join(" / ");
   }
 
   return (
@@ -251,7 +247,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                           ) : (
                             <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">要確認</span>
                           )}
-                          {!row.ready && row.issues.length > 0 ? <p className="mt-1 text-xs text-amber-800">{renderIssue(row)}</p> : null}
                           {row.conflictingFlagPlayers.length > 0 ? (
                             <div className="mt-2 space-y-2">
                               {row.conflictingFlagPlayers.map((playerName) => {
