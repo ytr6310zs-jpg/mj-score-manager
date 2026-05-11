@@ -490,7 +490,89 @@ export async function confirmMatchImportAction(
   }
 
   try {
+    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+
     const existingKeys = await fetchExistingImportKeys(supabaseUrl, supabaseKey, payload.tournamentId, payload.gameDate);
+
+    // Ensure missing players referenced by selected rows exist in `players` table.
+    const selectedRows = payload.rows.filter((r) => selectedIds.has(r.rowId));
+    const allPlayerNamesSet = new Set<string>();
+    for (const r of selectedRows) {
+      for (const n of r.players) {
+        if (n && n.trim()) allPlayerNamesSet.add(n.trim());
+      }
+    }
+
+    const allPlayerNames = Array.from(allPlayerNamesSet);
+    if (allPlayerNames.length > 0) {
+      try {
+        const { data: existingPlayers } = await supabase.from("players").select("name").in("name", allPlayerNames);
+        const existingNames = new Set<string>((existingPlayers ?? []).map((r: Record<string, unknown>) => String(r["name"] ?? "").trim()));
+        const missingNames = allPlayerNames.filter((n) => !existingNames.has(n));
+        if (missingNames.length > 0) {
+          const toInsert = missingNames.map((n) => ({ name: n }));
+          try {
+            // use upsert to avoid unique-constraint race conditions
+            await supabase.from("players").upsert(toInsert, { onConflict: "name" });
+          } catch {
+            // fall back to inserting one-by-one in case upsert is unavailable
+            for (const nm of missingNames) {
+              try {
+                await supabase.from("players").insert([{ name: nm }]);
+              } catch {
+                // ignore insert errors (likely duplicate)
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("players existence check failed, continuing:", e);
+      }
+    }
+
+    // Ensure missing yakuman types referenced by selected rows exist in `yakuman_types` table.
+    const codeToName = new Map<string, string>();
+    for (const r of selectedRows) {
+      for (const entry of r.yakumanSelections) {
+        const idx = r.players.indexOf(entry.playerName);
+        if (idx < 0) continue;
+        const playerName = (r.matchedPlayers?.[idx] ?? r.players[idx]) ?? "";
+        if (!playerName) continue;
+        const code = String(entry.yakumanCode ?? "").trim();
+        const name = String(entry.yakumanName ?? code).trim() || code;
+        if (!code) continue;
+        if (!codeToName.has(code)) codeToName.set(code, name);
+      }
+    }
+
+    const wantedCodes = Array.from(codeToName.keys());
+    if (wantedCodes.length > 0) {
+      try {
+        const { data: existingYaks } = await supabase.from("yakuman_types").select("code").in("code", wantedCodes as string[]);
+        const existingCodes = new Set<string>((existingYaks ?? []).map((r: Record<string, unknown>) => String(r["code"] ?? "").trim()));
+        const missingCodes = wantedCodes.filter((c) => !existingCodes.has(c));
+        if (missingCodes.length > 0) {
+          // determine current max sort_order
+          const { data: last } = await supabase.from("yakuman_types").select("sort_order").order("sort_order", { ascending: false }).limit(1);
+          const maxOrder = last && last.length > 0 ? Number((last[0] as Record<string, unknown>)["sort_order"] ?? 0) : 0;
+          const toInsert = missingCodes.map((code, i) => ({
+            code,
+            name: codeToName.get(code) ?? code,
+            points: 32000,
+            description: "",
+            sort_order: maxOrder + 10 * (i + 1),
+            is_active: true,
+          }));
+          try {
+            await supabase.from("yakuman_types").insert(toInsert);
+          } catch (ie) {
+            console.warn("yakuman_types insert error (continuing):", ie);
+          }
+        }
+      } catch (e) {
+        console.warn("yakuman_types existence check failed, continuing:", e);
+      }
+    }
     let importedCount = 0;
     let skippedCount = 0;
     let unselectedCount = 0;
@@ -502,12 +584,10 @@ export async function confirmMatchImportAction(
         continue;
       }
 
-      if (row.players.length !== row.matchedPlayers.length) {
-        skippedCount += 1;
-        continue;
-      }
+      // use matchedPlayers when fully matched, otherwise fall back to raw parsed player names
+      const playersToUse = row.matchedPlayers.length === row.players.length ? row.matchedPlayers : row.players;
 
-      const dedupeKey = buildImportDedupeKey(payload.tournamentId, payload.gameDate, row.gameNo, row.matchedPlayers);
+      const dedupeKey = buildImportDedupeKey(payload.tournamentId, payload.gameDate, row.gameNo, playersToUse);
       if (existingKeys.has(dedupeKey)) {
         skippedCount += 1;
         continue;
@@ -546,26 +626,26 @@ export async function confirmMatchImportAction(
       fd.append("gameDate", payload.gameDate);
       fd.append("gameType", row.gameType);
 
-      row.matchedPlayers.forEach((name, idx) => {
+      playersToUse.forEach((name, idx) => {
         const slot = idx + 1;
         fd.append(`player${slot}`, name);
         fd.append(`score${slot}`, String(row.scores[idx] ?? 0));
       });
 
-      mapNames(row.yakitoriPlayers, row.players, row.matchedPlayers).forEach((name) => {
-        const idx = row.matchedPlayers.indexOf(name);
+      mapNames(row.yakitoriPlayers, row.players, playersToUse).forEach((name) => {
+        const idx = playersToUse.indexOf(name);
         if (idx >= 0) fd.append(`yakitori${idx + 1}`, "on");
       });
 
-      fd.append("tobiPlayers", mapNames(resolvedTobiPlayers, row.players, row.matchedPlayers).join(","));
-      fd.append("tobashiPlayers", JSON.stringify(mapNames(resolvedTobashiPlayers, row.players, row.matchedPlayers)));
+      fd.append("tobiPlayers", mapNames(resolvedTobiPlayers, row.players, playersToUse).join(","));
+      fd.append("tobashiPlayers", JSON.stringify(mapNames(resolvedTobashiPlayers, row.players, playersToUse)));
       fd.append("importDedupeKey", dedupeKey);
 
       const normalizedYakuman = row.yakumanSelections
         .map((entry) => {
           const idx = row.players.indexOf(entry.playerName);
           if (idx < 0) return null;
-          const mappedPlayer = row.matchedPlayers[idx];
+          const mappedPlayer = playersToUse[idx];
           return mappedPlayer
             ? {
                 ...entry,
