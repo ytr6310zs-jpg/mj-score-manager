@@ -174,6 +174,17 @@ function findYakumanHeaderRow(matrix: string[][], startRow: number): number {
   return -1;
 }
 
+function buildAdhocYakumanDef(codeRaw: string, nameRaw: string): YakumanDef | null {
+  const code = normalizeText(codeRaw).toUpperCase();
+  const name = normalizeText(nameRaw);
+  if (!/^[A-Za-z0-9]{2,}$/.test(code)) return null;
+  return {
+    code,
+    name: name || code,
+    points: null,
+  };
+}
+
 function resolveYakumanToken(token: string, yakumans: YakumanDef[]): YakumanDef | null {
   const normalized = normalizeForMatch(token);
   if (!normalized) return null;
@@ -182,7 +193,8 @@ function resolveYakumanToken(token: string, yakumans: YakumanDef[]): YakumanDef 
   if (byCode) return byCode;
 
   // 役満名 / コード（半角・全角スラッシュ両対応）を許容
-  const slashToken = token.split(/[\/／]/).map((v) => v.trim()).find((part) => {
+  const slashParts = token.split(/[\/／]/).map((v) => v.trim()).filter(Boolean);
+  const slashToken = slashParts.find((part) => {
     const normalizedPart = normalizeForMatch(part);
     return yakumans.some((y) => normalizeForMatch(y.code) === normalizedPart);
   });
@@ -191,10 +203,25 @@ function resolveYakumanToken(token: string, yakumans: YakumanDef[]): YakumanDef 
     if (bySlash) return bySlash;
   }
 
-  const codePrefix = token.match(/^([A-Za-z0-9]{2,})\s*[:：\-]/);
+  // 未定義の役満でも「役満名/コード」または「コード:役満名」の形式なら仮解決して取り込み継続する。
+  if (slashParts.length >= 2) {
+    const left = slashParts[0] ?? "";
+    const right = slashParts[1] ?? "";
+
+    const leftAsCode = buildAdhocYakumanDef(left, right);
+    if (leftAsCode) return leftAsCode;
+
+    const rightAsCode = buildAdhocYakumanDef(right, left);
+    if (rightAsCode) return rightAsCode;
+  }
+
+  const codePrefix = token.match(/^([A-Za-z0-9]{2,})\s*[:：\-](.+)$/);
   if (codePrefix) {
     const byPrefix = yakumans.find((y) => normalizeForMatch(y.code) === normalizeForMatch(codePrefix[1]));
     if (byPrefix) return byPrefix;
+
+    const adhoc = buildAdhocYakumanDef(codePrefix[1], codePrefix[2]);
+    if (adhoc) return adhoc;
   }
 
   const byNameInclude = yakumans.find((y) => normalized.includes(normalizeForMatch(y.name)) || normalizeForMatch(y.name).includes(normalized));

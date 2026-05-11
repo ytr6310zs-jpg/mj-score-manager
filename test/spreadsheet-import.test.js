@@ -84,6 +84,26 @@ describe("parseSpreadsheetMatrix", () => {
     assert.deepStrictEqual(parsed.games[0].conflictingFlagPlayers, ["A"]);
     assert.ok(parsed.warnings.some((w) => w.includes("飛び/飛ばし競合")));
   });
+
+  it("未知役満でも 役満名/コード 形式なら解析して取り込み可能にする", () => {
+    const matrix = [
+      ["player", "1"],
+      ["A", "100"],
+      ["B", "-100"],
+      ["C", "0"],
+      ["D", "0"],
+      [],
+      ["gameNo", "player", "yakuman", "count"],
+      ["1", "A", "役満テスト / TST", "1"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 1);
+    assert.strictEqual(parsed.games[0].yakumanSelections.length, 1);
+    assert.strictEqual(parsed.games[0].yakumanSelections[0].yakumanCode, "TST");
+    assert.strictEqual(parsed.games[0].yakumanSelections[0].yakumanName, "役満テスト");
+    assert.strictEqual(parsed.warnings.some((w) => w.includes("役満が解決できません")), false);
+  });
 });
 
 describe("dedupe and fuzzy helpers", () => {
