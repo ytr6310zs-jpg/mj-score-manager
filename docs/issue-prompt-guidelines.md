@@ -72,6 +72,7 @@ Issue # は設計承認済みです。実装フェーズを実施してくださ
 - `npm run build` を必須実行
 - 可能なら `npm test` と `npm run lint` も実行
 - コミット -> push -> PR作成まで実施
+- 作業内容をworklogに追加
 
 PR本文必須:
 - 設計概要
