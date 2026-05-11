@@ -6,4 +6,6 @@ if [ "$BRANCH" = "main" ]; then
   node scripts/worklog.mjs done \
     --summary "main へのマージ完了: ${LAST_MERGE_MSG}" \
     --tags "main,merge"
+
+  sh scripts/cleanup-merged-branches.sh
 fi
