@@ -1,19 +1,19 @@
 "use server";
 
-import { JWT } from "google-auth-library";
-import { GoogleSpreadsheet } from "google-spreadsheet";
 import { saveScoreAction, type SaveScoreState } from "@/app/actions";
 import { canUseScoreInput } from "@/lib/authorization";
-import {
-  buildImportDedupeKey,
-  findFuzzyPlayerCandidates,
-  parseGameNoFromNotes,
-  parseSpreadsheetIdFromUrl,
-  parseSpreadsheetMatrix,
-} from "@/lib/spreadsheet-import";
 import { getCurrentSession } from "@/lib/session";
-import { createClient } from "@supabase/supabase-js";
+import {
+    buildImportDedupeKey,
+    findFuzzyPlayerCandidates,
+    parseGameNoFromNotes,
+    parseSpreadsheetIdFromUrl,
+    parseSpreadsheetMatrix,
+} from "@/lib/spreadsheet-import";
 import YAKUMANS from "@/lib/yakumans";
+import { createClient } from "@supabase/supabase-js";
+import { JWT } from "google-auth-library";
+import { GoogleSpreadsheet } from "google-spreadsheet";
 
 type PreviewPayloadRow = {
   rowId: number;
@@ -25,11 +25,13 @@ type PreviewPayloadRow = {
   yakitoriPlayers: string[];
   tobiPlayers: string[];
   tobashiPlayers: string[];
+  conflictingFlagPlayers: string[];
   yakumanSelections: Array<{
     playerName: string;
     yakumanCode: string;
     yakumanName: string;
     points: number | null;
+    count: number;
   }>;
 };
 
@@ -43,6 +45,7 @@ export type ImportPreviewRow = {
   duplicate: boolean;
   ready: boolean;
   issues: string[];
+  conflictingFlagPlayers: string[];
   fuzzyCandidates: Record<string, string[]>;
 };
 
@@ -79,6 +82,31 @@ function parseSelectedIds(raw: string): Set<number> {
     }
   }
   return set;
+}
+
+type ConflictResolution = "tobi" | "tobashi";
+
+function parseConflictResolutions(raw: string): Record<string, ConflictResolution> {
+  if (!raw) return {};
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return {};
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {};
+  }
+
+  const result: Record<string, ConflictResolution> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (value === "tobi" || value === "tobashi") {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 function resolveGoogleEnv(): { spreadsheetEmail: string; privateKey: string } | null {
@@ -215,6 +243,7 @@ function buildPreviewRows(
       duplicate,
       ready,
       issues,
+      conflictingFlagPlayers: game.conflictingFlagPlayers,
       fuzzyCandidates,
     });
 
@@ -228,6 +257,7 @@ function buildPreviewRows(
       yakitoriPlayers: game.yakitoriPlayers,
       tobiPlayers: game.tobiPlayers,
       tobashiPlayers: game.tobashiPlayers,
+      conflictingFlagPlayers: game.conflictingFlagPlayers,
       yakumanSelections: game.yakumanSelections,
     });
   });
@@ -335,11 +365,13 @@ export async function confirmMatchImportAction(
 
   const payloadRaw = toTrimmed(formData.get("payloadJson"));
   const selectedRaw = toTrimmed(formData.get("selectedRowIds"));
+  const resolutionRaw = toTrimmed(formData.get("conflictResolutionJson"));
   if (!payloadRaw) {
     return { ...EMPTY_CONFIRM, message: "プレビュー情報が見つかりません。再度プレビューを作成してください。" };
   }
 
   const selectedIds = parseSelectedIds(selectedRaw);
+  const conflictResolutions = parseConflictResolutions(resolutionRaw);
   if (selectedIds.size === 0) {
     return { ...EMPTY_CONFIRM, message: "取り込み対象の行を 1 つ以上選択してください。" };
   }
@@ -379,6 +411,34 @@ export async function confirmMatchImportAction(
         continue;
       }
 
+      const resolvedTobiPlayers = [...row.tobiPlayers];
+      const resolvedTobashiPlayers = [...row.tobashiPlayers];
+
+      let hasUnresolvedConflict = false;
+      for (const playerName of row.conflictingFlagPlayers) {
+        const resolution = conflictResolutions[`${row.rowId}:${playerName}`];
+        if (!resolution) {
+          hasUnresolvedConflict = true;
+          break;
+        }
+
+        const tobiIndex = resolvedTobiPlayers.indexOf(playerName);
+        if (tobiIndex >= 0) resolvedTobiPlayers.splice(tobiIndex, 1);
+        const tobashiIndex = resolvedTobashiPlayers.indexOf(playerName);
+        if (tobashiIndex >= 0) resolvedTobashiPlayers.splice(tobashiIndex, 1);
+
+        if (resolution === "tobi") {
+          resolvedTobiPlayers.push(playerName);
+        } else {
+          resolvedTobashiPlayers.push(playerName);
+        }
+      }
+
+      if (hasUnresolvedConflict) {
+        skippedCount += 1;
+        continue;
+      }
+
       const fd = new FormData();
       fd.append("tournamentId", String(payload.tournamentId));
       fd.append("gameDate", payload.gameDate);
@@ -395,8 +455,8 @@ export async function confirmMatchImportAction(
         if (idx >= 0) fd.append(`yakitori${idx + 1}`, "on");
       });
 
-      fd.append("tobiPlayers", mapNames(row.tobiPlayers, row.players, row.matchedPlayers).join(","));
-      fd.append("tobashiPlayers", JSON.stringify(mapNames(row.tobashiPlayers, row.players, row.matchedPlayers)));
+      fd.append("tobiPlayers", mapNames(resolvedTobiPlayers, row.players, row.matchedPlayers).join(","));
+      fd.append("tobashiPlayers", JSON.stringify(mapNames(resolvedTobashiPlayers, row.players, row.matchedPlayers)));
       fd.append("notes", `SPREADSHEET_IMPORT gameNo=${row.gameNo}`);
 
       const normalizedYakuman = row.yakumanSelections

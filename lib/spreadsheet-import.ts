@@ -1,15 +1,21 @@
 import type { YakumanDef } from "@/lib/yakumans";
 
-const SUBCOL_SCORE = "SCORE";
-const SUBCOL_YAKUMAN = "YAKUMAN";
-const SUBCOL_YAKITORI = "YAKITORI";
-const SUBCOL_TOBI_TOBASHI = "TOBI_TOBASHI";
+const MIN_GAME_NO = 1;
+const MAX_GAME_NO = 40;
 
 export type ParsedYakumanSelection = {
   playerName: string;
   yakumanCode: string;
   yakumanName: string;
   points: number | null;
+  count: number;
+};
+
+type ParsedCellFlags = {
+  yakitori: boolean;
+  tobi: boolean;
+  tobashi: boolean;
+  hasConflict: boolean;
 };
 
 export type ParsedSpreadsheetGame = {
@@ -19,6 +25,7 @@ export type ParsedSpreadsheetGame = {
   yakitoriPlayers: string[];
   tobiPlayers: string[];
   tobashiPlayers: string[];
+  conflictingFlagPlayers: string[];
   yakumanSelections: ParsedYakumanSelection[];
   gameType: "3p" | "4p";
 };
@@ -30,13 +37,6 @@ export type ParsedSpreadsheetPayload = {
   warnings: string[];
 };
 
-type GameColumnMap = {
-  score: number | null;
-  yakuman: number | null;
-  yakitori: number | null;
-  tobiTobashi: number | null;
-};
-
 function normalizeText(value: unknown): string {
   return String(value ?? "").trim();
 }
@@ -45,21 +45,8 @@ function normalizeForMatch(value: string): string {
   return value.replace(/[\s\u3000]/g, "").toLowerCase();
 }
 
-function parseSubHeader(raw: string): string {
-  const normalized = normalizeForMatch(raw).replace(/[()（）_\-/]/g, "");
-  if (normalized === "score" || normalized === "点数") return SUBCOL_SCORE;
-  if (normalized === "yakuman" || normalized === "役満") return SUBCOL_YAKUMAN;
-  if (normalized === "yakitori" || normalized === "焼き鳥") return SUBCOL_YAKITORI;
-  if (normalized === "tobitobashi" || normalized === "飛び飛ばし" || normalized === "飛び/飛ばし") {
-    return SUBCOL_TOBI_TOBASHI;
-  }
-  return "";
-}
-
-function parseBooleanFlag(raw: string): boolean {
-  const token = normalizeForMatch(raw);
-  if (!token) return false;
-  return token === "true" || token === "1" || token === "yes" || token === "y" || token === "on" || token === "〇";
+function normalizeFlagToken(raw: string): string {
+  return normalizeForMatch(raw).replace(/[()（）._\-]/g, "");
 }
 
 function parseScore(raw: string): number | null {
@@ -82,38 +69,96 @@ function parseGameDateFromTitle(sheetTitle: string): string | null {
   return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
 }
 
-function parseTobiTobashiFlags(raw: string): { isTobi: boolean; isTobashi: boolean } {
-  const token = normalizeForMatch(raw);
-  if (!token) return { isTobi: false, isTobashi: false };
-  const isTobi = token.includes("飛び") || token.includes("tobi") || token === "t";
-  const isTobashi = token.includes("飛ばし") || token.includes("tobashi") || token === "b";
-  return { isTobi, isTobashi };
-}
-
-function collectGameColumns(header1: string[], header2: string[]): Map<number, GameColumnMap> {
-  const map = new Map<number, GameColumnMap>();
-  const maxLen = Math.max(header1.length, header2.length);
-
-  for (let col = 1; col < maxLen; col += 1) {
-    const gameNoRaw = normalizeText(header1[col]);
-    const subRaw = normalizeText(header2[col]);
-    if (!gameNoRaw || !subRaw) continue;
-
-    const gameNo = Number(gameNoRaw);
-    if (!Number.isInteger(gameNo) || gameNo < 1 || gameNo > 40) continue;
-
-    const subKey = parseSubHeader(subRaw);
-    if (!subKey) continue;
-
-    const row = map.get(gameNo) ?? { score: null, yakuman: null, yakitori: null, tobiTobashi: null };
-    if (subKey === SUBCOL_SCORE) row.score = col;
-    if (subKey === SUBCOL_YAKUMAN) row.yakuman = col;
-    if (subKey === SUBCOL_YAKITORI) row.yakitori = col;
-    if (subKey === SUBCOL_TOBI_TOBASHI) row.tobiTobashi = col;
-    map.set(gameNo, row);
+function parseCellValue(raw: string): { score: number | null; flags: ParsedCellFlags } {
+  const value = normalizeText(raw);
+  const emptyFlags: ParsedCellFlags = { yakitori: false, tobi: false, tobashi: false, hasConflict: false };
+  if (!value) {
+    return { score: null, flags: emptyFlags };
   }
 
+  const normalized = value.replace(/[，、／;；|｜]/g, ",");
+  const tokens = normalized.split(",").map((token) => token.trim()).filter(Boolean);
+  if (tokens.length === 0) {
+    return { score: null, flags: emptyFlags };
+  }
+
+  const score = parseScore(tokens[0]);
+  if (score === null) {
+    return { score: null, flags: emptyFlags };
+  }
+
+  let yakitori = false;
+  let tobi = false;
+  let tobashi = false;
+
+  for (const token of tokens.slice(1)) {
+    const normalizedToken = normalizeFlagToken(token);
+    if (!normalizedToken) continue;
+
+    if (normalizedToken === "tb" || normalizedToken === "tobi" || normalizedToken === "飛び") {
+      tobi = true;
+      continue;
+    }
+    if (normalizedToken === "t" || normalizedToken === "tobashi" || normalizedToken === "飛ばし") {
+      tobashi = true;
+      continue;
+    }
+    if (normalizedToken === "y" || normalizedToken === "yakitori" || normalizedToken === "焼き鳥") {
+      yakitori = true;
+    }
+  }
+
+  return {
+    score,
+    flags: {
+      yakitori,
+      tobi,
+      tobashi,
+      hasConflict: tobi && tobashi,
+    },
+  };
+}
+
+function findMainHeaderRow(matrix: string[][]): number {
+  for (let rowIndex = 0; rowIndex < Math.min(matrix.length, 10); rowIndex += 1) {
+    const row = matrix[rowIndex] ?? [];
+    const first = normalizeForMatch(normalizeText(row[0]));
+    if (first !== "player" && first !== "name") continue;
+
+    const hasGameNo = row.slice(1).some((cell) => {
+      const gameNo = Number(normalizeText(cell));
+      return Number.isInteger(gameNo) && gameNo >= MIN_GAME_NO && gameNo <= MAX_GAME_NO;
+    });
+    if (hasGameNo) return rowIndex;
+  }
+  return -1;
+}
+
+function collectGameColumns(header: string[]): Map<number, number> {
+  const map = new Map<number, number>();
+  for (let col = 1; col < header.length; col += 1) {
+    const gameNo = Number(normalizeText(header[col]));
+    if (!Number.isInteger(gameNo) || gameNo < MIN_GAME_NO || gameNo > MAX_GAME_NO) continue;
+    map.set(gameNo, col);
+  }
   return map;
+}
+
+function isYakumanHeaderRow(row: string[]): boolean {
+  const first = normalizeForMatch(normalizeText(row[0]));
+  const second = normalizeForMatch(normalizeText(row[1]));
+  const third = normalizeForMatch(normalizeText(row[2]));
+
+  return (first === "gameno" || first === "試合番号")
+    && (second === "player" || second === "name" || second === "プレーヤー")
+    && (third === "yakuman" || third === "役満");
+}
+
+function findYakumanHeaderRow(matrix: string[][], startRow: number): number {
+  for (let rowIndex = startRow; rowIndex < matrix.length; rowIndex += 1) {
+    if (isYakumanHeaderRow(matrix[rowIndex] ?? [])) return rowIndex;
+  }
+  return -1;
 }
 
 function resolveYakumanToken(token: string, yakumans: YakumanDef[]): YakumanDef | null {
@@ -122,6 +167,15 @@ function resolveYakumanToken(token: string, yakumans: YakumanDef[]): YakumanDef 
 
   const byCode = yakumans.find((y) => normalizeForMatch(y.code) === normalized);
   if (byCode) return byCode;
+
+  const slashToken = token.split("/").map((v) => v.trim()).find((part) => {
+    const normalizedPart = normalizeForMatch(part);
+    return yakumans.some((y) => normalizeForMatch(y.code) === normalizedPart);
+  });
+  if (slashToken) {
+    const bySlash = yakumans.find((y) => normalizeForMatch(y.code) === normalizeForMatch(slashToken));
+    if (bySlash) return bySlash;
+  }
 
   const codePrefix = token.match(/^([A-Za-z0-9]{2,})\s*[:：\-]/);
   if (codePrefix) {
@@ -133,32 +187,92 @@ function resolveYakumanToken(token: string, yakumans: YakumanDef[]): YakumanDef 
   return byNameInclude ?? null;
 }
 
-function parseYakumanSelections(raw: string, playerName: string, yakumans: YakumanDef[], warnings: string[]): ParsedYakumanSelection[] {
+function parseCount(raw: string): number {
   const value = normalizeText(raw);
-  if (!value) return [];
+  if (!value) return 1;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return 1;
+  return parsed;
+}
 
-  const tokens = value
-    .split(/[;,、\n]/)
-    .map((t) => t.trim())
-    .filter(Boolean);
+function applyYakumanRows(
+  games: ParsedSpreadsheetGame[],
+  matrix: string[][],
+  yakumanHeaderRow: number,
+  yakumans: YakumanDef[],
+  warnings: string[]
+) {
+  if (yakumanHeaderRow < 0) return;
 
-  const selections: ParsedYakumanSelection[] = [];
-  for (const token of tokens) {
-    const resolved = resolveYakumanToken(token, yakumans);
-    if (!resolved) {
-      warnings.push(`役満が解決できません: ${playerName} / ${token}`);
+  const gameMap = new Map<number, ParsedSpreadsheetGame>();
+  for (const game of games) {
+    gameMap.set(game.gameNo, game);
+  }
+
+  const dedupe = new Map<string, ParsedYakumanSelection>();
+
+  for (let rowIndex = yakumanHeaderRow + 1; rowIndex < matrix.length; rowIndex += 1) {
+    const row = matrix[rowIndex] ?? [];
+    const gameNoRaw = normalizeText(row[0]);
+    const playerName = normalizeText(row[1]);
+    const yakumanRaw = normalizeText(row[2]);
+    const countRaw = normalizeText(row[3]);
+
+    if (!gameNoRaw && !playerName && !yakumanRaw && !countRaw) continue;
+
+    const gameNo = Number(gameNoRaw);
+    if (!Number.isInteger(gameNo) || gameNo < MIN_GAME_NO || gameNo > MAX_GAME_NO) {
+      warnings.push(`役満テーブル${rowIndex + 1}行目: gameNo が不正です`);
       continue;
     }
 
-    selections.push({
+    if (!playerName) {
+      warnings.push(`役満テーブル${rowIndex + 1}行目: player が未入力です`);
+      continue;
+    }
+
+    if (!yakumanRaw) {
+      warnings.push(`役満テーブル${rowIndex + 1}行目: yakuman が未入力です`);
+      continue;
+    }
+
+    const game = gameMap.get(gameNo);
+    if (!game) {
+      warnings.push(`役満テーブル${rowIndex + 1}行目: 対応する試合${gameNo}が見つかりません`);
+      continue;
+    }
+
+    if (!game.players.includes(playerName)) {
+      warnings.push(`役満テーブル${rowIndex + 1}行目: ${playerName} は試合${gameNo}の参加者ではありません`);
+      continue;
+    }
+
+    const resolved = resolveYakumanToken(yakumanRaw, yakumans);
+    if (!resolved) {
+      warnings.push(`役満テーブル${rowIndex + 1}行目: 役満が解決できません (${yakumanRaw})`);
+      continue;
+    }
+
+    const count = parseCount(countRaw);
+    const key = `${gameNo}|${normalizeForMatch(playerName)}|${resolved.code}`;
+    const existing = dedupe.get(key);
+
+    if (existing) {
+      existing.count += count;
+      continue;
+    }
+
+    const selection: ParsedYakumanSelection = {
       playerName,
       yakumanCode: resolved.code,
       yakumanName: resolved.name,
       points: resolved.points,
-    });
-  }
+      count,
+    };
 
-  return selections;
+    game.yakumanSelections.push(selection);
+    dedupe.set(key, selection);
+  }
 }
 
 export function parseSpreadsheetMatrix(
@@ -166,56 +280,56 @@ export function parseSpreadsheetMatrix(
   sheetTitle: string,
   yakumans: YakumanDef[]
 ): ParsedSpreadsheetPayload {
-  if (!Array.isArray(matrix) || matrix.length < 3) {
+  if (!Array.isArray(matrix) || matrix.length < 2) {
     return { sheetTitle, inferredDate: parseGameDateFromTitle(sheetTitle), games: [], warnings: ["シートの行数が不足しています。"] };
   }
 
   const warnings: string[] = [];
-  const header1 = matrix[0] ?? [];
-  const header2 = matrix[1] ?? [];
-  const gameColumns = collectGameColumns(header1, header2);
+  const headerRowIndex = findMainHeaderRow(matrix);
+  if (headerRowIndex < 0) {
+    return { sheetTitle, inferredDate: parseGameDateFromTitle(sheetTitle), games: [], warnings: ["主表ヘッダー（player + 1..40）が見つかりません。"] };
+  }
+
+  const header = matrix[headerRowIndex] ?? [];
+  const gameColumns = collectGameColumns(header);
   const gameNos = Array.from(gameColumns.keys()).sort((a, b) => a - b);
 
   if (gameNos.length === 0) {
-    return { sheetTitle, inferredDate: parseGameDateFromTitle(sheetTitle), games: [], warnings: ["試合列（1..40 と副列）が見つかりません。"] };
+    return { sheetTitle, inferredDate: parseGameDateFromTitle(sheetTitle), games: [], warnings: ["試合列（1..40）が見つかりません。"] };
   }
 
-  const playerRows = matrix.slice(2)
+  const yakumanHeaderRow = findYakumanHeaderRow(matrix, headerRowIndex + 1);
+
+  const playerRows = matrix
+    .slice(headerRowIndex + 1, yakumanHeaderRow >= 0 ? yakumanHeaderRow : matrix.length)
     .map((row) => ({ name: normalizeText(row[0]), row }))
     .filter((entry) => Boolean(entry.name));
 
   const games: ParsedSpreadsheetGame[] = [];
+
   for (const gameNo of gameNos) {
     const col = gameColumns.get(gameNo);
-    if (!col || col.score === null) continue;
+    if (col === undefined) continue;
 
     const players: string[] = [];
     const scores: number[] = [];
     const yakitoriPlayers: string[] = [];
     const tobiPlayers: string[] = [];
     const tobashiPlayers: string[] = [];
+    const conflictingFlagPlayers: string[] = [];
     const yakumanSelections: ParsedYakumanSelection[] = [];
 
     for (const { name, row } of playerRows) {
-      const score = parseScore(normalizeText(row[col.score]));
-      if (score === null) continue;
+      const parsedCell = parseCellValue(normalizeText(row[col]));
+      if (parsedCell.score === null) continue;
 
       players.push(name);
-      scores.push(score);
+      scores.push(parsedCell.score);
 
-      if (col.yakitori !== null && parseBooleanFlag(normalizeText(row[col.yakitori]))) {
-        yakitoriPlayers.push(name);
-      }
-
-      if (col.tobiTobashi !== null) {
-        const flags = parseTobiTobashiFlags(normalizeText(row[col.tobiTobashi]));
-        if (flags.isTobi) tobiPlayers.push(name);
-        if (flags.isTobashi) tobashiPlayers.push(name);
-      }
-
-      if (col.yakuman !== null) {
-        yakumanSelections.push(...parseYakumanSelections(normalizeText(row[col.yakuman]), name, yakumans, warnings));
-      }
+      if (parsedCell.flags.yakitori) yakitoriPlayers.push(name);
+      if (parsedCell.flags.tobi) tobiPlayers.push(name);
+      if (parsedCell.flags.tobashi) tobashiPlayers.push(name);
+      if (parsedCell.flags.hasConflict) conflictingFlagPlayers.push(name);
     }
 
     if (players.length === 0) continue;
@@ -232,10 +346,17 @@ export function parseSpreadsheetMatrix(
       yakitoriPlayers,
       tobiPlayers,
       tobashiPlayers,
+      conflictingFlagPlayers,
       yakumanSelections,
       gameType: players.length === 4 ? "4p" : "3p",
     });
+
+    if (conflictingFlagPlayers.length > 0) {
+      warnings.push(`試合${gameNo}: 飛び/飛ばし競合 (${conflictingFlagPlayers.join(", ")})`);
+    }
   }
+
+  applyYakumanRows(games, matrix, yakumanHeaderRow, yakumans, warnings);
 
   return {
     sheetTitle,

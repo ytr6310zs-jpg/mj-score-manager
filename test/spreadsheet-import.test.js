@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  buildImportDedupeKey,
-  findFuzzyPlayerCandidates,
-  parseGameNoFromNotes,
-  parseSpreadsheetIdFromUrl,
-  parseSpreadsheetMatrix,
+    buildImportDedupeKey,
+    findFuzzyPlayerCandidates,
+    parseGameNoFromNotes,
+    parseSpreadsheetIdFromUrl,
+    parseSpreadsheetMatrix,
 } from "../lib/spreadsheet-import.ts";
 import YAKUMANS from "../lib/yakumans.ts";
 
@@ -22,14 +22,18 @@ describe("parseSpreadsheetIdFromUrl", () => {
 });
 
 describe("parseSpreadsheetMatrix", () => {
-  it("40試合定義のうち入力済み試合だけを解析し、役満とフラグを復元できる", () => {
+  it("1試合1列フォーマットを解析し、役満テーブルとフラグを復元できる", () => {
     const matrix = [
-      ["player", "1", "1", "1", "1", "2", "2", "2", "2"],
-      ["name", "SCORE", "YAKUMAN", "YAKITORI", "TOBI_TOBASHI", "SCORE", "YAKUMAN", "YAKITORI", "TOBI_TOBASHI"],
-      ["A", "350", "DA:大三元", "FALSE", "B", "200", "", "FALSE", ""],
-      ["B", "100", "", "TRUE", "", "-100", "", "TRUE", "飛び"],
-      ["C", "-200", "", "FALSE", "飛び", "-100", "", "FALSE", ""],
-      ["D", "-250", "", "FALSE", "", "0", "", "FALSE", "飛ばし"],
+      ["player", "1", "2"],
+      ["A", "350, t", "200"],
+      ["B", "100, y", "-100, tb"],
+      ["C", "-200,TB", "-100"],
+      ["D", "-250", "0, T"],
+      [],
+      ["gameNo", "player", "yakuman", "count"],
+      ["1", "A", "大三元 / DA", "1"],
+      ["1", "A", "大三元 / DA", "2"],
+      ["2", "B", "国士無双 / KY", ""],
     ];
 
     const parsed = parseSpreadsheetMatrix(matrix, "春季リーグ_2026-05-01", YAKUMANS);
@@ -44,24 +48,41 @@ describe("parseSpreadsheetMatrix", () => {
     assert.deepStrictEqual(g1.tobashiPlayers, ["A"]);
     assert.strictEqual(g1.yakumanSelections.length, 1);
     assert.strictEqual(g1.yakumanSelections[0].yakumanCode, "DA");
+    assert.strictEqual(g1.yakumanSelections[0].count, 3);
 
     const g2 = parsed.games[1];
     assert.strictEqual(g2.gameNo, 2);
     assert.strictEqual(g2.tobiPlayers[0], "B");
     assert.strictEqual(g2.tobashiPlayers[0], "D");
+    assert.strictEqual(g2.yakumanSelections[0].yakumanCode, "KY");
+    assert.strictEqual(g2.yakumanSelections[0].count, 1);
   });
 
   it("参加人数が 3/4 以外の試合は warning としてスキップされる", () => {
     const matrix = [
-      ["player", "1", "1", "1", "1"],
-      ["name", "SCORE", "YAKUMAN", "YAKITORI", "TOBI_TOBASHI"],
-      ["A", "100", "", "", ""],
-      ["B", "-100", "", "", ""],
+      ["player", "1"],
+      ["A", "100"],
+      ["B", "-100"],
     ];
 
     const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
     assert.strictEqual(parsed.games.length, 0);
     assert.ok(parsed.warnings.some((w) => w.includes("参加人数が不正")));
+  });
+
+  it("飛び/飛ばしが同時指定された場合は競合として検知される", () => {
+    const matrix = [
+      ["player", "1"],
+      ["A", "350, t, tb"],
+      ["B", "100"],
+      ["C", "-200"],
+      ["D", "-250"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 1);
+    assert.deepStrictEqual(parsed.games[0].conflictingFlagPlayers, ["A"]);
+    assert.ok(parsed.warnings.some((w) => w.includes("飛び/飛ばし競合")));
   });
 });
 
