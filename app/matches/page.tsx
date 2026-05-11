@@ -264,7 +264,12 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
             )}
 
             {/* CSV 出力（表の下部右寄せ） */}
-            <div className="flex justify-end mt-3">
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              {canEdit ? (
+                <Link href="/matches/import" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  一括インポート（PoC）
+                </Link>
+              ) : null}
               <CsvExportButton
                 apiPath="/api/export/games"
                 className="rounded bg-emerald-600 px-3 text-sm text-white h-10 flex items-center justify-center"
