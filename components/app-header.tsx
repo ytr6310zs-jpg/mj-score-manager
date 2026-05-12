@@ -11,6 +11,8 @@ import type { RoleCode } from "@/lib/auth";
 
 type NavTarget = "input" | "matches" | "stats" | "compatibility" | "admin";
 
+const USER_MANUAL_URL = "https://ytr6310zs-jpg.github.io/mj-score-manager/user-manual.html";
+
 type AppHeaderProps = {
   current: NavTarget;
   sessionUser?: {
@@ -304,6 +306,20 @@ function Menu({
               管理
             </Link>
           ) : null}
+          <a
+            href={USER_MANUAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({
+              variant: "ghost",
+              size: "sm",
+              className: "mt-1 w-full justify-start text-left",
+            })}
+            onClick={() => setIsOpen(false)}
+            role="menuitem"
+          >
+            マニュアル
+          </a>
           <form action={logoutAction} className="mt-2">
             <Button type="submit" variant="ghost" size="sm" className="w-full text-left" role="menuitem">
               ログアウト

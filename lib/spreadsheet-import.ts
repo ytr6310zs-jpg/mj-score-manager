@@ -89,7 +89,7 @@ function parseCellValue(raw: string): { score: number | null; flags: ParsedCellF
     return { score: null, flags: emptyFlags };
   }
 
-  const normalized = value.replace(/[，、／;；|｜]/g, ",");
+  const normalized = value.replace(/[，、／;；|｜ \u3000]/g, ",");
   const tokens = normalized.split(",").map((token) => token.trim()).filter(Boolean);
   if (tokens.length === 0) {
     return { score: null, flags: emptyFlags };
