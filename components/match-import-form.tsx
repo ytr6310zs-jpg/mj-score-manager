@@ -3,7 +3,7 @@
 import type { MatchImportConfirmState, MatchImportPreviewState } from "@/app/match-import-actions";
 import { confirmMatchImportAction, previewMatchImportAction } from "@/app/match-import-actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ type MatchImportFormProps = {
 
 const PREVIEW_INITIAL: MatchImportPreviewState = { success: false, message: "" };
 const CONFIRM_INITIAL: MatchImportConfirmState = { success: false, message: "" };
+const SPREADSHEET_URL = String(process.env.NEXT_PUBLIC_MATCH_IMPORT_SHEET_URL ?? "").trim();
 
 export function MatchImportForm({ tournaments }: MatchImportFormProps) {
   const pathname = usePathname();
@@ -166,9 +167,25 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
             </div>
           </div>
 
-          <Button type="submit" disabled={previewPending}>
-            {previewPending ? "プレビュー作成中..." : "プレビュー作成"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {SPREADSHEET_URL ? (
+              <a
+                href={SPREADSHEET_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: "outline" })}
+              >
+                スプレッドシートを開く
+              </a>
+            ) : (
+              <Button type="button" variant="outline" disabled title="スプレッドシートURLが未設定です">
+                スプレッドシートを開く
+              </Button>
+            )}
+            <Button type="submit" disabled={previewPending}>
+              {previewPending ? "プレビュー作成中..." : "プレビュー作成"}
+            </Button>
+          </div>
         </form>
 
         {previewState.message ? (
