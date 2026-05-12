@@ -85,6 +85,38 @@ describe("parseSpreadsheetMatrix", () => {
     assert.ok(parsed.warnings.some((w) => w.includes("飛び/飛ばし競合")));
   });
 
+  it("半角スペース区切りでもフラグを解析できる", () => {
+    const matrix = [
+      ["player", "1"],
+      ["A", "350 t"],
+      ["B", "100 y"],
+      ["C", "-200 tb"],
+      ["D", "-250"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 1);
+    assert.deepStrictEqual(parsed.games[0].yakitoriPlayers, ["B"]);
+    assert.deepStrictEqual(parsed.games[0].tobashiPlayers, ["A"]);
+    assert.deepStrictEqual(parsed.games[0].tobiPlayers, ["C"]);
+  });
+
+  it("全角スペース区切りでもフラグを解析できる", () => {
+    const matrix = [
+      ["player", "1"],
+      ["A", "350　t"],
+      ["B", "100　y"],
+      ["C", "-200　tb"],
+      ["D", "-250"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 1);
+    assert.deepStrictEqual(parsed.games[0].yakitoriPlayers, ["B"]);
+    assert.deepStrictEqual(parsed.games[0].tobashiPlayers, ["A"]);
+    assert.deepStrictEqual(parsed.games[0].tobiPlayers, ["C"]);
+  });
+
   it("未知役満でも 役満名/コード 形式なら解析して取り込み可能にする", () => {
     const matrix = [
       ["player", "1"],
