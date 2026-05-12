@@ -5,13 +5,21 @@
 * **目的:** 手書きの麻雀スコア表（画像）から、アプリ投入用の正確なマスターデータを抽出・管理する。
 * **主要技術:**
     * **Database/Auth:** Supabase (PostgreSQL)（※暫定でGoogleスプレッドシートを使用）
-    * **Frontend:** TypeScript / React (Vite推奨)
+    * **Frontend:** Next.js 15 (App Router) / React 19 / TypeScript
     * **Logic:** TypeScript (Node.js)
 * **ドメイン知識:**
     * **麻雀:** 四人打ち・三人打ちの両方のスコア体系を考慮した拡張性を持たせる。
 * **回答スタイル:** 技術的正確性を最優先し、簡潔に回答する。リストや段落を活用し、絵文字の使用頻度は低く抑える。
 
+## 1.1 Agent Quickstart (最小セット)
+* **最初に確認するファイル:** `README.md`、`docs/agent-delegation-guide.md`、`docs/issue-prompt-guidelines.md`
+* **最低限の検証コマンド:** `npm run build`（必須）、可能なら `npm run lint` と `npm test`
+* **ローカルDB前提:** local Supabase を利用し、staging / production の URL・キーを `.env.local` に設定しない
+* **スキーマ運用:** 正本は `supabase/migrations/`。`ddl/` は参照専用（read-only）
+* **worklog:** 実装フェーズ開始時に `npm run worklog:start -- --summary "Issue #<番号> 実装開始" --reason "..." --tags "issue-<番号>,implementation,worklog"`
+
 ## 2. Git & Pull Request Operation Rules
+* **詳細ガイドの参照先:** 実行手順テンプレートは `docs/agent-delegation-guide.md`、Issue 依頼テンプレートは `docs/issue-prompt-guidelines.md` を優先参照すること。
 * **委任範囲の既定:** 作業フローは「設計フェーズ」と「実装フェーズ」の2段階で運用する。設計フェーズ（Issue読み取り → 設計資料作成 → エージェント自己レビュー）完了後にユーザー確認のため必ず停止する。ユーザーが設計を承認してから実装フェーズ（実装 → テスト → 動作確認 → コミット → push → PR作成）を委任された場合のみ、途中確認なしで完遂を目指すこと。
 * **コミット制限:** 自動コミットを許可します。ユーザーの明示的な指示がない場合でも、変更内容が適切であればローカルでコミットを実行してよい。ただし、機密情報（APIキー、トークン、秘密鍵、個人情報）を含む変更はコミットしないこと。
 * **Push制限:** `git push` の自動実行を許可します。ユーザーの明示的な依頼がない場合でも、作業ブランチを作成して変更をリモートへ push してよい。
