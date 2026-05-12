@@ -6,10 +6,8 @@
 **基本方針（必須）**
 - フェーズは必ず 2 段階: 設計フェーズ -> 実装フェーズ
 - 設計フェーズ完了時は必ず停止し、ユーザー承認を待つ
-- 実装開始前に Spec Kit 3点セットを揃える
-: `.specify/specs/<feature>/spec.md`, `.specify/specs/<feature>/plan.md`, `.specify/specs/<feature>/tasks.md`
-- 実装開始時点で当日 worklog を起票する
-: `npm run worklog:start -- --summary "..." --reason "..." --tags "issue-<番号>,..."`
+- 実装開始前に Spec Kit 3点セットを揃える（`.specify/specs/<feature>/spec.md`, `.specify/specs/<feature>/plan.md`, `.specify/specs/<feature>/tasks.md`）
+- 実装開始時点で当日 worklog を起票する（`npm run worklog:start -- --summary "..." --reason "..." --tags "issue-<番号>,..."`）
 - PR 本文には必須項目 + Worklog 記載を入れる
 
 ---
@@ -57,6 +55,8 @@ Issue # の設計フェーズのみ実施してください。
 ```
 
 3) Implement（実装フェーズ専用）
+
+最短で依頼する場合は、この章のテンプレートをそのまま送ってください。
 
 ```text
 Issue # は設計承認済みです。実装フェーズを実施してください。
@@ -139,3 +139,8 @@ PR が main にマージされたら、develop を除く取り込み済みブラ
 **注記**
 - 機密情報はプロンプトやドキュメントに含めないこと。
 - 失敗したコマンドや未実施項目は、理由を PR 本文に必ず明記すること。
+
+---
+**関連カスタマイズ（任意）**
+- PR本文を差分から自動生成する場合: `.github/prompts/pr-body-from-changes.prompt.md`
+- 実装フェーズの手順を固定する場合: `.github/skills/issue-implementation-runbook/SKILL.md`
