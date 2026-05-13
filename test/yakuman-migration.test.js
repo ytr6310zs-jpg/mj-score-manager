@@ -1,6 +1,6 @@
+import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import assert from 'node:assert';
 import { test } from 'node:test';
 
 test('canonical yakuman codes are defined in migration or seed script', () => {
