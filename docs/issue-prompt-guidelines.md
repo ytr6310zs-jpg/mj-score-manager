@@ -24,7 +24,7 @@
 1) Clarify（確認用）
 
 ```text
-github Issue # を対応します。github mcpを用いてissueを確認し次を教えてください。
+github Issue # を対応します。github mcpを用いて ytr6310zs-jpg/mj-score-manager の issue を確認し次を教えてください。
 1) 目的の要約
 2) 期待挙動（現状と理想）
 3) 優先度・期限
