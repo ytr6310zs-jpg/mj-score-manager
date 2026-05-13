@@ -64,12 +64,12 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright@latest install --with-deps chromium
+        run: npx playwright install --with-deps chromium
       - name: Install Playwright system dependencies (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: npx playwright@latest install-deps chromium
+        run: npx playwright install-deps chromium
       - name: Start local Supabase
         run: npx supabase@2.84.2 start --exclude studio,imgproxy,inbucket,logflare,vector,storage,edge_runtime
       - name: Run migrations
