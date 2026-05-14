@@ -45,5 +45,7 @@
         "speckit.plan": true,
         "speckit.tasks": true,
         "speckit.implement": true
-    }
+    },
+    "github.copilot.enable": true,
+    "github.copilot.chat.enable": true
 }
