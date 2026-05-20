@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { TournamentOption } from "@/lib/tournaments";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 type MatchImportFormProps = {
   tournaments: TournamentOption[];
@@ -50,8 +50,10 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
   const [confirmState, confirmAction, confirmPending] = useActionState(confirmMatchImportAction, CONFIRM_INITIAL);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
   const [conflictResolutionMap, setConflictResolutionMap] = useState<Record<string, "tobi" | "tobashi">>({});
+  const bulkSelectRef = useRef<HTMLInputElement>(null);
 
   const previewRows = useMemo(() => previewState.rows ?? [], [previewState.rows]);
+  const selectableRowIds = useMemo(() => previewRows.filter((row) => row.ready).map((row) => row.rowId), [previewRows]);
 
   useEffect(() => {
     if (!previewState.success || previewRows.length === 0) {
@@ -63,6 +65,18 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
     const readyIds = previewRows.filter((row) => row.ready).map((row) => row.rowId);
     setSelectedRowIds(new Set(readyIds));
   }, [previewState.success, previewRows]);
+
+  const selectedSelectableCount = useMemo(
+    () => selectableRowIds.filter((rowId) => selectedRowIds.has(rowId)).length,
+    [selectableRowIds, selectedRowIds]
+  );
+  const allSelectableSelected = selectableRowIds.length > 0 && selectedSelectableCount === selectableRowIds.length;
+  const someSelectableSelected = selectedSelectableCount > 0 && selectedSelectableCount < selectableRowIds.length;
+
+  useEffect(() => {
+    if (!bulkSelectRef.current) return;
+    bulkSelectRef.current.indeterminate = someSelectableSelected;
+  }, [someSelectableSelected]);
 
   const selectedRowIdsCsv = useMemo(() => Array.from(selectedRowIds).sort((a, b) => a - b).join(","), [selectedRowIds]);
   const conflictResolutionJson = useMemo(() => JSON.stringify(conflictResolutionMap), [conflictResolutionMap]);
@@ -83,6 +97,23 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
       const next = new Set(prev);
       if (next.has(rowId)) next.delete(rowId);
       else next.add(rowId);
+      return next;
+    });
+  }
+
+  function toggleAllRows() {
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      if (allSelectableSelected) {
+        for (const rowId of selectableRowIds) {
+          next.delete(rowId);
+        }
+        return next;
+      }
+
+      for (const rowId of selectableRowIds) {
+        next.add(rowId);
+      }
       return next;
     });
   }
@@ -220,7 +251,19 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                 <table className="min-w-full text-sm">
                   <thead className="bg-emerald-50 text-emerald-900">
                     <tr>
-                      <th className="px-3 py-2 text-left">取込</th>
+                      <th className="px-3 py-2 text-left">
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            ref={bulkSelectRef}
+                            type="checkbox"
+                            checked={allSelectableSelected}
+                            disabled={confirmPending || selectableRowIds.length === 0}
+                            aria-checked={someSelectableSelected ? "mixed" : allSelectableSelected}
+                            onChange={toggleAllRows}
+                          />
+                          <span>取込</span>
+                        </label>
+                      </th>
                       <th className="px-3 py-2 text-left">試合</th>
                       <th className="px-3 py-2 text-left">形式</th>
                       <th className="px-3 py-2 text-left">プレーヤー</th>
