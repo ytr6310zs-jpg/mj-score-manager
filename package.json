@@ -14,9 +14,9 @@
     "seed:historical:dry": "node scripts/import-historical-games.mjs",
     "seed:historical": "node scripts/import-historical-games.mjs --apply",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "test:unit": "node --import ./test/register-ts-node-esm.mjs --test $(find test -maxdepth 1 \\( -name '*.test.js' -o -name '*.test.cjs' \\) ! -name '*.e2e.test.js' ! -name '*.e2e.test.cjs' ! -name '*.integration.test.js' ! -name '*.integration.test.cjs') && node --import ./test/register-ts-node-esm.mjs test/validate-match.mjs",
-    "test:integration": "node --import ./test/register-ts-node-esm.mjs --test $(find test -maxdepth 1 \\( -name '*.integration.test.js' -o -name '*.integration.test.cjs' \\))",
-    "test:e2e": "node --import ./test/register-ts-node-esm.mjs --test $(find test -maxdepth 1 \\( -name '*.e2e.test.js' -o -name '*.e2e.test.cjs' \\))",
+    "test:unit": "tsx --test $(find test -maxdepth 1 -name '*.test.js' ! -name '*.e2e.test.js' ! -name '*.integration.test.js') && tsx test/validate-match.mjs",
+    "test:integration": "tsx --test $(find test -maxdepth 1 -name '*.integration.test.js')",
+    "test:e2e": "tsx --test $(find test -maxdepth 1 -name '*.e2e.test.js')",
     "test:coverage": "c8 --reporter=text-summary --reporter=lcov --exclude='test/**' npm run test",
     "test:ui": "playwright test --reporter=list",
     "test:ui:preflight": "npm run check:local-db:strict",
@@ -72,7 +72,7 @@
     "husky": "^8.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.7.2"
   },
   "engines": {

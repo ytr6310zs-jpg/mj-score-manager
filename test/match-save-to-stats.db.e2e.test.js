@@ -127,7 +127,7 @@ testSuite("match save to stats reflection (DB-backed E2E)", async () => {
 
     insertedMatchId = gameInserted[0].id;
 
-    // 2. Load fetchMatchResults and computePlayerStatsFromMatches via ts-node hook
+    // 2. Load fetchMatchResults and computePlayerStatsFromMatches via ESM test runtime
     // 3. Fetch transformed MatchResult via fetchMatchResults and select our inserted game
     const { matches, error: fetchError } = await fetchMatchResults(undefined, undefined, {});
     assert.ok(!fetchError, `Fetch match results failed: ${fetchError}`);
