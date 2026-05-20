@@ -144,6 +144,51 @@ test.describe("Match Import Flow (E2E)", () => {
     }
   });
 
+  test("should keep header bulk checkbox in sync with row selections", async ({ page }) => {
+    if (!process.env.GOOGLE_SPREADSHEET_ID) {
+      test.skip();
+    }
+
+    await page.goto(`${BASE_URL}/matches/import`);
+
+    const tournamentSelect = page.locator("select");
+    const gameDate = page.locator('input[name="gameDate"]');
+    const sheetTitle = page.locator('input[name="sheetTitle"]');
+
+    await tournamentSelect.selectOption({ index: 0 });
+    await gameDate.fill("2026-05-01");
+    await sheetTitle.fill("test-sheet");
+
+    const previewButton = page.locator('button:has-text("プレビュー")');
+    if (!(await previewButton.isVisible())) {
+      test.skip();
+    }
+
+    await previewButton.click();
+
+    const table = page.locator("table");
+    await expect(table).toBeVisible({ timeout: 10000 });
+
+    const headerCheckbox = page.locator('thead input[type="checkbox"]').first();
+    await expect(headerCheckbox).toBeVisible();
+    await expect(headerCheckbox).toBeChecked();
+
+    const rowCheckboxes = page.locator('tbody input[type="checkbox"]:not(:disabled)');
+    const rowCount = await rowCheckboxes.count();
+    if (rowCount === 0) {
+      test.skip();
+    }
+
+    await rowCheckboxes.first().uncheck();
+    await expect(headerCheckbox).not.toBeChecked();
+    await expect(headerCheckbox).toHaveJSProperty("indeterminate", true);
+
+    await headerCheckbox.click();
+    await expect(headerCheckbox).toBeChecked();
+    await expect(headerCheckbox).toHaveJSProperty("indeterminate", false);
+    await expect(rowCheckboxes.first()).toBeChecked();
+  });
+
   test("bulk import button should appear on matches page in correct position", async ({
     page,
   }) => {
