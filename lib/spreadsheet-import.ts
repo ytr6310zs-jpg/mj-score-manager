@@ -1,7 +1,6 @@
 import type { YakumanDef } from "@/lib/yakumans";
 
 const MIN_GAME_NO = 1;
-const MAX_GAME_NO = 40;
 
 export type ParsedYakumanSelection = {
   playerName: string;
@@ -140,7 +139,7 @@ function findMainHeaderRow(matrix: string[][]): number {
 
     const hasGameNo = row.slice(1).some((cell) => {
       const gameNo = Number(normalizeText(cell));
-      return Number.isInteger(gameNo) && gameNo >= MIN_GAME_NO && gameNo <= MAX_GAME_NO;
+      return Number.isInteger(gameNo) && gameNo >= MIN_GAME_NO;
     });
     if (hasGameNo) return rowIndex;
   }
@@ -151,7 +150,7 @@ function collectGameColumns(header: string[]): Map<number, number> {
   const map = new Map<number, number>();
   for (let col = 1; col < header.length; col += 1) {
     const gameNo = Number(normalizeText(header[col]));
-    if (!Number.isInteger(gameNo) || gameNo < MIN_GAME_NO || gameNo > MAX_GAME_NO) continue;
+    if (!Number.isInteger(gameNo) || gameNo < MIN_GAME_NO) continue;
     map.set(gameNo, col);
   }
   return map;
@@ -265,7 +264,7 @@ function applyYakumanRows(
     if (!gameNoRaw || !playerName || !yakumanRaw) continue;
 
     const gameNo = Number(gameNoRaw);
-    if (!Number.isInteger(gameNo) || gameNo < MIN_GAME_NO || gameNo > MAX_GAME_NO) {
+    if (!Number.isInteger(gameNo) || gameNo < MIN_GAME_NO) {
       warnings.push(`役満テーブル${rowIndex + 1}行目: gameNo が不正です`);
       continue;
     }
@@ -321,7 +320,7 @@ export function parseSpreadsheetMatrix(
   const warnings: string[] = [];
   const headerRowIndex = findMainHeaderRow(matrix);
   if (headerRowIndex < 0) {
-    return { sheetTitle, inferredDate: parseGameDateFromTitle(sheetTitle), games: [], warnings: ["主表ヘッダー（player + 1..40）が見つかりません。"] };
+    return { sheetTitle, inferredDate: parseGameDateFromTitle(sheetTitle), games: [], warnings: ["主表ヘッダー（player + 試合番号列）が見つかりません。"] };
   }
 
   const header = matrix[headerRowIndex] ?? [];
@@ -329,7 +328,7 @@ export function parseSpreadsheetMatrix(
   const gameNos = Array.from(gameColumns.keys()).sort((a, b) => a - b);
 
   if (gameNos.length === 0) {
-    return { sheetTitle, inferredDate: parseGameDateFromTitle(sheetTitle), games: [], warnings: ["試合列（1..40）が見つかりません。"] };
+    return { sheetTitle, inferredDate: parseGameDateFromTitle(sheetTitle), games: [], warnings: ["試合列（1以上の整数）が見つかりません。"] };
   }
 
   const yakumanHeaderRow = findYakumanHeaderRow(matrix, headerRowIndex + 1);
