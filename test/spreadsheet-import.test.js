@@ -117,6 +117,30 @@ describe("parseSpreadsheetMatrix", () => {
     assert.deepStrictEqual(parsed.games[0].tobiPlayers, ["C"]);
   });
 
+  it("40を超える試合番号列も解析対象にできる", () => {
+    const matrix = [
+      ["player", "39", "41"],
+      ["A", "120", "250, t"],
+      ["B", "-40", "100"],
+      ["C", "-30", "-200, tb"],
+      ["D", "-50", "-150"],
+      [],
+      ["gameNo", "player", "yakuman", "count"],
+      ["41", "A", "大三元 / DA", "1"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 2);
+
+    const g41 = parsed.games.find((game) => game.gameNo === 41);
+    assert.ok(g41);
+    assert.deepStrictEqual(g41.players, ["A", "B", "C", "D"]);
+    assert.deepStrictEqual(g41.tobashiPlayers, ["A"]);
+    assert.deepStrictEqual(g41.tobiPlayers, ["C"]);
+    assert.strictEqual(g41.yakumanSelections.length, 1);
+    assert.strictEqual(g41.yakumanSelections[0].yakumanCode, "DA");
+  });
+
   it("未知役満でも 役満名/コード 形式なら解析して取り込み可能にする", () => {
     const matrix = [
       ["player", "1"],
