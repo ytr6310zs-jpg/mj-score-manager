@@ -17,6 +17,11 @@ type ParsedCellFlags = {
   hasConflict: boolean;
 };
 
+type GameColumn = {
+  scoreCol: number;
+  statusCol: number | null;
+};
+
 export type ParsedSpreadsheetGame = {
   gameNo: number;
   players: string[];
@@ -54,6 +59,67 @@ function parseScore(raw: string): number | null {
   const parsed = Number(value.replace(/,/g, ""));
   if (!Number.isFinite(parsed)) return null;
   return Math.round(parsed);
+}
+
+function applyFlagToken(token: string, flags: { yakitori: boolean; tobi: boolean; tobashi: boolean }) {
+  const normalizedToken = normalizeFlagToken(token);
+  if (!normalizedToken) return;
+
+  if (normalizedToken === "tb" || normalizedToken === "tobi" || normalizedToken === "飛び") {
+    flags.tobi = true;
+    return;
+  }
+  if (normalizedToken === "t" || normalizedToken === "tobashi" || normalizedToken === "飛ばし") {
+    flags.tobashi = true;
+    return;
+  }
+  if (normalizedToken === "y" || normalizedToken === "yakitori" || normalizedToken === "焼き鳥") {
+    flags.yakitori = true;
+  }
+}
+
+function parseStatusCellValue(raw: string): ParsedCellFlags {
+  const value = normalizeText(raw);
+  const flags = { yakitori: false, tobi: false, tobashi: false };
+  if (!value) {
+    return { ...flags, hasConflict: false };
+  }
+
+  const withoutBrackets = value.replace(/[\[\]]/g, "").trim();
+  const normalizedWhole = normalizeFlagToken(withoutBrackets);
+  if (normalizedWhole === "") {
+    return { ...flags, hasConflict: false };
+  }
+
+  // ドロップダウン値の順序入れ替えに依存しないよう、代表的な組み合わせ値を先に解釈する。
+  if (normalizedWhole === "y") flags.yakitori = true;
+  else if (normalizedWhole === "t") flags.tobashi = true;
+  else if (normalizedWhole === "tb") flags.tobi = true;
+  else if (normalizedWhole === "yt") {
+    flags.yakitori = true;
+    flags.tobashi = true;
+  } else if (normalizedWhole === "ytb") {
+    flags.yakitori = true;
+    flags.tobi = true;
+  } else if (normalizedWhole === "ttb") {
+    flags.tobi = true;
+    flags.tobashi = true;
+  } else if (normalizedWhole === "yttb") {
+    flags.yakitori = true;
+    flags.tobi = true;
+    flags.tobashi = true;
+  } else {
+    const normalized = withoutBrackets.replace(/[，、／;；|｜\u3000]/g, " ");
+    const tokens = normalized.split(/\s+/).map((token) => token.trim()).filter(Boolean);
+    for (const token of tokens) {
+      applyFlagToken(token, flags);
+    }
+  }
+
+  return {
+    ...flags,
+    hasConflict: flags.tobi && flags.tobashi,
+  };
 }
 
 function parseGameDateFromTitle(sheetTitle: string): string | null {
@@ -99,34 +165,19 @@ function parseCellValue(raw: string): { score: number | null; flags: ParsedCellF
     return { score: null, flags: emptyFlags };
   }
 
-  let yakitori = false;
-  let tobi = false;
-  let tobashi = false;
+  const flags = { yakitori: false, tobi: false, tobashi: false };
 
   for (const token of tokens.slice(1)) {
-    const normalizedToken = normalizeFlagToken(token);
-    if (!normalizedToken) continue;
-
-    if (normalizedToken === "tb" || normalizedToken === "tobi" || normalizedToken === "飛び") {
-      tobi = true;
-      continue;
-    }
-    if (normalizedToken === "t" || normalizedToken === "tobashi" || normalizedToken === "飛ばし") {
-      tobashi = true;
-      continue;
-    }
-    if (normalizedToken === "y" || normalizedToken === "yakitori" || normalizedToken === "焼き鳥") {
-      yakitori = true;
-    }
+    applyFlagToken(token, flags);
   }
 
   return {
     score,
     flags: {
-      yakitori,
-      tobi,
-      tobashi,
-      hasConflict: tobi && tobashi,
+      yakitori: flags.yakitori,
+      tobi: flags.tobi,
+      tobashi: flags.tobashi,
+      hasConflict: flags.tobi && flags.tobashi,
     },
   };
 }
@@ -146,12 +197,24 @@ function findMainHeaderRow(matrix: string[][]): number {
   return -1;
 }
 
-function collectGameColumns(header: string[]): Map<number, number> {
-  const map = new Map<number, number>();
+function collectGameColumns(header: string[]): Map<number, GameColumn> {
+  const map = new Map<number, GameColumn>();
   for (let col = 1; col < header.length; col += 1) {
     const gameNo = Number(normalizeText(header[col]));
     if (!Number.isInteger(gameNo) || gameNo < MIN_GAME_NO) continue;
-    map.set(gameNo, col);
+
+    let statusCol: number | null = null;
+    const nextCol = col + 1;
+    if (nextCol < header.length) {
+      const nextCell = normalizeText(header[nextCol]);
+      const nextGameNo = Number(nextCell);
+      const nextIsGameNo = Number.isInteger(nextGameNo) && nextGameNo >= MIN_GAME_NO;
+      if (!nextIsGameNo) {
+        statusCol = nextCol;
+      }
+    }
+
+    map.set(gameNo, { scoreCol: col, statusCol });
   }
   return map;
 }
@@ -341,8 +404,11 @@ export function parseSpreadsheetMatrix(
   const games: ParsedSpreadsheetGame[] = [];
 
   for (const gameNo of gameNos) {
-    const col = gameColumns.get(gameNo);
-    if (col === undefined) continue;
+    const columns = gameColumns.get(gameNo);
+    if (!columns) continue;
+
+    const scoreCol = columns.scoreCol;
+    const statusCol = columns.statusCol;
 
     const players: string[] = [];
     const scores: number[] = [];
@@ -353,7 +419,12 @@ export function parseSpreadsheetMatrix(
     const yakumanSelections: ParsedYakumanSelection[] = [];
 
     for (const { name, row } of playerRows) {
-      const parsedCell = parseCellValue(normalizeText(row[col]));
+      const parsedCell = statusCol !== null
+        ? {
+            score: parseScore(normalizeText(row[scoreCol])),
+            flags: parseStatusCellValue(normalizeText(row[statusCol])),
+          }
+        : parseCellValue(normalizeText(row[scoreCol]));
       if (parsedCell.score === null) continue;
 
       players.push(name);

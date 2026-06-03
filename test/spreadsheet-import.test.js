@@ -22,6 +22,52 @@ describe("parseSpreadsheetIdFromUrl", () => {
 });
 
 describe("parseSpreadsheetMatrix", () => {
+  it("1試合2列フォーマット（スコア+状態）を解析できる", () => {
+    const matrix = [
+      ["player", "1", "state", "2", "state"],
+      ["A", "350", "Y", "200", ""],
+      ["B", "100", "T", "-100", "TB"],
+      ["C", "-200", "TB", "-100", "Y T"],
+      ["D", "-250", "", "0", "Y TB"],
+      [],
+      ["gameNo", "player", "yakuman", "count"],
+      ["1", "A", "大三元 / DA", "1"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "春季リーグ_2026-05-01", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 2);
+
+    const g1 = parsed.games.find((game) => game.gameNo === 1);
+    assert.ok(g1);
+    assert.deepStrictEqual(g1.yakitoriPlayers, ["A"]);
+    assert.deepStrictEqual(g1.tobashiPlayers, ["B"]);
+    assert.deepStrictEqual(g1.tobiPlayers, ["C"]);
+
+    const g2 = parsed.games.find((game) => game.gameNo === 2);
+    assert.ok(g2);
+    assert.deepStrictEqual(g2.yakitoriPlayers.sort(), ["C", "D"]);
+    assert.deepStrictEqual(g2.tobiPlayers.sort(), ["B", "D"]);
+    assert.deepStrictEqual(g2.tobashiPlayers, ["C"]);
+  });
+
+  it("状態セルの値判定は選択肢表示順に依存しない", () => {
+    const matrix = [
+      ["player", "1", "state"],
+      ["A", "350", "TB Y"],
+      ["B", "100", "Y TB"],
+      ["C", "-200", "[Y T TB]"],
+      ["D", "-250", "[]"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 1);
+
+    const game = parsed.games[0];
+    assert.deepStrictEqual(game.yakitoriPlayers.sort(), ["A", "B", "C"]);
+    assert.deepStrictEqual(game.tobiPlayers.sort(), ["A", "B", "C"]);
+    assert.deepStrictEqual(game.tobashiPlayers, ["C"]);
+  });
+
   it("1試合1列フォーマットを解析し、役満テーブルとフラグを復元できる", () => {
     const matrix = [
       ["player", "1", "2"],
