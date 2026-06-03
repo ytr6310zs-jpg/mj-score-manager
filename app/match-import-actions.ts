@@ -331,7 +331,6 @@ function buildPreviewRows(
     if (game.conflictingFlagPlayers.length > 0) {
       const issue = `飛びと飛ばしが同時指定されています: ${game.conflictingFlagPlayers.join(", ")}`;
       issues.push(issue);
-      issuesByColumn.flags.push(issue);
     }
 
     const dedupePlayers = matchedPlayers.length === game.players.length ? matchedPlayers : game.players;

@@ -271,7 +271,9 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                         </td>
                         <td className={`px-3 py-2 ${row.total === 0 ? "text-emerald-700" : "text-destructive"}`}>{row.total}</td>
                         <td className="px-3 py-2">
-                          {row.ready ? (
+                            {row.conflictingFlagPlayers.length > 0 ? (
+                              <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">要確認</span>
+                            ) : row.ready ? (
                             row.issuesByColumn.player.length > 0 ? (
                               <span className="rounded bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">取込可能（自動追加あり）</span>
                             ) : (
@@ -280,13 +282,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                           ) : (
                             <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">要確認</span>
                           )}
-                          {row.conflictingFlagPlayers.length > 0 ? (
-                            <div className="mt-2 space-y-1 text-xs text-amber-800">
-                              {row.conflictingFlagPlayers.map((playerName) => (
-                                <p key={`${row.rowId}:${playerName}`}>{playerName}: 飛び/飛ばしが同時指定されています（警告のみ・解決不要）</p>
-                              ))}
-                            </div>
-                          ) : null}
                         </td>
                         <td className="px-3 py-2">
                           {row.ready &&
