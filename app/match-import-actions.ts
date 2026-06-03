@@ -93,31 +93,6 @@ function parseSelectedIds(raw: string): Set<number> {
   return set;
 }
 
-type ConflictResolution = "tobi" | "tobashi";
-
-function parseConflictResolutions(raw: string): Record<string, ConflictResolution> {
-  if (!raw) return {};
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return {};
-  }
-
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return {};
-  }
-
-  const result: Record<string, ConflictResolution> = {};
-  for (const [key, value] of Object.entries(parsed)) {
-    if (value === "tobi" || value === "tobashi") {
-      result[key] = value;
-    }
-  }
-  return result;
-}
-
 function resolveGoogleEnv(): { spreadsheetEmail: string; privateKey: string } | null {
   const spreadsheetEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
@@ -353,8 +328,8 @@ function buildPreviewRows(
       issuesByColumn.score.push(issue);
     }
 
-    if ((game.tobiPlayers.length > 0) !== (game.tobashiPlayers.length > 0)) {
-      const issue = "飛びと飛ばしは両方セットで指定してください";
+    if (game.conflictingFlagPlayers.length > 0) {
+      const issue = `飛びと飛ばしが同時指定されています: ${game.conflictingFlagPlayers.join(", ")}`;
       issues.push(issue);
       issuesByColumn.flags.push(issue);
     }
@@ -510,13 +485,11 @@ export async function confirmMatchImportAction(
 
   const payloadRaw = toTrimmed(formData.get("payloadJson"));
   const selectedRaw = toTrimmed(formData.get("selectedRowIds"));
-  const resolutionRaw = toTrimmed(formData.get("conflictResolutionJson"));
   if (!payloadRaw) {
     return { ...EMPTY_CONFIRM, message: "プレビュー情報が見つかりません。再度プレビューを作成してください。" };
   }
 
   const selectedIds = parseSelectedIds(selectedRaw);
-  const conflictResolutions = parseConflictResolutions(resolutionRaw);
   if (selectedIds.size === 0) {
     return { ...EMPTY_CONFIRM, message: "取り込み対象の行を 1 つ以上選択してください。" };
   }
@@ -611,31 +584,6 @@ export async function confirmMatchImportAction(
 
       const resolvedTobiPlayers = [...row.tobiPlayers];
       const resolvedTobashiPlayers = [...row.tobashiPlayers];
-
-      let hasUnresolvedConflict = false;
-      for (const playerName of row.conflictingFlagPlayers) {
-        const resolution = conflictResolutions[`${row.rowId}:${playerName}`];
-        if (!resolution) {
-          hasUnresolvedConflict = true;
-          break;
-        }
-
-        const tobiIndex = resolvedTobiPlayers.indexOf(playerName);
-        if (tobiIndex >= 0) resolvedTobiPlayers.splice(tobiIndex, 1);
-        const tobashiIndex = resolvedTobashiPlayers.indexOf(playerName);
-        if (tobashiIndex >= 0) resolvedTobashiPlayers.splice(tobashiIndex, 1);
-
-        if (resolution === "tobi") {
-          resolvedTobiPlayers.push(playerName);
-        } else {
-          resolvedTobashiPlayers.push(playerName);
-        }
-      }
-
-      if (hasUnresolvedConflict) {
-        skippedCount += 1;
-        continue;
-      }
 
       const fd = new FormData();
       fd.append("tournamentId", String(payload.tournamentId));

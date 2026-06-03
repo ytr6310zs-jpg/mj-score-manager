@@ -146,10 +146,6 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
     return { ok: false, message: "飛ばし者は同卓プレイヤーから選択してください。" };
   }
 
-  if (tobashiPlayers.some((p) => tobiPlayers.includes(p))) {
-    return { ok: false, message: "飛び対象と飛ばし者に同じプレイヤーは指定できません。" };
-  }
-
   const notes = parseString(formData.get("notes"));
 
   return {

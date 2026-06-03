@@ -49,7 +49,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
   const [previewState, previewAction, previewPending] = useActionState(previewMatchImportAction, PREVIEW_INITIAL);
   const [confirmState, confirmAction, confirmPending] = useActionState(confirmMatchImportAction, CONFIRM_INITIAL);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
-  const [conflictResolutionMap, setConflictResolutionMap] = useState<Record<string, "tobi" | "tobashi">>({});
   const bulkSelectRef = useRef<HTMLInputElement>(null);
 
   const previewRows = useMemo(() => previewState.rows ?? [], [previewState.rows]);
@@ -58,7 +57,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
   useEffect(() => {
     if (!previewState.success || previewRows.length === 0) {
       setSelectedRowIds(new Set());
-      setConflictResolutionMap({});
       return;
     }
 
@@ -79,18 +77,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
   }, [someSelectableSelected]);
 
   const selectedRowIdsCsv = useMemo(() => Array.from(selectedRowIds).sort((a, b) => a - b).join(","), [selectedRowIds]);
-  const conflictResolutionJson = useMemo(() => JSON.stringify(conflictResolutionMap), [conflictResolutionMap]);
-  const unresolvedConflictCount = useMemo(() => {
-    let count = 0;
-    for (const row of previewRows) {
-      if (!selectedRowIds.has(row.rowId)) continue;
-      for (const playerName of row.conflictingFlagPlayers) {
-        const key = `${row.rowId}:${playerName}`;
-        if (!conflictResolutionMap[key]) count += 1;
-      }
-    }
-    return count;
-  }, [conflictResolutionMap, previewRows, selectedRowIds]);
 
   function toggleRow(rowId: number) {
     setSelectedRowIds((prev) => {
@@ -116,22 +102,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
       }
       return next;
     });
-  }
-
-  function setConflictResolution(rowId: number, playerName: string, value: "tobi" | "tobashi" | "") {
-    const key = `${rowId}:${playerName}`;
-    setConflictResolutionMap((prev) => {
-      if (!value) {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      }
-      return {
-        ...prev,
-        [key]: value,
-      };
-    });
-
   }
 
   return (
@@ -244,7 +214,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
           <form action={confirmAction} className="space-y-4">
             <input type="hidden" name="payloadJson" value={previewState.payloadJson ?? ""} />
             <input type="hidden" name="selectedRowIds" value={selectedRowIdsCsv} />
-            <input type="hidden" name="conflictResolutionJson" value={conflictResolutionJson} />
 
             <div className="rounded-md border border-emerald-100">
               <div className="overflow-x-auto">
@@ -312,33 +281,10 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                             <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">要確認</span>
                           )}
                           {row.conflictingFlagPlayers.length > 0 ? (
-                            <div className="mt-2 space-y-2">
-                              {row.conflictingFlagPlayers.map((playerName) => {
-                                const key = `${row.rowId}:${playerName}`;
-                                const value = conflictResolutionMap[key] ?? "";
-                                return (
-                                  <div key={key} className="text-xs">
-                                    <p className="mb-1 text-amber-800">{playerName}: 飛び/飛ばしが競合しています</p>
-                                    <select
-                                      className="h-8 w-full rounded border border-input bg-background px-2"
-                                      value={value}
-                                      onChange={(event) => {
-                                        const selected = event.target.value;
-                                        if (selected === "tobi" || selected === "tobashi") {
-                                          setConflictResolution(row.rowId, playerName, selected);
-                                        } else {
-                                          setConflictResolution(row.rowId, playerName, "");
-                                        }
-                                      }}
-                                      disabled={confirmPending}
-                                    >
-                                      <option value="">選択してください</option>
-                                      <option value="tobi">飛び（TB）を残す</option>
-                                      <option value="tobashi">飛ばし（T）を残す</option>
-                                    </select>
-                                  </div>
-                                );
-                              })}
+                            <div className="mt-2 space-y-1 text-xs text-amber-800">
+                              {row.conflictingFlagPlayers.map((playerName) => (
+                                <p key={`${row.rowId}:${playerName}`}>{playerName}: 飛び/飛ばしが同時指定されています（警告のみ・解決不要）</p>
+                              ))}
                             </div>
                           ) : null}
                         </td>
@@ -373,15 +319,7 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
               </div>
             </div>
 
-            {unresolvedConflictCount > 0 ? (
-              <Alert className="border-amber-300 text-amber-900">
-                <AlertDescription>
-                  競合している飛び/飛ばしの解決が {unresolvedConflictCount} 件残っています。解決後にインポートしてください。
-                </AlertDescription>
-              </Alert>
-            ) : null}
-
-            <Button type="submit" disabled={confirmPending || selectedRowIds.size === 0 || unresolvedConflictCount > 0}>
+            <Button type="submit" disabled={confirmPending || selectedRowIds.size === 0}>
               {confirmPending ? "インポート中..." : `選択行をインポート (${selectedRowIds.size})`}
             </Button>
           </form>
