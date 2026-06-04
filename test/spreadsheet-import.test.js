@@ -25,10 +25,10 @@ describe("parseSpreadsheetMatrix", () => {
   it("1試合2列フォーマット（スコア+状態）を解析できる", () => {
     const matrix = [
       ["player", "1", "state", "2", "state"],
-      ["A", "350", "Y", "200", ""],
-      ["B", "100", "T", "-100", "TB"],
-      ["C", "-200", "TB", "-100", "Y T"],
-      ["D", "-250", "", "0", "Y TB"],
+      ["A", "350", "焼き鳥", "200", ""],
+      ["B", "100", "飛ばし", "-100", "飛び"],
+      ["C", "-200", "飛び", "-100", "焼き鳥,飛ばし"],
+      ["D", "-250", "", "0", "焼き鳥,飛び"],
       [],
       ["gameNo", "player", "yakuman", "count"],
       ["1", "A", "大三元 / DA", "1"],
@@ -53,10 +53,10 @@ describe("parseSpreadsheetMatrix", () => {
   it("状態セルの値判定は選択肢表示順に依存しない", () => {
     const matrix = [
       ["player", "1", "state"],
-      ["A", "350", "TB Y"],
-      ["B", "100", "Y TB"],
-      ["C", "-200", "[Y T TB]"],
-      ["D", "-250", "[]"],
+      ["A", "350", "飛び,焼き鳥"],
+      ["B", "100", "焼き鳥,飛び"],
+      ["C", "-200", "[焼き鳥 飛ばし 飛び]"],
+      ["D", "-250", "空"],
     ];
 
     const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
@@ -66,6 +66,22 @@ describe("parseSpreadsheetMatrix", () => {
     assert.deepStrictEqual(game.yakitoriPlayers.sort(), ["A", "B", "C"]);
     assert.deepStrictEqual(game.tobiPlayers.sort(), ["A", "B", "C"]);
     assert.deepStrictEqual(game.tobashiPlayers, ["C"]);
+  });
+
+  it("状態セルで空/未選択を明示しても未設定として扱える", () => {
+    const matrix = [
+      ["player", "1", "state"],
+      ["A", "350", "空"],
+      ["B", "100", "未選択"],
+      ["C", "-200", "未設定"],
+      ["D", "-250", "なし"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 1);
+    assert.deepStrictEqual(parsed.games[0].yakitoriPlayers, []);
+    assert.deepStrictEqual(parsed.games[0].tobiPlayers, []);
+    assert.deepStrictEqual(parsed.games[0].tobashiPlayers, []);
   });
 
   it("1試合1列フォーマットを解析し、役満テーブルとフラグを復元できる", () => {

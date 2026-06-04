@@ -53,6 +53,11 @@ function normalizeFlagToken(raw: string): string {
   return normalizeForMatch(raw).replace(/[()（）._\-]/g, "");
 }
 
+function isEmptyFlagToken(raw: string): boolean {
+  const token = normalizeFlagToken(raw);
+  return token === "" || token === "空" || token === "未選択" || token === "未設定" || token === "なし" || token === "none";
+}
+
 function parseScore(raw: string): number | null {
   const value = normalizeText(raw);
   if (!value) return null;
@@ -87,7 +92,7 @@ function parseStatusCellValue(raw: string): ParsedCellFlags {
 
   const withoutBrackets = value.replace(/[\[\]]/g, "").trim();
   const normalizedWhole = normalizeFlagToken(withoutBrackets);
-  if (normalizedWhole === "") {
+  if (isEmptyFlagToken(normalizedWhole)) {
     return { ...flags, hasConflict: false };
   }
 
@@ -109,9 +114,10 @@ function parseStatusCellValue(raw: string): ParsedCellFlags {
     flags.tobi = true;
     flags.tobashi = true;
   } else {
-    const normalized = withoutBrackets.replace(/[，、／;；|｜\u3000]/g, " ");
+    const normalized = withoutBrackets.replace(/[，、,／;；|｜\u3000]/g, " ");
     const tokens = normalized.split(/\s+/).map((token) => token.trim()).filter(Boolean);
     for (const token of tokens) {
+      if (isEmptyFlagToken(token)) continue;
       applyFlagToken(token, flags);
     }
   }

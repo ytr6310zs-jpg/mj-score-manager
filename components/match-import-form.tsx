@@ -110,6 +110,7 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
         <CardTitle>スプレッドシート一括インポート（PoC）</CardTitle>
         <CardDescription>
           設定済みの Google スプレッドシートからプレビューを作成し、行単位で取り込みを確定します。
+          状態セルは複数選択プルダウン（空/焼き鳥/飛ばし/飛び）で入力してください。
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
