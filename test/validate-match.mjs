@@ -113,7 +113,7 @@ function run() {
   assert.ok(!res.ok, 'missing tobashi should fail');
   assert.ok(/飛びと飛ばし/.test(res.message || ''), 'error message should mention tobi/tobashi pair requirement');
 
-  // same tobi/tobashi
+  // same tobi/tobashi (warning-only policy)
   fd = fdFrom({
     gameDate: '2026-04-06',
     gameType: '4p',
@@ -129,8 +129,9 @@ function run() {
     tobashiPlayers: JSON.stringify(['C']),
   });
   res = validateAndParseMatchForm(fd);
-  assert.ok(!res.ok, 'same tobi/tobashi should fail');
-  assert.ok(/同じ/.test(res.message || ''), 'error message should mention tobi and tobashi must be different players');
+  assert.ok(res.ok, 'same tobi/tobashi should be allowed');
+  assert.deepStrictEqual(Array.from(res.data.tobiPlayers), ['C'], 'tobi player should include C');
+  assert.deepStrictEqual(res.data.tobashiPlayers, ['C'], 'tobashi players should include C');
 
   // out-of-range score
   fd = fdFrom({
