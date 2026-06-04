@@ -49,7 +49,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
   const [previewState, previewAction, previewPending] = useActionState(previewMatchImportAction, PREVIEW_INITIAL);
   const [confirmState, confirmAction, confirmPending] = useActionState(confirmMatchImportAction, CONFIRM_INITIAL);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
-  const [conflictResolutionMap, setConflictResolutionMap] = useState<Record<string, "tobi" | "tobashi">>({});
   const bulkSelectRef = useRef<HTMLInputElement>(null);
 
   const previewRows = useMemo(() => previewState.rows ?? [], [previewState.rows]);
@@ -58,7 +57,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
   useEffect(() => {
     if (!previewState.success || previewRows.length === 0) {
       setSelectedRowIds(new Set());
-      setConflictResolutionMap({});
       return;
     }
 
@@ -79,18 +77,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
   }, [someSelectableSelected]);
 
   const selectedRowIdsCsv = useMemo(() => Array.from(selectedRowIds).sort((a, b) => a - b).join(","), [selectedRowIds]);
-  const conflictResolutionJson = useMemo(() => JSON.stringify(conflictResolutionMap), [conflictResolutionMap]);
-  const unresolvedConflictCount = useMemo(() => {
-    let count = 0;
-    for (const row of previewRows) {
-      if (!selectedRowIds.has(row.rowId)) continue;
-      for (const playerName of row.conflictingFlagPlayers) {
-        const key = `${row.rowId}:${playerName}`;
-        if (!conflictResolutionMap[key]) count += 1;
-      }
-    }
-    return count;
-  }, [conflictResolutionMap, previewRows, selectedRowIds]);
 
   function toggleRow(rowId: number) {
     setSelectedRowIds((prev) => {
@@ -118,28 +104,13 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
     });
   }
 
-  function setConflictResolution(rowId: number, playerName: string, value: "tobi" | "tobashi" | "") {
-    const key = `${rowId}:${playerName}`;
-    setConflictResolutionMap((prev) => {
-      if (!value) {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      }
-      return {
-        ...prev,
-        [key]: value,
-      };
-    });
-
-  }
-
   return (
     <Card className="border-white/70 bg-white/90 shadow-xl backdrop-blur">
       <CardHeader>
         <CardTitle>スプレッドシート一括インポート（PoC）</CardTitle>
         <CardDescription>
           設定済みの Google スプレッドシートからプレビューを作成し、行単位で取り込みを確定します。
+          状態セルは複数選択プルダウン（空/焼き鳥/飛ばし/飛び）で入力してください。
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -244,7 +215,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
           <form action={confirmAction} className="space-y-4">
             <input type="hidden" name="payloadJson" value={previewState.payloadJson ?? ""} />
             <input type="hidden" name="selectedRowIds" value={selectedRowIdsCsv} />
-            <input type="hidden" name="conflictResolutionJson" value={conflictResolutionJson} />
 
             <div className="rounded-md border border-emerald-100">
               <div className="overflow-x-auto">
@@ -302,7 +272,9 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                         </td>
                         <td className={`px-3 py-2 ${row.total === 0 ? "text-emerald-700" : "text-destructive"}`}>{row.total}</td>
                         <td className="px-3 py-2">
-                          {row.ready ? (
+                            {row.conflictingFlagPlayers.length > 0 ? (
+                              <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">要確認</span>
+                            ) : row.ready ? (
                             row.issuesByColumn.player.length > 0 ? (
                               <span className="rounded bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">取込可能（自動追加あり）</span>
                             ) : (
@@ -311,36 +283,6 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                           ) : (
                             <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">要確認</span>
                           )}
-                          {row.conflictingFlagPlayers.length > 0 ? (
-                            <div className="mt-2 space-y-2">
-                              {row.conflictingFlagPlayers.map((playerName) => {
-                                const key = `${row.rowId}:${playerName}`;
-                                const value = conflictResolutionMap[key] ?? "";
-                                return (
-                                  <div key={key} className="text-xs">
-                                    <p className="mb-1 text-amber-800">{playerName}: 飛び/飛ばしが競合しています</p>
-                                    <select
-                                      className="h-8 w-full rounded border border-input bg-background px-2"
-                                      value={value}
-                                      onChange={(event) => {
-                                        const selected = event.target.value;
-                                        if (selected === "tobi" || selected === "tobashi") {
-                                          setConflictResolution(row.rowId, playerName, selected);
-                                        } else {
-                                          setConflictResolution(row.rowId, playerName, "");
-                                        }
-                                      }}
-                                      disabled={confirmPending}
-                                    >
-                                      <option value="">選択してください</option>
-                                      <option value="tobi">飛び（TB）を残す</option>
-                                      <option value="tobashi">飛ばし（T）を残す</option>
-                                    </select>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : null}
                         </td>
                         <td className="px-3 py-2">
                           {row.ready &&
@@ -373,15 +315,7 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
               </div>
             </div>
 
-            {unresolvedConflictCount > 0 ? (
-              <Alert className="border-amber-300 text-amber-900">
-                <AlertDescription>
-                  競合している飛び/飛ばしの解決が {unresolvedConflictCount} 件残っています。解決後にインポートしてください。
-                </AlertDescription>
-              </Alert>
-            ) : null}
-
-            <Button type="submit" disabled={confirmPending || selectedRowIds.size === 0 || unresolvedConflictCount > 0}>
+            <Button type="submit" disabled={confirmPending || selectedRowIds.size === 0}>
               {confirmPending ? "インポート中..." : `選択行をインポート (${selectedRowIds.size})`}
             </Button>
           </form>
