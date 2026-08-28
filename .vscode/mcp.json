@@ -2,14 +2,10 @@
 	"servers": {
 		"github": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "bash",
 			"args": [
-				"-y",
-				"@modelcontextprotocol/server-github"
-			],
-			"env": {
-				"GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_TOKEN}"
-			}
+				"scripts/mcp-github.sh"
+			]
 		},
 		"playwright": {
 			"type": "stdio",
