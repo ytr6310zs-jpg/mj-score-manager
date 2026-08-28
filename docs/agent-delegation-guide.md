@@ -89,7 +89,40 @@ main 反映を確認したうえで、未マージのブランチは残し、マ
 
 ---
 
+## Cursor Agent 向け
+
+Cursor Agent では [AGENTS.md](../AGENTS.md) を入口とし、`.cursor/rules/project-core.mdc` が常時適用されます。
+**commit / push / PR はユーザー明示依頼時のみ** 実行します（Copilot との主な違い）。
+
+### 設計フェーズの依頼
+
+```
+Issue #<番号> の概要に基づいて設計資料を作成してください。
+`.specify/specs/<feature>/` に spec.md / plan.md / tasks.md を作成し、自己レビュー結果も提示してください。
+設計完了時点で worklog を作成し、その存在を自己レビュー項目に含めてください。
+設計フェーズ完了後は私の確認を待ってください。
+```
+
+### 実装フェーズの依頼（設計承認後）
+
+```
+設計を承認します。実装・テスト・動作確認まで進めてください。
+軽微な実装判断は既存実装準拠で自動判断してください。
+npm run build は毎回実行し、可能なら npm run lint と npm test も実行してください。
+コミット・push・PR作成は私が依頼したときのみ実行してください（ベースブランチ: develop）。
+破壊的変更・機密情報関連・要件矛盾が発生した場合は確認して止まってください。
+```
+
+### Cursor 向けスキル
+
+- `.cursor/skills/issue-implementation-runbook/` — 実装フェーズ手順
+- `.cursor/skills/spec-kit-workflow/` — Spec Kit フロー
+
+---
+
 ## 関連ファイル
 
-- [.github/copilot-instructions.md](../.github/copilot-instructions.md) — 運用ルール本体
+- [AGENTS.md](../AGENTS.md) — Cursor / Copilot 共通入口
+- [.github/copilot-instructions.md](../.github/copilot-instructions.md) — Copilot 運用ルール本体
+- [.cursor/rules/project-core.mdc](../.cursor/rules/project-core.mdc) — Cursor 運用ルール
 - [.github/PULL_REQUEST_TEMPLATE.md](../.github/PULL_REQUEST_TEMPLATE.md) — PRテンプレート
