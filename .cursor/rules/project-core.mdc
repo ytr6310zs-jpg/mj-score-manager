@@ -5,7 +5,7 @@ alwaysApply: true
 
 # MJ Score Manager — Project Core Rules
 
-> Copilot 用の詳細版: `.github/copilot-instructions.md`
+> Copilot 時代の詳細版は `.github/agent-instructions.md`（CI 必須）。パス別規約の正本は本ディレクトリ。
 > 機能仕様: `.github/specs/app-spec.md`
 > Constitution: `.specify/memory/constitution.md`
 
@@ -45,7 +45,7 @@ alwaysApply: true
 - 実装前に `.specify/specs/<feature>/spec.md` / `plan.md` / `tasks.md` の 3 点を確認
 - 設計フェーズ完了後はユーザー承認を待ってから実装に進む
 - 小さな修正は PR 本文の Spec セクションで代替可（CI check-spec 対応）
-- 規約変更時は `.cursor/rules/` と `.github/instructions/` の両方を更新する
+- 規約変更時は `.cursor/rules/` を更新する（正本）。`.github/instructions/` は deprecated
 
 ## Stop Conditions
 

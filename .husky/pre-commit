@@ -2,8 +2,8 @@
 set -e
 
 # Check required repository file
-if [ ! -f .github/copilot-instructions.md ]; then
-  echo ".github/copilot-instructions.md が存在しません。コミットを中止します。"
+if [ ! -f .github/agent-instructions.md ]; then
+  echo ".github/agent-instructions.md が存在しません。コミットを中止します。"
   exit 1
 fi
 

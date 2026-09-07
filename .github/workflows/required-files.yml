@@ -13,10 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Ensure .github/copilot-instructions.md exists
+      - name: Ensure .github/agent-instructions.md exists
         run: |
-          if [ ! -f .github/copilot-instructions.md ]; then
-            echo ".github/copilot-instructions.md が見つかりません。";
+          if [ ! -f .github/agent-instructions.md ]; then
+            echo ".github/agent-instructions.md が見つかりません。";
             echo "このファイルは必須です。修正または追加してください。";
             exit 1;
           fi
