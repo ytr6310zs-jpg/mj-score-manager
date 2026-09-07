@@ -1,7 +1,7 @@
 **Issue対応プロンプトガイド（運用強化版）**
 
 - **目的:** Issue 対応で「設計漏れ」「worklog漏れ」「承認前実装」を防ぎ、エージェントが毎回同じ手順で確実に実行できるようにする。
-- **前提:** リポジトリ運用ルールは [.github/copilot-instructions.md](../.github/copilot-instructions.md) に従う。
+- **前提:** リポジトリ運用ルールは [.cursor/rules/project-core.mdc](../.cursor/rules/project-core.mdc) および [.github/agent-instructions.md](../.github/agent-instructions.md) に従う。
 
 **基本方針（必須）**
 - フェーズは必ず 2 段階: 設計フェーズ -> 実装フェーズ

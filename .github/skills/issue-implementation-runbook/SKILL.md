@@ -18,7 +18,8 @@ description: "Use when: implementing an approved GitHub Issue end-to-end in this
 
 - 設計3点 (`spec.md` / `plan.md` / `tasks.md`) が存在するか確認する。
 - 参照:
-  - `.github/copilot-instructions.md`
+  - `.cursor/rules/project-core.mdc`
+  - `.github/agent-instructions.md`
   - `docs/agent-delegation-guide.md`
   - `docs/issue-prompt-guidelines.md`
 

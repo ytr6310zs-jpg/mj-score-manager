@@ -40,11 +40,12 @@
 - Spec artifacts location:
   - Spec Kit artifacts: `.specify/specs/<feature>/`
   - App feature specs: `.github/specs/`
-  - Daily operation rules: `.github/copilot-instructions.md`
+  - Daily operation rules: `.github/agent-instructions.md` / `.cursor/rules/project-core.mdc`
+  - Path-specific coding rules (source of truth): `.cursor/rules/`
 
 ## Workflow and Review Policy
 
-Git操作・ブランチ・コミット・PRの具体的手順は `.github/copilot-instructions.md` を参照。
+Git操作・ブランチ・コミット・PRの具体的手順は `.github/agent-instructions.md` と `.cursor/rules/project-core.mdc` を参照。
 
 SDD フロー固有のルール:
 1. Spec Kit を用いて `spec.md` → `plan.md` → `tasks.md` の順に整備し、必要なら clarify/analyze を実施する。
@@ -54,8 +55,8 @@ SDD フロー固有のルール:
 ## Governance
 
 - 本 Constitution は本リポジトリにおける開発判断の最上位規約とする。
-- 具体的な日次運用ルールは `.github/copilot-instructions.md` を参照し、矛盾時は本 Constitution を優先する。
+- 具体的な日次運用ルールは `.github/agent-instructions.md` / `.cursor/rules/` を参照し、矛盾時は本 Constitution を優先する。
 - 改定時は変更理由・影響範囲・移行方針を同一コミットまたは同一PRで提示する。
 - すべてのPRレビューは本 Constitution への適合を確認する。
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-20 | **Last Amended**: 2026-04-20
+**Version**: 1.1.0 | **Ratified**: 2026-04-20 | **Last Amended**: 2026-09-07

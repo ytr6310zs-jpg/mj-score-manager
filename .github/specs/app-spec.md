@@ -3,7 +3,7 @@
 **プロジェクト**: mj-score-manager  
 **目的**: 手書きの麻雀スコア表（画像）から、アプリ投入用の正確なマスターデータを抽出・管理する。
 
-> 開発・運用ルール（Git操作・コミット・セキュリティポリシー等）は `.github/copilot-instructions.md` を参照。
+> 開発・運用ルール（Git操作・コミット・セキュリティポリシー等）は `.github/agent-instructions.md` および `.cursor/rules/` を参照。
 
 ---
 
