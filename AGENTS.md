@@ -20,6 +20,7 @@ Cursor Agent 向けの入口ドキュメントです。
 .cursor/
   rules/          # パス別コーディング規約（.mdc）← 正本
   skills/         # ワークフロースキル（runbook, spec-kit）
+  commands/       # スラッシュコマンド（/clarify /design /implement）
   mcp.json        # MCP サーバー定義（mcpServers）
 ```
 
@@ -34,6 +35,16 @@ Cursor Agent 向けの入口ドキュメントです。
 
 - `issue-implementation-runbook` — 設計承認後の実装フェーズ手順
 - `spec-kit-workflow` — Spec Kit フロー（specify → plan → tasks → implement）
+
+### Commands
+
+Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）。
+
+| コマンド | 用途 |
+|---|---|
+| `/clarify` | Issue 内容の確認・不明点の洗い出し（実装しない） |
+| `/design` | Spec 3点作成・自己レビュー・停止（実装禁止） |
+| `/implement` | 設計承認後の実装・検証（commit/push/PR は明示依頼時のみ） |
 
 ### MCP
 
