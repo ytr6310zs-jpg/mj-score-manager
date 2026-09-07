@@ -1,5 +1,7 @@
 # Copilot Instructions
 
+> **Cursor 利用時**: 入口は [AGENTS.md](../AGENTS.md)、開発規約は [.cursor/rules/](../.cursor/rules/) を参照してください。本ファイルは Copilot 用の詳細版です。
+
 ## 1. Project Context & Domain Knowledge
 * **プロジェクト名称:** 麻雀スコア抽出・管理アプリ
 * **目的:** 手書きの麻雀スコア表（画像）から、アプリ投入用の正確なマスターデータを抽出・管理する。
