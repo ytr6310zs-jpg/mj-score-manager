@@ -19,6 +19,7 @@ title: Issue #279 .cursorignore / commands — 実装計画
    - `/design` ← Spec 3点作成、自己レビュー、実装禁止、停止
    - `/implement` ← 設計3点確認、worklog、tasks 順実装、build、commit/push/PR は依頼待ち
    - `/pr` ← 実装後の commit → push → PR（呼び出し自体が明示依頼。ベース `develop`）
+   - `/release` ← develop → main のリリース PR 作成・マージ（機能PR→develop マージは含まない）
    - 文言は `docs/agent-delegation-guide.md` を正とし、旧「自動コミット可」は入れない
 
 3. **ファイル配置**

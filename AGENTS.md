@@ -20,7 +20,7 @@ Cursor Agent 向けの入口ドキュメントです。
 .cursor/
   rules/          # パス別コーディング規約（.mdc）← 正本
   skills/         # ワークフロースキル（runbook, spec-kit）
-  commands/       # スラッシュコマンド（/clarify /design /implement /pr）
+  commands/       # スラッシュコマンド（/clarify /design /implement /pr /release）
   mcp.json        # MCP サーバー定義（mcpServers）
 ```
 
@@ -46,6 +46,7 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 | `/design` | Spec 3点作成・自己レビュー・停止（実装禁止） |
 | `/implement` | 設計承認後の実装・検証（commit/push/PR は明示依頼時のみ） |
 | `/pr` | 実装後の commit → push → PR 作成（この呼び出しが明示依頼） |
+| `/release` | develop → main のリリース PR 作成・マージ |
 
 ### MCP
 
@@ -60,9 +61,10 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 
 | 操作 | 方針 |
 |---|---|
-| commit | ユーザー明示依頼時のみ |
-| push | ユーザー明示依頼時のみ |
-| PR 作成 | ユーザー明示依頼時のみ |
+| commit | ユーザー明示依頼時のみ（`/pr` 可） |
+| push | ユーザー明示依頼時のみ（`/pr` 可） |
+| PR 作成 | ユーザー明示依頼時のみ（`/pr` 可） |
+| マージ / リリース | ユーザー明示依頼時のみ（`/release` = develop→main） |
 
 設計フェーズ完了時の停止、品質ゲート（`npm run build`）、Spec 3点セット、worklog 運用は必須。
 

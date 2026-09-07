@@ -11,14 +11,14 @@ Cursor Agent のコンテキストに `node_modules` / `.next` / 生成物・大
 目的
 --
 1. `.cursorignore` でインデックス・コンテキスト汚染を減らす  
-2. `.cursor/commands/` に `/clarify` `/design` `/implement` `/pr` を追加し、既存委任テンプレと整合した定型フローを一発起動できるようにする  
+2. `.cursor/commands/` に `/clarify` `/design` `/implement` `/pr` `/release` を追加し、既存委任テンプレと整合した定型フローを一発起動できるようにする  
 3. `AGENTS.md` に使い方を追記する（実装フェーズ）
 
 受け入れ条件
 --
 - `.cursorignore` が存在し、少なくとも `node_modules` / `.next` / coverage / playwright-report / `.worklog` / 大きな seed・CSV 系が除外対象に含まれる
-- `.cursor/commands/clarify.md` / `design.md` / `implement.md` / `pr.md` が存在し、Agent 入力から呼び出せる内容になっている
-- commands の制約が現行ルールと一致する（設計停止、`/implement` は commit しない、`/pr` の呼び出しが git 明示依頼）
+- `.cursor/commands/clarify.md` / `design.md` / `implement.md` / `pr.md` / `release.md` が存在し、Agent 入力から呼び出せる内容になっている
+- commands の制約が現行ルールと一致する（設計停止、`/implement` は commit しない、`/pr`・`/release` の呼び出しが git 明示依頼）
 - `AGENTS.md` に Commands 節がある（実装フェーズ）
 - アプリコード・DB・CI 必須ファイル名を変更しない
 - `npm run build` 成功（実装フェーズ）
@@ -30,6 +30,7 @@ Cursor Agent のコンテキストに `node_modules` / `.next` / 生成物・大
 - `.cursor/commands/design.md`（新規・実装）
 - `.cursor/commands/implement.md`（新規・実装）
 - `.cursor/commands/pr.md`（新規・実装）
+- `.cursor/commands/release.md`（新規・実装）
 - `AGENTS.md`（Commands 節追記・実装）
 - 本ディレクトリの spec/plan/tasks（本設計 PR）
 

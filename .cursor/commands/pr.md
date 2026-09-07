@@ -22,6 +22,7 @@
 5. 必要なら `git push -u origin HEAD`
 6. PR が無ければ `gh pr create`（既定ベース: `develop`）。既存 PR があれば URL を返す
 7. 完了後に PR URL を提示する
+8. develop → main 反映は行わない（必要ならユーザーに `/release` を案内）
 
 ## PR 本文（必須）
 

@@ -8,3 +8,4 @@ title: Issue #279 .cursorignore / commands — タスク
 - T4: `AGENTS.md` 更新 — Done 条件: Commands 節とディレクトリ説明がある
 - T5: 検証と PR — Done 条件: `npm run build` 成功、設計+実装を含む `develop` 向け PR がある（Closes #279）
 - T6（追加）: `/pr` コマンド — Done 条件: commit/push/PR 手順の slash command と `AGENTS.md` 追記がある
+- T7（追加）: `/release` コマンド — Done 条件: develop→main のリリース PR 作成・マージ手順がある（機能PR→develop は含まない）
