@@ -13,7 +13,7 @@
 - 変更の背景や判断理由:
 
 ## 確認事項
-- [ ] `.github/copilot-instructions.md` の更新（必要な場合）または存在確認を行った
+- [ ] `.github/agent-instructions.md` の更新（必要な場合）または存在確認を行った
 - [ ] 変更に機密情報が含まれていないことを確認した
 - [ ] `npm run build` が成功することを確認した（変更がコードの場合）
 - [ ] 実行した `npm run lint` / `npm test` の結果、または未実施理由を記載した

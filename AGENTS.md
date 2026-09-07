@@ -1,6 +1,6 @@
 # Agent Guide — mj-score-manager
 
-Cursor Agent / Copilot エージェント向けの入口ドキュメントです。
+Cursor Agent 向けの入口ドキュメントです。
 
 ## Quick Links
 
@@ -8,25 +8,27 @@ Cursor Agent / Copilot エージェント向けの入口ドキュメントです
 |---|---|
 | プロジェクト概要・セットアップ | [README.md](README.md) |
 | 機能仕様 | [.github/specs/app-spec.md](.github/specs/app-spec.md) |
-| Cursor 開発規約（常時適用） | [.cursor/rules/project-core.mdc](.cursor/rules/project-core.mdc) |
-| Copilot 開発規約（詳細版） | [.github/copilot-instructions.md](.github/copilot-instructions.md) |
+| 開発規約（常時適用） | [.cursor/rules/project-core.mdc](.cursor/rules/project-core.mdc) |
+| 運用ルール詳細（CI 必須） | [.github/agent-instructions.md](.github/agent-instructions.md) |
 | Constitution（最上位規約） | [.specify/memory/constitution.md](.specify/memory/constitution.md) |
 | 委任テンプレート | [docs/agent-delegation-guide.md](docs/agent-delegation-guide.md) |
 | Issue 依頼テンプレート | [docs/issue-prompt-guidelines.md](docs/issue-prompt-guidelines.md) |
 
-## Cursor 向け設定
+## Cursor 設定
 
 ```
 .cursor/
-  rules/          # パス別コーディング規約（.mdc）
+  rules/          # パス別コーディング規約（.mdc）← 正本
   skills/         # ワークフロースキル（runbook, spec-kit）
-  mcp.json        # MCP サーバー定義
+  mcp.json        # MCP サーバー定義（mcpServers）
 ```
 
-### Rules
+### Rules（正本）
 
 - **常時適用**: `project-core.mdc` — プロジェクト文脈、Git 方針、品質ゲート
 - **パス別**: `typescript`, `react`, `server-actions`, `api-route`, `supabase`, `sql-migration`, `local-supabase-safety`, `mcp-config`
+
+コーディング規約を変更する場合は **`.cursor/rules/` のみ** を更新する。
 
 ### Skills
 
@@ -35,32 +37,31 @@ Cursor Agent / Copilot エージェント向けの入口ドキュメントです
 
 ### MCP
 
-`.cursor/mcp.json` に GitHub / Playwright / Supabase Postgres サーバーを定義。
+`.cursor/mcp.json` に GitHub / Playwright / Supabase Postgres を定義。
 
-- **形式**: Cursor はルートキー `mcpServers` を使う（VS Code の `servers` とは異なる。間違えると Settings → MCP が空になる）
-- **GitHub**: `scripts/mcp-github.sh` が `.env.local` から `GITHUB_TOKEN` を読み込む（CRLF は `tr -d` でポータブルに除去）
-- **Supabase Postgres**: `scripts/mcp-postgres.sh` が `.env.local` の `DATABASE_URL` を argv に渡す（`${env:…}` / `envFile` では argv に届かない）
-- 機密値を `mcp.json` にハードコードしない
-- 設定変更後は **Cursor を再起動**し、Settings → Tools & MCP でサーバーが表示されることを確認する
+- **形式**: ルートキーは `mcpServers`（`servers` だと Settings が空になる）
+- **GitHub**: `scripts/mcp-github.sh`（`.env.local` の `GITHUB_TOKEN`、CRLF 耐性）
+- **Postgres**: `scripts/mcp-postgres.sh`（`.env.local` の `DATABASE_URL` を argv へ）
+- **Playwright**: `@playwright/mcp`
 
-## Copilot 向け設定（並行維持）
+### Git 方針
 
-- `.github/copilot-instructions.md` — CI/husky 必須ファイル
-- `.github/instructions/*.instructions.md` — パス別規約（Copilot 用）
-- `.github/agents/*.agent.md` — Spec Kit エージェント定義
-- `.specify/` — Spec Kit 成果物・テンプレート
+| 操作 | 方針 |
+|---|---|
+| commit | ユーザー明示依頼時のみ |
+| push | ユーザー明示依頼時のみ |
+| PR 作成 | ユーザー明示依頼時のみ |
 
-## 規約の二重管理について
+設計フェーズ完了時の停止、品質ゲート（`npm run build`）、Spec 3点セット、worklog 運用は必須。
 
-`.cursor/rules/` と `.github/instructions/` は内容が対応しています。
-コーディング規約を変更する場合は **両方を更新** してください。
+## Spec Kit / 手順書
 
-## Git 方針の違い
+- `.specify/` — Spec 成果物・テンプレート（継続利用）
+- `.github/agents/*.agent.md` — Spec Kit フェーズ手順書（Cursor スキルから参照）
+- `.github/instructions/` — **deprecated**（旧 Copilot パス別規約。正本は `.cursor/rules/`）
+- `.github/prompts/` — **deprecated**（旧 Copilot Chat プロンプト）
 
-| 操作 | Cursor | Copilot |
-|---|---|---|
-| commit | ユーザー明示依頼時のみ | 自動可 |
-| push | ユーザー明示依頼時のみ | 自動可 |
-| PR 作成 | ユーザー明示依頼時のみ | 自動可 |
+## 関連 Issue
 
-設計フェーズの停止、品質ゲート（`npm run build`）、Spec 3点セット、worklog 運用は両方共通です。
+- #279 `.cursorignore` と `/commands`
+- #280 hooks による機密・worklog ガード

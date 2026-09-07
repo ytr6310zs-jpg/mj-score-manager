@@ -20,7 +20,7 @@ description: "Generate a PR body from current changes in this repository using t
 
 参照:
 - `.github/PULL_REQUEST_TEMPLATE.md`
-- `.github/copilot-instructions.md`
+- `.github/agent-instructions.md`
 - `docs/issue-prompt-guidelines.md`
 
 出力形式:
