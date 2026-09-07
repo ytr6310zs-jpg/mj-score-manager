@@ -35,11 +35,13 @@ Cursor Agent / Copilot エージェント向けの入口ドキュメントです
 
 ### MCP
 
-`.cursor/mcp.json` に GitHub / Playwright / Supabase Postgres（read-only）サーバーを定義。
+`.cursor/mcp.json` に GitHub / Playwright / Supabase Postgres サーバーを定義。
 
-- **GitHub**: `scripts/mcp-github.sh` が起動時に `.env.local` から `GITHUB_TOKEN` を読み込む（Cursor は `.env.local` を自動読み込みしないため）
-- **Supabase Postgres**: 接続 URL はプロンプト入力（read-only 推奨）
+- **形式**: Cursor はルートキー `mcpServers` を使う（VS Code の `servers` とは異なる。間違えると Settings → MCP が空になる）
+- **GitHub**: `scripts/mcp-github.sh` が `.env.local` から `GITHUB_TOKEN` を読み込む（CRLF 対応）
+- **Supabase Postgres**: `envFile` で `.env.local` の `DATABASE_URL` を利用（local / read-only 推奨）
 - 機密値を `mcp.json` にハードコードしない
+- 設定変更後は **Cursor を再起動**し、Settings → Tools & MCP でサーバーが表示されることを確認する
 
 ## Copilot 向け設定（並行維持）
 

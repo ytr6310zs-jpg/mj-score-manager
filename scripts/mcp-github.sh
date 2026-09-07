@@ -7,9 +7,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env.local"
 
 if [[ -f "$ENV_FILE" ]]; then
+  # Strip CR so Windows (CRLF) .env.local can be sourced safely on WSL/Linux.
   set -a
-  # shellcheck disable=SC1091
-  source "$ENV_FILE"
+  # shellcheck disable=SC1090
+  source <(sed 's/\r$//' "$ENV_FILE")
   set +a
 fi
 
