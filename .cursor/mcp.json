@@ -9,13 +9,8 @@
       "args": ["-y", "@microsoft/mcp-server-playwright"]
     },
     "supabasePostgres": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-postgres",
-        "${env:DATABASE_URL}"
-      ],
-      "envFile": "${workspaceFolder}/.env.local"
+      "command": "bash",
+      "args": ["${workspaceFolder}/scripts/mcp-postgres.sh"]
     }
   }
 }
