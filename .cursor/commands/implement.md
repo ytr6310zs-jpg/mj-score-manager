@@ -19,6 +19,6 @@
 
 ## 制約
 
-- **commit / push / PR はユーザー明示依頼時のみ** 実行する
+- **commit / push / PR はユーザー明示依頼時のみ** 実行する（依頼時は `/pr` を推奨）
 - 破壊的変更・認証/機密・要件矛盾では停止して確認する
 - 参照: `docs/agent-delegation-guide.md`, `.cursor/rules/project-core.mdc`, `.github/agent-instructions.md`

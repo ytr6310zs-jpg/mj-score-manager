@@ -20,7 +20,7 @@ Cursor Agent 向けの入口ドキュメントです。
 .cursor/
   rules/          # パス別コーディング規約（.mdc）← 正本
   skills/         # ワークフロースキル（runbook, spec-kit）
-  commands/       # スラッシュコマンド（/clarify /design /implement）
+  commands/       # スラッシュコマンド（/clarify /design /implement /pr）
   mcp.json        # MCP サーバー定義（mcpServers）
 ```
 
@@ -45,6 +45,7 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 | `/clarify` | Issue 内容の確認・不明点の洗い出し（実装しない） |
 | `/design` | Spec 3点作成・自己レビュー・停止（実装禁止） |
 | `/implement` | 設計承認後の実装・検証（commit/push/PR は明示依頼時のみ） |
+| `/pr` | 実装後の commit → push → PR 作成（この呼び出しが明示依頼） |
 
 ### MCP
 
