@@ -1,0 +1,52 @@
+---
+description: Core project rules for mj-score-manager (Cursor Agent)
+alwaysApply: true
+---
+
+# MJ Score Manager — Project Core Rules
+
+> Copilot 用の詳細版: `.github/copilot-instructions.md`
+> 機能仕様: `.github/specs/app-spec.md`
+> Constitution: `.specify/memory/constitution.md`
+
+## Project Context
+
+- **名称**: 麻雀スコア抽出・管理アプリ（mj-score-manager）
+- **目的**: 麻雀対局スコアの入力・履歴管理・統計集計
+- **技術**: Next.js 15 (App Router) / React 19 / TypeScript / Supabase (PostgreSQL)
+- **ドメイン**: 四人打ち・三人打ちの両方のスコア体系を考慮する
+
+## Agent Quickstart
+
+- 最初に確認: `README.md`, `AGENTS.md`, `docs/agent-delegation-guide.md`
+- 必須検証: `npm run build`（推奨: `npm run lint`, `npm test`）
+- ローカル DB: local Supabase を使用。staging/production の URL・キーを `.env.local` に設定しない
+- スキーマ正本: `supabase/migrations/`（`ddl/` は参照専用）
+- worklog: 実装開始時に `npm run worklog:start -- --summary "Issue #<番号> 実装開始" --reason "..." --tags "issue-<番号>,implementation,worklog"`
+
+## Git & PR Rules (Cursor)
+
+- **commit / push / PR はユーザー明示依頼時のみ** 実行する（自動実行しない）
+- 作業フロー: 設計フェーズ → ユーザー確認（必須停止）→ 実装フェーズ
+- ブランチ命名: `feature/issue-<番号>-<要約>` / `fix/issue-<番号>-<要約>` / `chore/<要約>`
+- PR マージ先の既定: `develop`
+- PR 本文必須: 設計概要、実装概要、検証コマンドと結果、手動確認、既知の未解決事項
+- コミット前: `npm run build` 成功を確認。機密情報を含めない
+
+## Safety & Security
+
+- API キー・トークン・秘密鍵・個人情報をコード・ログ・コミットに含めない
+- Server Action / API では入力バリデーションとエラーハンドリングを厳格に行う
+- 認証・認可変更時はリスクと影響範囲を PR に明記する
+
+## Quality & Spec-Driven Development
+
+- 変更は最小差分。無関係なリファクタ・整形を避ける
+- 実装前に `.specify/specs/<feature>/spec.md` / `plan.md` / `tasks.md` の 3 点を確認
+- 設計フェーズ完了後はユーザー承認を待ってから実装に進む
+- 小さな修正は PR 本文の Spec セクションで代替可（CI check-spec 対応）
+- 規約変更時は `.cursor/rules/` と `.github/instructions/` の両方を更新する
+
+## Stop Conditions
+
+設計完了時、要件矛盾、破壊的変更、認証/認可の高リスク変更、検証不能、ブランチ粒度の競合時はユーザー確認のため停止する。

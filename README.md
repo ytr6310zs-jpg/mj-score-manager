@@ -2,6 +2,16 @@
 
 Next.js (App Router) + TypeScript で作成した麻雀成績入力アプリです。
 
+## Cursor での開発
+
+Cursor Agent を使う場合は [AGENTS.md](AGENTS.md) を入口としてください。
+
+- 開発規約: `.cursor/rules/`（常時適用 + パス別）
+- ワークフロー: `.cursor/skills/`（実装 runbook、Spec Kit フロー）
+- MCP 設定: `.cursor/mcp.json`
+
+Copilot 向けの詳細ルールは `.github/copilot-instructions.md` にあります。規約変更時は `.cursor/rules/` と `.github/instructions/` の両方を更新してください。
+
 ## 機能
 
 - Middleware による共通パスワード認証

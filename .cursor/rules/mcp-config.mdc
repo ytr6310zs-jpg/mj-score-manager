@@ -1,5 +1,7 @@
 ---
-applyTo: "{.cursor/mcp.json,.vscode/mcp.json}"
+description: MCP server configuration conventions
+globs: "{.cursor/mcp.json,.vscode/mcp.json}"
+alwaysApply: false
 ---
 
 # MCP 設定規約
