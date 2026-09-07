@@ -62,7 +62,7 @@ node scripts/extract-specs.mjs
 
 - Playwright MCP サーバ起動（例）:
 ```
-npx -y @microsoft/mcp-server-playwright
+npx -y @playwright/mcp
 ```
 
 - Read-only DB 接続を使う場合（環境変数例）:
@@ -74,10 +74,10 @@ read -s MCP_RO_PW && export MCP_DB_URL="postgresql://mcp_readonly:${MCP_RO_PW}@1
 トラブルシューティング（よくある事象）
 --
 
-- `npx -y @microsoft/mcp-server-playwright` が失敗する
+- `npx -y @playwright/mcp` が失敗する
   - Node のバージョンを確認（推奨: LTS）
   - ネットワーク制限でパッケージが取れない場合は事前に `npm install` してから実行
-
+  - 旧パッケージ `@microsoft/mcp-server-playwright` は npm に存在しない（404）
 - MCP 用 DB 接続でパスワードに URL 禁止文字が含まれる
   - `%` エンコードするか、URL 安全なパスワードに変更してください
 

@@ -4,14 +4,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ENV_FILE="$PROJECT_ROOT/.env.local"
-
-if [[ -f "$ENV_FILE" ]]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$ENV_FILE"
-  set +a
-fi
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/mcp-load-env.sh"
+load_env_local "$PROJECT_ROOT/.env.local"
 
 if [[ -z "${GITHUB_TOKEN:-}" ]]; then
   echo "GITHUB_TOKEN is not set. Add it to .env.local or export it in your environment." >&2
