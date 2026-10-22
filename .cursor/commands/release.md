@@ -26,11 +26,16 @@ gh pr create --base main --head develop \
 ## 検証
 - 機能 PR 側の検証・CI を確認済み（詳細は取り込み元 PR を参照）
 
+## Worklog
+- 取り込み元 PR 実装時に `.worklog/logs/` へ記録済み（gitignore 対象）
+
 ## 関連
 - 取り込み元: #<機能PR番号>（分かれば記載）
 EOF
 )"
 ```
+
+`check-worklog` は PR 本文に `worklog` が含まれること（または `.worklog/` 差分）を要求する。テンプレの `## Worklog` を省略しないこと。
 
 3. リリース PR の CI / 必須チェックを確認。失敗・未完了なら停止して報告
 4. 問題なければ `gh pr merge <releasePR> --merge`（squash / rebase はユーザー明示時のみ）

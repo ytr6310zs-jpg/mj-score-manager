@@ -32,6 +32,7 @@
 - 実装概要
 - 検証コマンドと結果
 - 手動または自動の動作確認
+- Worklog（本文に `worklog` の語を含める。例: `## Worklog` + 記録日。`.worklog/` は gitignore のため差分では通せない）
 - 既知の未解決事項
 - 関連 Issue（`Closes #N` / `Fixes #N`）
 
