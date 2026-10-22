@@ -76,12 +76,12 @@
     "typescript": "^5.7.2"
   },
   "engines": {
-    "node": ">=20.19.0 <21",
-    "npm": ">=10.8.2 <11"
+    "node": "24.x",
+    "npm": ">=11 <12"
   },
   "volta": {
-    "node": "20.19.0",
-    "npm": "10.8.2"
+    "node": "24.22.1",
+    "npm": "11.6.2"
   },
-  "packageManager": "npm@10.8.2"
+  "packageManager": "npm@11.6.2"
 }

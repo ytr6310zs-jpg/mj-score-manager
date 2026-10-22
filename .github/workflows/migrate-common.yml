@@ -45,7 +45,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Check supabase CLI availability
         run: npx supabase@${{ inputs.supabase_cli_version }} --version

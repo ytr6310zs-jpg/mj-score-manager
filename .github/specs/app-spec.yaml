@@ -18,10 +18,10 @@ domain:
     notes: "スコア体系の拡張性を考慮すること"
 
 development:
-  package_manager: "npm@10.x"
+  package_manager: "npm@11.x"
   engines:
-    node: ">=20.19.0 <21"
-    npm: ">=10.8.2 <11"
+    node: "24.x"
+    npm: ">=11 <12"
   scripts_required:
     - "npm run build"
     - "npm run lint (推奨)"
