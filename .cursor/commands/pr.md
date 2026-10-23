@@ -40,5 +40,6 @@
 
 - force push / hard reset / `--no-verify` はしない（ユーザーが明示した場合を除く）
 - `main` / `master` への force push はしない
+- **`--admin` / PR マージはしない**（マージ・リリースは `/release` またはユーザー明示依頼）
 - amend はユーザー明示時、かつ未 push・自分が作った HEAD の場合のみ
 - 参照: `AGENTS.md`, `.cursor/rules/project-core.mdc`

@@ -32,6 +32,7 @@ alwaysApply: true
 - PR マージ先の既定: `develop`
 - PR 本文必須: 設計概要、実装概要、検証コマンドと結果、手動確認、既知の未解決事項
 - コミット前: `npm run build` 成功を確認。機密情報を含めない
+- **`gh pr merge --admin`**: `/release` 呼び出し時のみ許可（CI 成功後の branch lock 回避）。チェック失敗の回避や `/release` 外では禁止。使った場合は結果報告に明記する
 
 ## Safety & Security
 

@@ -65,6 +65,7 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 | push | ユーザー明示依頼時のみ（`/pr` 可） |
 | PR 作成 | ユーザー明示依頼時のみ（`/pr` 可） |
 | マージ / リリース | ユーザー明示依頼時のみ（`/release` = develop→main） |
+| `--admin` マージ | **`/release` 呼び出し時のみ**（かつ CI 成功後・branch lock 回避用途）。チェック失敗の回避・`/release` 外では禁止 |
 
 設計フェーズ完了時の停止、品質ゲート（`npm run build`）、Spec 3点セット、worklog 運用は必須。
 
