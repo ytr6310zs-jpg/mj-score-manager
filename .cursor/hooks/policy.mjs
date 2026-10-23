@@ -44,15 +44,16 @@ export function decideShell({
   command,
   stagedPaths = [],
   unstagedPaths = [],
+  pendingAddPaths = [],
   worklogOk = true,
   gitAvailable = true,
 }) {
   const inspected = inspectCommand(command);
-  if (inspected.blockedAdd) return denyAdd();
+  if (inspected.blockedAdd || pendingAddPaths.some(isSecretPath)) return denyAdd();
   if (inspected.blockedCommitPath) return denyCommitSecret();
+  if ((inspected.needsCommit || inspected.scanAdds) && !gitAvailable) return denyGitState();
   if (!inspected.needsCommit) return allow();
-  if (!gitAvailable) return denyGitState();
-  const names = [...stagedPaths];
+  const names = [...stagedPaths, ...pendingAddPaths];
   if (inspected.commitAll) names.push(...unstagedPaths);
   if (names.some(isSecretPath)) return denyCommitSecret();
   if (!worklogOk) return denyWorklog();
@@ -78,25 +79,42 @@ export function decideTool(input) {
 }
 
 export function inspectCommand(command) {
+  const plan = addPlan(command);
   const result = {
-    blockedAdd: false,
+    blockedAdd: plan.paths.some(isSecretPath),
     blockedCommitPath: false,
     needsCommit: false,
     commitAll: false,
+    scanAdds: plan.active,
   };
   if (typeof command !== "string" || command.length === 0) return result;
 
   for (const segment of splitShellSegments(command)) {
     const git = parseGit(segment);
-    if (!git) continue;
-    if (git.subcommand === "add" && git.paths.some(isSecretPath)) result.blockedAdd = true;
-    if (git.subcommand === "commit") {
-      result.needsCommit = true;
-      if (git.all) result.commitAll = true;
-      if (git.paths.some(isSecretPath)) result.blockedCommitPath = true;
-    }
+    if (!git || git.subcommand !== "commit") continue;
+    result.needsCommit = true;
+    if (git.all) result.commitAll = true;
+    if (git.paths.some(isSecretPath)) result.blockedCommitPath = true;
   }
   return result;
+}
+
+export function pathsStagedByAdds(command, statusLines) {
+  const plan = addPlan(command);
+  if (!plan.active) return [];
+  const entries = parseStatusLines(statusLines);
+  let selected = entries;
+  if (plan.repoAll) selected = entries;
+  else if (plan.cwdAll) selected = entries.filter((entry) => !entry.path.startsWith("../"));
+  else selected = entries.filter((entry) => plan.paths.some((spec) => pathspecCovers(spec, entry.path)));
+  if (plan.updateOnly) selected = selected.filter((entry) => entry.kind !== "untracked");
+  return selected.map((entry) => entry.path);
+}
+
+export function resolveWorklogRoot({ cwd, toplevel }) {
+  if (typeof toplevel === "string" && toplevel.length > 0) return toplevel;
+  if (typeof cwd === "string" && cwd.length > 0) return cwd;
+  return "";
 }
 
 function allow() {
@@ -108,7 +126,7 @@ function denyAdd() {
     permission: "deny",
     user_message: "秘密ファイル（.env や鍵）の git add を止めました。",
     agent_message:
-      ".env*、*.pem、秘密鍵はステージしない。git add をやめて、対象は .gitignore のままにする。",
+      ".env や鍵はステージしない。.env.example は公開テンプレートなので対象外。git add -A や git add . で秘密ファイルを巻き込まない。",
   };
 }
 
@@ -186,6 +204,7 @@ function basenameOf(filePath) {
 
 function isSecretBasename(base) {
   const probe = base.replaceAll("*", "");
+  if (probe === ".env.example") return false;
   if (probe === ".env" || probe.startsWith(".env.")) return true;
   if (probe.endsWith(".pem")) return true;
   if (probe === "id_rsa" || probe === "id_ed25519") return true;
@@ -351,12 +370,14 @@ function parseGit(tokens) {
   const subcommand = tokens[index];
   if (subcommand !== "add" && subcommand !== "commit") return null;
   const rest = tokens.slice(index + 1);
-  if (subcommand === "add") return { subcommand, paths: parseAddPaths(rest), all: false };
+  if (subcommand === "add") return { subcommand, ...parseAddArgs(rest), all: false };
   const parsed = parseCommitArgs(rest);
   return { subcommand, paths: parsed.paths, all: parsed.all };
 }
 
-function parseAddPaths(rest) {
+function parseAddArgs(rest) {
+  let sawAll = false;
+  let sawUpdate = false;
   const paths = [];
   let afterDash = false;
   const valueFlags = new Set(["-m", "--chmod", "--pathspec-from-file"]);
@@ -366,14 +387,76 @@ function parseAddPaths(rest) {
       afterDash = true;
       continue;
     }
-    if (!afterDash && valueFlags.has(token)) {
-      i += 1;
+    if (!afterDash && (token === "--all" || token === ":/")) {
+      sawAll = true;
       continue;
     }
-    if (!afterDash && token.startsWith("-")) continue;
+    if (!afterDash && token === "--update") {
+      sawUpdate = true;
+      continue;
+    }
+    if (!afterDash && token.startsWith("--")) {
+      if (valueFlags.has(token)) i += 1;
+      continue;
+    }
+    if (!afterDash && token.startsWith("-")) {
+      const letters = token.slice(1);
+      if (letters.includes("A")) sawAll = true;
+      if (letters.includes("u")) sawUpdate = true;
+      continue;
+    }
     paths.push(token);
   }
-  return paths;
+  const cwdAll = paths.some((item) => item === "." || item === "./");
+  const limited = paths.filter((item) => item !== "." && item !== "./");
+  const repoAll = limited.length === 0 && !cwdAll && (sawAll || sawUpdate);
+  return {
+    paths: limited,
+    repoAll,
+    cwdAll,
+    updateOnly: sawUpdate && !sawAll,
+  };
+}
+
+function addPlan(command) {
+  const plan = { active: false, repoAll: false, cwdAll: false, updateOnly: false, paths: [] };
+  if (typeof command !== "string" || command.length === 0) return plan;
+  let sawUpdate = false;
+  let sawNonUpdate = false;
+  for (const segment of splitShellSegments(command)) {
+    const git = parseGit(segment);
+    if (!git || git.subcommand !== "add") continue;
+    plan.active = true;
+    if (git.repoAll) plan.repoAll = true;
+    if (git.cwdAll) plan.cwdAll = true;
+    if (git.updateOnly) sawUpdate = true;
+    else sawNonUpdate = true;
+    plan.paths.push(...git.paths);
+  }
+  plan.updateOnly = sawUpdate && !sawNonUpdate;
+  return plan;
+}
+
+function parseStatusLines(statusLines) {
+  if (!Array.isArray(statusLines)) return [];
+  return statusLines.map(parseStatusLine).filter(Boolean);
+}
+
+function parseStatusLine(line) {
+  if (typeof line !== "string" || line.length < 4) return null;
+  const code = line.slice(0, 2);
+  let filePath = line.slice(3).trim();
+  if (filePath.includes(" -> ")) filePath = filePath.split(" -> ").pop().trim();
+  if (filePath.startsWith('"') && filePath.endsWith('"')) filePath = filePath.slice(1, -1);
+  if (!filePath) return null;
+  return { path: filePath, kind: code === "??" ? "untracked" : "tracked" };
+}
+
+function pathspecCovers(pathspec, filePath) {
+  const spec = pathspec.replace(/^\.\//, "").replace(/\/$/, "");
+  const file = filePath.replace(/^\.\//, "");
+  if (spec === ":/") return true;
+  return file === spec || file.startsWith(`${spec}/`);
 }
 
 function parseCommitArgs(rest) {
