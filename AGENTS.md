@@ -80,3 +80,12 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 
 - #279 `.cursorignore` と `/commands`
 - #280 hooks による機密・worklog ガード
+
+## Cursor Cloud specific instructions
+
+- Node は `package.json` の `engines`（`24.x`）と Volta（**24.22.1 / npm 11.6.2**）、`.npmrc` の `engine-strict=true` に合わせる。イメージ既定の Node では `npm ci` が失敗する。24.22.1 を `/usr/local` に置き、`/usr/local/cargo/bin` へ symlink して PATH の先頭で解決する。
+- ローカル DB は Docker 上の Supabase CLI `2.84.2`。Cloud VM では Docker の storage driver を `fuse-overlayfs`、iptables を legacy にする。デーモンは systemd ではなく `sudo dockerd` で起動する。
+- `supabase/config.toml` はリポジトリに無い。無いときだけ `npx supabase@2.84.2 init --yes` する。起動は `npx supabase@2.84.2 start --exclude studio,imgproxy,mailpit,logflare,vector,storage-api,edge-runtime --yes`。
+- `.env.local` は `npx supabase@2.84.2 status -o env` のローカル値から作る。staging / production の URL やキーは入れない。MFA は空のまま。ログインは migration 済みの `admin` / `ChangeMe_184`。
+- 開発サーバは `npm run dev -- --hostname 0.0.0.0 --port 3000`。プレイヤー投入は冪等な `npm run seed:players`。`npm run seeds` は削除済み列を参照して失敗する。
+- 起動確認は `npm test`、`npm run lint`、`npm run build`、`npm run check:local-db`。画面確認はログイン後にスコア保存し、`/matches` に反映されること。
