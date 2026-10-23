@@ -83,7 +83,7 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 
 ## Cursor Cloud specific instructions
 
-- Node は `package.json` の `engines` と `.npmrc` の `engine-strict=true` に合わせ、**20.19.0 / npm 10.8.2** を使う。イメージ既定の `/exec-daemon/node` は Node 22 なので、`npm ci` は失敗する。20.19.0 を `/usr/local` に置き、`/usr/local/cargo/bin` へ symlink して PATH の先頭で解決する。
+- Node は `package.json` の `engines`（`24.x`）と Volta（**24.22.1 / npm 11.6.2**）、`.npmrc` の `engine-strict=true` に合わせる。イメージ既定の Node では `npm ci` が失敗する。24.22.1 を `/usr/local` に置き、`/usr/local/cargo/bin` へ symlink して PATH の先頭で解決する。
 - ローカル DB は Docker 上の Supabase CLI `2.84.2`。Cloud VM では Docker の storage driver を `fuse-overlayfs`、iptables を legacy にする。デーモンは systemd ではなく `sudo dockerd` で起動する。
 - `supabase/config.toml` はリポジトリに無い。無いときだけ `npx supabase@2.84.2 init --yes` する。起動は `npx supabase@2.84.2 start --exclude studio,imgproxy,mailpit,logflare,vector,storage-api,edge-runtime --yes`。
 - `.env.local` は `npx supabase@2.84.2 status -o env` のローカル値から作る。staging / production の URL やキーは入れない。MFA は空のまま。ログインは migration 済みの `admin` / `ChangeMe_184`。
