@@ -1,0 +1,27 @@
+# Cursor indexing exclusions
+# Keep app/components/lib/test readable; exclude generated and secret-heavy paths.
+
+# dependencies / build
+node_modules/
+.next/
+out/
+build/
+coverage/
+*.tsbuildinfo
+
+# tooling / deploy / local state
+.vercel/
+.worklog/
+playwright-report/
+test-results/
+data-output/
+supabase/.branches/
+supabase/.temp/
+
+# secrets / env
+.env
+.env*.local
+*.pem
+
+# bulky or generated data samples
+scripts/mahjong-data/**/*.csv
