@@ -141,3 +141,21 @@ export function sumToleranceMessage(rules: ScoringRuleSet): string {
   }
   return `最終スコア合計は 0 にしてください。記載誤差として ±${rules.sumTolerance} までは許容しています。`;
 }
+
+/**
+ * Sum scores without IEEE-754 drift on tenths (e.g. 0.1+0.2).
+ * Integer precision uses plain sum; tenth precision sums rounded tenths.
+ */
+export function sumScores(scores: number[], precision: ScorePrecision): number {
+  if (precision === "integer") {
+    return scores.reduce((sum, value) => sum + value, 0);
+  }
+  const totalTenths = scores.reduce((sum, value) => sum + Math.round(value * 10), 0);
+  return totalTenths / 10;
+}
+
+export function isScoreSumWithinTolerance(scores: number[], rules: ScoringRuleSet): boolean {
+  const total = sumScores(scores, rules.scorePrecision);
+  // epsilon only guards float compare of the tolerance itself (e.g. 0.1)
+  return Math.abs(total) <= rules.sumTolerance + 1e-9;
+}

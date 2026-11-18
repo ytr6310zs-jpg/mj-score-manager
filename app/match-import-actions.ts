@@ -9,8 +9,10 @@ import {
 } from "@/lib/import-entity-sync";
 import { getCurrentSession } from "@/lib/session";
 import {
+  isScoreSumWithinTolerance,
   isValidScoreForRuleSet,
   resolveScoringRuleSet,
+  sumScores,
 } from "@/lib/scoring-rules";
 import {
   buildImportDedupeKey,
@@ -336,8 +338,8 @@ function buildPreviewRows(
       issuesByColumn.score.push(issue);
     }
 
-    const total = game.scores.reduce((sum, value) => sum + value, 0);
-    if (Math.abs(total) > scoringRules.sumTolerance) {
+    const total = sumScores(game.scores, scoringRules.scorePrecision);
+    if (!isScoreSumWithinTolerance(game.scores, scoringRules)) {
       const issue = `合計点が 0 ではありません (${total})`;
       issues.push(issue);
       issuesByColumn.score.push(issue);

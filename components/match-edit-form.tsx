@@ -14,8 +14,10 @@ import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/
 import type { MatchResult } from "@/lib/matches";
 import {
   formatScoreForInput,
+  isScoreSumWithinTolerance,
   resolveScoringRuleSet,
   scoreInputStep,
+  sumScores,
 } from "@/lib/scoring-rules";
 import { setLastTournamentId } from "@/lib/tournament-preference";
 import type { TournamentOption } from "@/lib/tournaments";
@@ -202,21 +204,20 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
         })
         .filter(([p]) => p)
     );
-    const total = Object.values(playerScores)
-      .map((s) => {
-        const n = Number(s);
-        return Number.isFinite(n) ? n : 0;
-      })
-      .reduce((a, b) => a + b, 0);
+    const numericScores = Object.values(playerScores).map((s) => {
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    });
+    const total = sumScores(numericScores, scoringRules.scorePrecision);
 
-    if (Math.abs(total) <= scoringRules.sumTolerance) {
+    if (isScoreSumWithinTolerance(numericScores, scoringRules)) {
       setClientError(null);
     } else {
       setClientError(
         total > 0 ? `スコア合計が${total}超過しています` : `スコア合計が${Math.abs(total)}不足しています`
       );
     }
-  }, [gameType, players, scores, scoringRules.sumTolerance]);
+  }, [gameType, players, scores, scoringRules]);
 
   useEffect(() => {
     const selectedPlayers = activeSlots

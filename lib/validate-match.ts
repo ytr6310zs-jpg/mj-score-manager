@@ -1,7 +1,9 @@
 import {
+  isScoreSumWithinTolerance,
   parseScoreInput,
   resolveScoringRuleSet,
   scoreFieldValidationMessage,
+  sumScores,
   sumToleranceMessage,
   type ScoringRuleSet,
 } from "@/lib/scoring-rules";
@@ -96,9 +98,9 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
   }
 
   const resolvedScores = scores.map(({ score }) => score as number);
-  const total = resolvedScores.reduce((sum, score) => sum + score, 0);
+  const total = sumScores(resolvedScores, scoringRules.scorePrecision);
 
-  if (Math.abs(total) > scoringRules.sumTolerance) {
+  if (!isScoreSumWithinTolerance(resolvedScores, scoringRules)) {
     return {
       ok: false,
       message: sumToleranceMessage(scoringRules),

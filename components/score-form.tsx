@@ -15,6 +15,7 @@ import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/
 import { readSharedFilterState, writeSharedFilterState } from "@/lib/filter-state-preference";
 import {
   formatScoreForInput,
+  isScoreSumWithinTolerance,
   resolveScoringRuleSet,
   scoreInputStep,
   sumToleranceMessage,
@@ -317,10 +318,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
             const slots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
             const selectedPlayers = slots.map((slot) => players[slot as keyof PlayerSelection]);
             const uniquePlayers = new Set(selectedPlayers.filter(Boolean));
-            const total = slots.reduce((sum, slot) => {
-              const value = Number(scores[slot] || 0);
-              return sum + value;
-            }, 0);
+            const slotScores = slots.map((slot) => Number(scores[slot] || 0));
 
             if (selectedPlayers.some((player) => !player)) {
               e.preventDefault();
@@ -334,7 +332,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
               return;
             }
 
-            if (Math.abs(total) > scoringRules.sumTolerance) {
+            if (!isScoreSumWithinTolerance(slotScores, scoringRules)) {
               e.preventDefault();
               setClientError(`送信できません。${sumToleranceMessage(scoringRules)}`);
               return;

@@ -241,6 +241,21 @@ function run() {
   assert.ok(res.ok, 'new-rule date should accept one-decimal scores within ±0.1');
   assert.deepStrictEqual(res.data.scores, [30.5, 10, -10.2, -30.3]);
 
+  // 3p decimal scores that sum to 0 in tenths (avoid IEEE-754 false negatives)
+  fd = fdFrom({
+    gameDate: '2027-01-01',
+    gameType: '3p',
+    player1: 'A',
+    player2: 'B',
+    player3: 'C',
+    score1: '0.1',
+    score2: '0.2',
+    score3: '-0.3',
+  });
+  res = validateAndParseMatchForm(fd);
+  assert.ok(res.ok, '3p tenth scores that sum to 0 should parse despite IEEE-754 drift');
+  assert.equal(res.data.total, 0);
+
   return 0;
 }
 
