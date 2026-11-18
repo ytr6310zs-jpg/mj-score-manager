@@ -21,6 +21,8 @@ Cursor Agent 向けの入口ドキュメントです。
   rules/          # パス別コーディング規約（.mdc）← 正本
   skills/         # ワークフロースキル（runbook, spec-kit）
   commands/       # スラッシュコマンド（/clarify /design /implement /pr /release）
+  hooks.json      # プロジェクトフック（機密・worklog）
+  hooks/          # beforeShellExecution / preToolUse
   mcp.json        # MCP サーバー定義（mcpServers）
 ```
 
@@ -67,6 +69,17 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 | マージ / リリース | ユーザー明示依頼時のみ（`/release` = develop→main） |
 
 設計フェーズ完了時の停止、品質ゲート（`npm run build`）、Spec 3点セット、worklog 運用は必須。
+
+### Hooks
+
+`.cursor/hooks.json` が、エージェントのシェル実行とファイル操作の前に機密と worklog を見る。フックは commit / push / worklog 起票をしない。異常終了時は fail-closed（その操作を通さない）。
+
+| イベント | 動き |
+|---|---|
+| `beforeShellExecution` | `git add` / `git commit` だけを検査する。秘密ファイルのステージは拒否。当日 worklog が無い `git commit` は拒否 |
+| `preToolUse` | 秘密パスの Read は確認。Write / StrReplace / Delete は拒否。`.env.local` のローカル向け書き込みだけ確認し、localhost 以外の DB / Supabase ホストを含む内容は拒否 |
+
+husky の `.husky/pre-commit` は、エージェント以外を含むすべての commit に対する最終ゲート（必須ファイルと `npm run check:worklog`）である。Cursor フックはそれより前に、エージェントへ理由を返す。worklog の日付と `### ` エントリの条件は `scripts/check-worklog.mjs` と同じ。
 
 ## Spec Kit / 手順書
 
