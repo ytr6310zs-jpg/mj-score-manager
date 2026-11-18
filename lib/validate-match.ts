@@ -1,5 +1,12 @@
+import {
+  parseScoreInput,
+  resolveScoringRuleSet,
+  scoreFieldValidationMessage,
+  sumToleranceMessage,
+  type ScoringRuleSet,
+} from "@/lib/scoring-rules";
+
 const NONE_VALUE = "__none__";
-const SCORE_TOLERANCE = 1;
 
 export type GameType = "3p" | "4p";
 
@@ -26,18 +33,12 @@ function parseOptionalPlayer(value: FormDataEntryValue | null) {
   return !parsed || parsed === NONE_VALUE ? null : parsed;
 }
 
-function parseScore(value: FormDataEntryValue | null) {
+function parseScore(value: FormDataEntryValue | null, rules: ScoringRuleSet) {
   const raw = parseString(value);
   if (!raw) {
     return null;
   }
-
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed < -1000 || parsed > 1000) {
-    return null;
-  }
-
-  return parsed;
+  return parseScoreInput(raw, rules);
 }
 
 export type ParsedMatchData = {
@@ -68,6 +69,7 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
 
   const gameType = parseGameType(formData.get("gameType"));
   const activeSlots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
+  const scoringRules = resolveScoringRuleSet(gameDate);
 
   const players = activeSlots.map((slot) => parseString(formData.get(`player${slot}`)));
   for (const [index, player] of players.entries()) {
@@ -84,22 +86,22 @@ export function validateAndParseMatchForm(formData: FormData): { ok: true; data:
   }
 
   const scores = activeSlots.map((slot, index) => {
-    const score = parseScore(formData.get(`score${slot}`));
+    const score = parseScore(formData.get(`score${slot}`), scoringRules);
     return { index, score };
   });
 
   const invalidScore = scores.find(({ score }) => score === null);
   if (invalidScore) {
-    return { ok: false, message: `スコア${invalidScore.index + 1}は -1000 から 1000 の整数で入力してください。` };
+    return { ok: false, message: scoreFieldValidationMessage(scoringRules, invalidScore.index + 1) };
   }
 
   const resolvedScores = scores.map(({ score }) => score as number);
   const total = resolvedScores.reduce((sum, score) => sum + score, 0);
 
-  if (Math.abs(total) > SCORE_TOLERANCE) {
+  if (Math.abs(total) > scoringRules.sumTolerance) {
     return {
       ok: false,
-      message: "最終スコア合計は 0 にしてください。四捨五入の記載誤差として ±1 までは許容しています。",
+      message: sumToleranceMessage(scoringRules),
     };
   }
 

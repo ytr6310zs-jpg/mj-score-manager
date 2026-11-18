@@ -1,7 +1,7 @@
 # Implementation Plan: 集計ルール変更（2027-01 以降適用）
 
 **Branch**: `cursor/issue-292-scoring-rules-2027-b7b7` | **Date**: 2026-11-18 | **Spec**: [spec.md](./spec.md)  
-**Status**: Draft — 設計承認待ち（Open Decisions は確定済み）
+**Status**: Approved — 実装中
 
 ---
 

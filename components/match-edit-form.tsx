@@ -11,10 +11,14 @@ import { Label } from "@/components/ui/label";
 import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
-import useYakumans from "@/lib/useYakumans";
 import type { MatchResult } from "@/lib/matches";
+import {
+  resolveScoringRuleSet,
+  scoreInputStep,
+} from "@/lib/scoring-rules";
 import { setLastTournamentId } from "@/lib/tournament-preference";
 import type { TournamentOption } from "@/lib/tournaments";
+import useYakumans from "@/lib/useYakumans";
 import { YAKUMANS } from "@/lib/yakumans";
 
 const initialState: EditMatchState = {
@@ -93,6 +97,8 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
     4: match.players[3]?.isYakitori ?? false,
   });
   const [notes, setNotes] = useState(match.notes);
+  const scoringRules = useMemo(() => resolveScoringRuleSet(gameDate), [gameDate]);
+  const scoreStep = scoreInputStep(scoringRules);
   const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>(
     (yakumans ?? []).map((entry) => ({
       playerName: entry.player_name,
@@ -199,14 +205,14 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
       })
       .reduce((a, b) => a + b, 0);
 
-    if (Math.abs(total) < 1) {
+    if (Math.abs(total) <= scoringRules.sumTolerance) {
       setClientError(null);
     } else {
       setClientError(
         total > 0 ? `スコア合計が${total}超過しています` : `スコア合計が${Math.abs(total)}不足しています`
       );
     }
-  }, [gameType, players, scores]);
+  }, [gameType, players, scores, scoringRules.sumTolerance]);
 
   useEffect(() => {
     const selectedPlayers = activeSlots
@@ -376,6 +382,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
                   <Input
                     id={`score${slot}`}
                     type="number"
+                    step={scoreStep}
                     value={scores[slot as keyof typeof scores]}
                     onChange={(e) => handleScoreChange(slot, e.target.value)}
                     onBlur={() => handleScoreBlur(slot)}

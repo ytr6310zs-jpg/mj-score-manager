@@ -208,6 +208,39 @@ function run() {
   });
   assert.strictEqual(invalidTournament.tournamentId, undefined, 'invalid tournamentId should be ignored');
 
+  // legacy date rejects non-integer scores
+  fd = fdFrom({
+    gameDate: '2026-12-31',
+    gameType: '4p',
+    player1: 'A',
+    player2: 'B',
+    player3: 'C',
+    player4: 'D',
+    score1: '12.5',
+    score2: '12.5',
+    score3: '-12.5',
+    score4: '-12.5',
+  });
+  res = validateAndParseMatchForm(fd);
+  assert.ok(!res.ok, 'legacy date should reject decimal scores');
+
+  // new-rule date accepts one decimal place and ±0.1 sum tolerance
+  fd = fdFrom({
+    gameDate: '2027-01-01',
+    gameType: '4p',
+    player1: 'A',
+    player2: 'B',
+    player3: 'C',
+    player4: 'D',
+    score1: '30.5',
+    score2: '10.0',
+    score3: '-10.2',
+    score4: '-30.3',
+  });
+  res = validateAndParseMatchForm(fd);
+  assert.ok(res.ok, 'new-rule date should accept one-decimal scores within ±0.1');
+  assert.deepStrictEqual(res.data.scores, [30.5, 10, -10.2, -30.3]);
+
   return 0;
 }
 

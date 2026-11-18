@@ -2,7 +2,7 @@
 
 **Feature Branch**: `cursor/issue-292-scoring-rules-2027-b7b7`  
 **Created**: 2026-11-18  
-**Status**: Draft — 設計承認待ち  
+**Status**: Approved — 実装中  
 **Related Issue**: [#292](https://github.com/ytr6310zs-jpg/mj-score-manager/issues/292)
 
 ---
