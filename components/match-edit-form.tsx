@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
 import type { MatchResult } from "@/lib/matches";
 import {
+  formatScoreForInput,
   resolveScoringRuleSet,
   scoreInputStep,
 } from "@/lib/scoring-rules";
@@ -132,7 +133,10 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
       const filledSum = activeSlots
         .filter((s) => s !== target)
         .reduce((acc, s) => acc + Number(scores[s as keyof typeof scores] || 0), 0);
-      setScores((prev) => ({ ...prev, [target]: String(-filledSum) }));
+      setScores((prev) => ({
+        ...prev,
+        [target]: formatScoreForInput(-filledSum, scoringRules.scorePrecision),
+      }));
       setAutoFilledSlot(target);
     }
   }
@@ -149,7 +153,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
     setScores((prev) => {
       const current = Number(prev[slot as keyof typeof prev] || 0);
       const next = Number.isFinite(current) ? current + delta : delta;
-      return { ...prev, [slot]: String(next) };
+      return { ...prev, [slot]: formatScoreForInput(next, scoringRules.scorePrecision) };
     });
     if (slot === autoFilledSlot) {
       setAutoFilledSlot(null);

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   DEFAULT_SCORING_RULES_EFFECTIVE_DATE,
+  formatScoreForInput,
   getScoringRulesEffectiveDate,
   isValidScoreForRuleSet,
   parseScoreInput,
@@ -62,5 +63,10 @@ describe("isValidScoreForRuleSet / parseStoredScore", () => {
     assert.equal(parseStoredScore("12.5"), 12.5);
     assert.equal(parseStoredScore(45), 45);
     assert.equal(parseStoredScore("45.0"), 45);
+  });
+
+  it("自動入力の残り点を小数第1位に量子化する", () => {
+    const filledSum = 10.1 + 20.2;
+    assert.equal(formatScoreForInput(-filledSum, "tenth"), "-30.3");
   });
 });

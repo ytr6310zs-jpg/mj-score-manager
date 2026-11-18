@@ -30,19 +30,39 @@ export const MLEAGUE_2027_SCORING_RULES: ScoringRuleSet = {
 
 type EnvLike = Record<string, string | undefined>;
 
-function readEnv(): EnvLike {
-  return typeof process !== "undefined" && process.env ? process.env : {};
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-export function getScoringRulesEffectiveDate(env: EnvLike = readEnv()): string {
-  const raw = (env.SCORING_RULES_EFFECTIVE_DATE ?? env.NEXT_PUBLIC_SCORING_RULES_EFFECTIVE_DATE ?? "").trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    return raw;
+/**
+ * Apply-date override.
+ * `NEXT_PUBLIC_SCORING_RULES_EFFECTIVE_DATE` must be read via a static
+ * `process.env.NEXT_PUBLIC_*` access so Next.js can inline it into client bundles.
+ * Server-only `SCORING_RULES_EFFECTIVE_DATE` is also honored on the server.
+ */
+export function getScoringRulesEffectiveDate(env?: EnvLike): string {
+  if (env) {
+    const fromBag = (env.SCORING_RULES_EFFECTIVE_DATE ?? env.NEXT_PUBLIC_SCORING_RULES_EFFECTIVE_DATE ?? "").trim();
+    if (isIsoDate(fromBag)) {
+      return fromBag;
+    }
+    return DEFAULT_SCORING_RULES_EFFECTIVE_DATE;
   }
+
+  const publicOverride = process.env.NEXT_PUBLIC_SCORING_RULES_EFFECTIVE_DATE?.trim() ?? "";
+  if (isIsoDate(publicOverride)) {
+    return publicOverride;
+  }
+
+  const serverOverride = process.env.SCORING_RULES_EFFECTIVE_DATE?.trim() ?? "";
+  if (isIsoDate(serverOverride)) {
+    return serverOverride;
+  }
+
   return DEFAULT_SCORING_RULES_EFFECTIVE_DATE;
 }
 
-export function resolveScoringRuleSet(gameDate: string, env: EnvLike = readEnv()): ScoringRuleSet {
+export function resolveScoringRuleSet(gameDate: string, env?: EnvLike): ScoringRuleSet {
   const effectiveFrom = getScoringRulesEffectiveDate(env);
   if (gameDate >= effectiveFrom) {
     return MLEAGUE_2027_SCORING_RULES;
@@ -55,6 +75,11 @@ export function quantizeScore(value: number, precision: ScorePrecision): number 
     return Math.round(value);
   }
   return Math.round(value * 10) / 10;
+}
+
+/** Format a computed remaining score for form auto-fill / steppers. */
+export function formatScoreForInput(value: number, precision: ScorePrecision): string {
+  return String(quantizeScore(value, precision));
 }
 
 export function isValidScoreForRuleSet(value: number, rules: ScoringRuleSet): boolean {

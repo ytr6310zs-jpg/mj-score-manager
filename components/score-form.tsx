@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
 import { readSharedFilterState, writeSharedFilterState } from "@/lib/filter-state-preference";
 import {
+  formatScoreForInput,
   resolveScoringRuleSet,
   scoreInputStep,
   sumToleranceMessage,
@@ -134,7 +135,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     setScores((prev) => {
       const current = Number(prev[slot] || 0);
       const next = Number.isFinite(current) ? current + delta : delta;
-      return { ...prev, [slot]: String(next) };
+      return { ...prev, [slot]: formatScoreForInput(next, scoringRules.scorePrecision) };
     });
     if (slot === autoFilledSlot) {
       setAutoFilledSlot(null);
@@ -154,7 +155,10 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
       const filledSum = activeSlots
         .filter((s) => s !== emptyOtherSlots[0])
         .reduce((acc, s) => acc + Number(scores[s] || 0), 0);
-      setScores((prev) => ({ ...prev, [emptyOtherSlots[0]]: String(-filledSum) }));
+      setScores((prev) => ({
+        ...prev,
+        [emptyOtherSlots[0]]: formatScoreForInput(-filledSum, scoringRules.scorePrecision),
+      }));
       setAutoFilledSlot(emptyOtherSlots[0]);
     }
   }
