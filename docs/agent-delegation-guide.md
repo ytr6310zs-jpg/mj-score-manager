@@ -9,12 +9,15 @@ Cursor Agent へ作業を委任するときの標準テンプレートと運用�
 
 ```
 【設計フェーズ】
-Issue読み取り → `.specify/specs/<feature>/` に spec/plan/tasks → 自己レビュー → ★ユーザー確認（必須停止）
+Issue読み取り → main 取り込み済み develop から機能ブランチ作成（未同期なら停止）
+→ `.specify/specs/<feature>/` に spec/plan/tasks → 自己レビュー → ★ユーザー確認（必須停止）
 
 【実装フェーズ（ユーザー承認後）】
 worklog 起票 → 実装 → テスト → 動作確認 → npm run build
 →（明示依頼後）コミット → push → PR作成
 ```
+
+`/design` の Spec 作成前ゲート（fetch・包含確認・衝突/push 不可時停止・sync PR リカバリ）の正本は `.cursor/commands/design.md`。
 
 途中で失敗した場合は原因を解消してから次工程へ進み、未解消のままコミット・push しないこと。
 **commit / push / PR はユーザー明示依頼時のみ** 実行する。
@@ -27,7 +30,8 @@ worklog 起票 → 実装 → テスト → 動作確認 → npm run build
 
 ```
 Issue #<番号> の概要に基づいて設計資料を作成してください。
-`.specify/specs/<feature>/` に spec.md / plan.md / tasks.md を作成し、自己レビュー結果も提示してください。
+先に main 取り込み済みの develop から機能ブランチを切り（未同期・衝突・develop push 不可なら停止）、
+そのブランチ上で `.specify/specs/<feature>/` に spec.md / plan.md / tasks.md を作成し、自己レビュー結果も提示してください。
 設計完了時点で worklog を作成し、その存在を自己レビュー項目に含めてください。
 設計フェーズ完了後は私の確認を待ってください。
 ```

@@ -38,10 +38,11 @@ EOF
 `check-worklog` は PR 本文に `worklog` が含まれること（または `.worklog/` 差分）を要求する。テンプレの `## Worklog` を省略しないこと。
 
 3. リリース PR の CI / 必須チェックを確認。失敗・未完了なら停止して報告
-4. 問題なければ `gh pr merge <releasePR> --merge`（squash / rebase はユーザー明示時のみ）
-5. `git fetch origin` → 必要なら `git checkout main` → `git pull origin main` で main 反映を確認
-6. リリース PR URL とマージ結果を要約して提示する
-7. マージ済み作業ブランチの削除は、ユーザーが依頼したとき、または委任ガイドの後処理指示があるときのみ行う（`develop` / `main` は削除しない）
+4. 問題なければまず `gh pr merge <releasePR> --merge`（squash / rebase はユーザー明示時のみ）
+5. **通常マージが branch lock 等でだけ拒否され、かつ必須チェックがすべて成功している場合に限り**、`gh pr merge <releasePR> --merge --admin` を使ってよい（本コマンド呼び出しが許可根拠）。失敗チェックの回避には使わない
+6. `git fetch origin` → 必要なら `git checkout main` → `git pull origin main` で main 反映を確認
+7. リリース PR URL とマージ結果を要約して提示する（`--admin` を使った場合はその旨も明記）
+8. マージ済み作業ブランチの削除は、ユーザーが依頼したとき、または委任ガイドの後処理指示があるときのみ行う（`develop` / `main` は削除しない）
 
 ## オプション（ユーザー指示時）
 
@@ -52,7 +53,9 @@ EOF
 
 ## 制約
 
-- force push / hard reset / `--no-verify` / 管理者マージでチェック回避はしない
+- force push / hard reset / `--no-verify` はしない
+- **`--admin` / 管理者マージは本コマンド（`/release`）呼び出し時のみ許可**。チェック失敗の回避には使わない
+- `/release` 以外の会話では `--admin` を使わず、通常マージ不可ならユーザーに確認して停止する
 - `main` への直接 push はしない（必ず PR 経由）
 - 機能 PR → `develop` のマージは行わない（別途ユーザーがマージ、または明示依頼）
 - CI 失敗・権限不足のときは停止して確認する
