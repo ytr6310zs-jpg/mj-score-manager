@@ -25,10 +25,8 @@ function gitPaths(cwd, args) {
       timeout: 5000,
       stdio: ["ignore", "pipe", "pipe"],
     });
-    return out
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
+    // porcelain の XY は先頭空白が意味を持つ。trim すると未ステージ行のパスが1文字欠ける。
+    return out.split(/\r?\n/).filter((line) => line.length > 0);
   } catch {
     return null;
   }
@@ -77,7 +75,9 @@ if (!inspected.needsCommit && !inspected.scanAdds) {
 let gitAvailable = true;
 let pendingAddPaths = [];
 if (inspected.scanAdds) {
-  const statusLines = gitPaths(cwd, ["status", "--porcelain=v1", "-uall"]);
+  const statusArgs = ["status", "--porcelain=v1", "-uall"];
+  if (inspected.forceAdds) statusArgs.push("--ignored");
+  const statusLines = gitPaths(cwd, statusArgs);
   if (statusLines == null) gitAvailable = false;
   else pendingAddPaths = pathsStagedByAdds(command, statusLines);
 }

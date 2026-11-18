@@ -86,6 +86,7 @@ export function inspectCommand(command) {
     needsCommit: false,
     commitAll: false,
     scanAdds: plan.active,
+    forceAdds: plan.force,
   };
   if (typeof command !== "string" || command.length === 0) return result;
 
@@ -107,7 +108,8 @@ export function pathsStagedByAdds(command, statusLines) {
   if (plan.repoAll) selected = entries;
   else if (plan.cwdAll) selected = entries.filter((entry) => !entry.path.startsWith("../"));
   else selected = entries.filter((entry) => plan.paths.some((spec) => pathspecCovers(spec, entry.path)));
-  if (plan.updateOnly) selected = selected.filter((entry) => entry.kind !== "untracked");
+  if (!plan.force) selected = selected.filter((entry) => entry.kind !== "ignored");
+  if (plan.updateOnly) selected = selected.filter((entry) => entry.kind === "tracked");
   return selected.map((entry) => entry.path);
 }
 
@@ -378,6 +380,7 @@ function parseGit(tokens) {
 function parseAddArgs(rest) {
   let sawAll = false;
   let sawUpdate = false;
+  let sawForce = false;
   const paths = [];
   let afterDash = false;
   const valueFlags = new Set(["-m", "--chmod", "--pathspec-from-file"]);
@@ -395,6 +398,10 @@ function parseAddArgs(rest) {
       sawUpdate = true;
       continue;
     }
+    if (!afterDash && (token === "--force" || token.startsWith("--force="))) {
+      sawForce = true;
+      continue;
+    }
     if (!afterDash && token.startsWith("--")) {
       if (valueFlags.has(token)) i += 1;
       continue;
@@ -403,6 +410,7 @@ function parseAddArgs(rest) {
       const letters = token.slice(1);
       if (letters.includes("A")) sawAll = true;
       if (letters.includes("u")) sawUpdate = true;
+      if (letters.includes("f")) sawForce = true;
       continue;
     }
     paths.push(token);
@@ -415,11 +423,12 @@ function parseAddArgs(rest) {
     repoAll,
     cwdAll,
     updateOnly: sawUpdate && !sawAll,
+    force: sawForce,
   };
 }
 
 function addPlan(command) {
-  const plan = { active: false, repoAll: false, cwdAll: false, updateOnly: false, paths: [] };
+  const plan = { active: false, repoAll: false, cwdAll: false, updateOnly: false, force: false, paths: [] };
   if (typeof command !== "string" || command.length === 0) return plan;
   let sawUpdate = false;
   let sawNonUpdate = false;
@@ -429,6 +438,7 @@ function addPlan(command) {
     plan.active = true;
     if (git.repoAll) plan.repoAll = true;
     if (git.cwdAll) plan.cwdAll = true;
+    if (git.force) plan.force = true;
     if (git.updateOnly) sawUpdate = true;
     else sawNonUpdate = true;
     plan.paths.push(...git.paths);
@@ -449,7 +459,10 @@ function parseStatusLine(line) {
   if (filePath.includes(" -> ")) filePath = filePath.split(" -> ").pop().trim();
   if (filePath.startsWith('"') && filePath.endsWith('"')) filePath = filePath.slice(1, -1);
   if (!filePath) return null;
-  return { path: filePath, kind: code === "??" ? "untracked" : "tracked" };
+  let kind = "tracked";
+  if (code === "??") kind = "untracked";
+  else if (code === "!!") kind = "ignored";
+  return { path: filePath, kind };
 }
 
 function pathspecCovers(pathspec, filePath) {
