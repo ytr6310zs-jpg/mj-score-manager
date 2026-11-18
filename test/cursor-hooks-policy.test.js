@@ -100,6 +100,44 @@ describe("shell decisions", () => {
     );
   });
 
+  it("denies a catch-all add of an unstaged tracked secret", () => {
+    const status = [" M .env", " M id_rsa", "?? readme.txt"];
+    const command = "git add -A && git commit -m msg";
+    const pending = pathsStagedByAdds(command, status);
+    assert.ok(pending.includes(".env"));
+    assert.ok(pending.includes("id_rsa"));
+    assert.equal(
+      decideShell({ command, pendingAddPaths: pending, worklogOk: true }).permission,
+      "deny",
+    );
+    assert.deepEqual(pathsStagedByAdds("git add -u && git commit -m msg", status), [".env", "id_rsa"]);
+  });
+
+  it("denies a catch-all force add of gitignored secrets", () => {
+    const status = ["!! .env", "!! certs/server.pem", "?? readme.txt"];
+    for (const command of [
+      "git add -f -A && git commit -m msg",
+      "git add --force . && git commit -m msg",
+      "git add -Af && git commit -m msg",
+    ]) {
+      const pending = pathsStagedByAdds(command, status);
+      assert.ok(pending.includes(".env"), command);
+      assert.ok(pending.includes("certs/server.pem"), command);
+      assert.equal(
+        decideShell({ command, pendingAddPaths: pending, worklogOk: true }).permission,
+        "deny",
+        command,
+      );
+    }
+    const plain = pathsStagedByAdds("git add -A && git commit -m msg", status);
+    assert.equal(plain.includes(".env"), false);
+    assert.deepEqual(plain, ["readme.txt"]);
+    assert.deepEqual(pathsStagedByAdds("git add -fu && git commit -m msg", ["!! .env", " M readme.txt"]), [
+      "readme.txt",
+    ]);
+    assert.deepEqual(pathsStagedByAdds("git add -f readme.txt && git commit -m msg", status), ["readme.txt"]);
+  });
+
   it("does not treat .env.example as a secret when it is the only added path", () => {
     const command = "git add .env.example && git commit -m msg";
     const pending = pathsStagedByAdds(command, ["?? credentials.json", "?? .env.example"]);
@@ -277,6 +315,54 @@ describe("hook stdin", () => {
       );
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("denies catch-all add of a modified tracked secret and a forced ignored secret", () => {
+    const tracked = fs.mkdtempSync(path.join(os.tmpdir(), "cursor-hook-tracked-"));
+    const ignored = fs.mkdtempSync(path.join(os.tmpdir(), "cursor-hook-ignored-"));
+    const git = (cwd, args) => spawnSync("git", args, { cwd, encoding: "utf8" });
+    try {
+      git(tracked, ["init"]);
+      git(tracked, ["config", "user.email", "hook@example.com"]);
+      git(tracked, ["config", "user.name", "hook"]);
+      fs.writeFileSync(path.join(tracked, ".env"), "A=b\n");
+      fs.writeFileSync(path.join(tracked, "id_rsa"), "a\n");
+      git(tracked, ["add", ".env", "id_rsa"]);
+      git(tracked, ["commit", "-m", "init"]);
+      fs.writeFileSync(path.join(tracked, ".env"), "A=c\n");
+      fs.writeFileSync(path.join(tracked, "id_rsa"), "b\n");
+      const trackedLogs = path.join(tracked, ".worklog", "logs");
+      fs.mkdirSync(trackedLogs, { recursive: true });
+      fs.writeFileSync(path.join(trackedLogs, `${utcWorklogDate()}.md`), "### entry\n");
+      assert.equal(
+        runHook(beforeShell, { command: "git add -A && git commit -m msg", cwd: tracked }).permission,
+        "deny",
+      );
+
+      git(ignored, ["init"]);
+      fs.writeFileSync(path.join(ignored, ".gitignore"), ".env\n*.pem\n");
+      fs.writeFileSync(path.join(ignored, ".env"), "A=b\n");
+      fs.writeFileSync(path.join(ignored, "server.pem"), "key\n");
+      fs.writeFileSync(path.join(ignored, "readme.txt"), "ok\n");
+      const ignoredLogs = path.join(ignored, ".worklog", "logs");
+      fs.mkdirSync(ignoredLogs, { recursive: true });
+      fs.writeFileSync(path.join(ignoredLogs, `${utcWorklogDate()}.md`), "### entry\n");
+      assert.equal(
+        runHook(beforeShell, { command: "git add -f -A && git commit -m msg", cwd: ignored }).permission,
+        "deny",
+      );
+      assert.equal(
+        runHook(beforeShell, { command: "git add --force . && git commit -m msg", cwd: ignored }).permission,
+        "deny",
+      );
+      assert.equal(
+        runHook(beforeShell, { command: "git add -A && git commit -m msg", cwd: ignored }).permission,
+        "allow",
+      );
+    } finally {
+      fs.rmSync(tracked, { recursive: true, force: true });
+      fs.rmSync(ignored, { recursive: true, force: true });
     }
   });
 
