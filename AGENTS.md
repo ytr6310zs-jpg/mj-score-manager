@@ -45,7 +45,7 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 | コマンド | 用途 |
 |---|---|
 | `/clarify` | Issue 内容の確認・不明点の洗い出し（実装しない） |
-| `/design` | Spec 3点作成・自己レビュー・停止（実装禁止） |
+| `/design` | Spec 前に main 取り込み済み develop からブランチ作成 → Spec 3点・自己レビュー・停止（実装禁止） |
 | `/implement` | 設計承認後の実装・検証（commit/push/PR は明示依頼時のみ） |
 | `/pr` | 実装後の commit → push → PR 作成（この呼び出しが明示依頼） |
 | `/release` | develop → main のリリース PR 作成・マージ |
@@ -68,6 +68,8 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 | PR 作成 | ユーザー明示依頼時のみ（`/pr` 可） |
 | マージ / リリース | ユーザー明示依頼時のみ（`/release` = develop→main） |
 | `--admin` マージ | **`/release` 呼び出し時のみ**（かつ CI 成功後・branch lock 回避用途）。チェック失敗の回避・`/release` 外では禁止 |
+
+`/design` は Spec 作成前に `main`/`develop` 同期ゲートを通す（正本: `.cursor/commands/design.md`）。未同期・衝突・`develop` push 不可時は停止。
 
 設計フェーズ完了時の停止、品質ゲート（`npm run build`）、Spec 3点セット、worklog 運用は必須。
 
