@@ -1,29 +1,18 @@
 import { test, expect } from '@playwright/test';
 
+import { gotoAndSettle, loginAndSettle } from './helpers/auth';
+
 const SHARED_KEY = 'mj-score-manager:shared-filter';
 
 test.describe('Filter state header + navigation', () => {
   test('header links reflect saved shared state and navigation preserves it', async ({ page, baseURL }) => {
     const state = { filter: 'custom', start: '2024-01-05', end: '2024-01-10', tournamentId: '7', minGames: '20' };
 
-    // perform login (if app requires auth)
-    const BASE = baseURL || '';
-    await page.goto(`${BASE}/login`);
-    const userInput = page.locator('input[name="userId"], input#userId').first();
-    const passInput = page.locator('input[name="password"], input#password').first();
-    if (await userInput.count() > 0) {
-      await userInput.fill(process.env.E2E_LOGIN_USER_ID || 'admin');
-      await passInput.fill(process.env.E2E_LOGIN_PASSWORD || 'ChangeMe_184');
-      const loginButton = page.locator('button[type="submit"], button:has-text("ログイン")').first();
-      await loginButton.click();
-      await page.waitForURL((url) => url.pathname === '/matches', { timeout: 10000 });
-      await expect(page.getByRole('heading', { name: '対局履歴' })).toBeVisible({ timeout: 15000 });
-      await page.waitForLoadState('domcontentloaded');
-    }
+    await loginAndSettle(page);
 
     // open stats page with explicit query (URL is authoritative and will be saved)
-    const statsUrl = `${BASE}/stats?filter=custom&start=${state.start}&end=${state.end}&minGames=${state.minGames}`;
-    await page.goto(statsUrl, { waitUntil: 'domcontentloaded' });
+    const statsUrl = `/stats?filter=custom&start=${state.start}&end=${state.end}&minGames=${state.minGames}`;
+    await gotoAndSettle(page, statsUrl, '成績集計');
 
     const statsLink = page.getByRole('link', { name: '成績集計' });
     const matchesLink = page.getByRole('link', { name: '対局履歴' });
