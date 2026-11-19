@@ -16,7 +16,7 @@ test.describe('Filter state header + navigation', () => {
       await passInput.fill(process.env.E2E_LOGIN_PASSWORD || 'ChangeMe_184');
       const loginButton = page.locator('button[type="submit"], button:has-text("ログイン")').first();
       await loginButton.click();
-      await page.waitForURL((url) => url.pathname === '/' || url.pathname === '/matches', { timeout: 10000 });
+      await page.waitForURL((url) => url.pathname === '/matches', { timeout: 10000 });
     }
 
     // open stats page with explicit query (URL is authoritative and will be saved)

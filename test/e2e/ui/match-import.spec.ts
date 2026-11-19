@@ -47,7 +47,7 @@ test.describe("Match Import Flow (E2E)", () => {
       await loginButton.click();
     }
 
-    await page.waitForURL((url) => url.pathname === "/" || url.pathname === "/matches", { timeout: 10000 });
+    await page.waitForURL((url) => url.pathname === "/matches", { timeout: 10000 });
   });
   test("should display import form with correct field order", async ({ page }) => {
     await page.goto(`${BASE_URL}/matches/import`);

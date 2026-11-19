@@ -74,6 +74,17 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 
 設計フェーズ完了時の停止、品質ゲート（`npm run build`）、Spec 3点セット、worklog 運用は必須。
 
+### スコア入力 UI（deprecate / 非保証）
+
+`/` と `components/score-form.tsx` は運用上非推奨。**動作保証・積極メンテ対象外**（Issue #305）。
+
+- 専用 E2E（score-entry）は置かない・復活させない
+- 改修はユーザー明示依頼、共有層の最小追従、放置不能な欠陥のときだけ
+- UX 洗い出し（#304 等）でも原則対象外。自主改善提案をしない
+- 新規登録の推奨はスプレッドシート → `/matches/import`
+
+詳細の正本: `.cursor/rules/project-core.mdc`
+
 ### Hooks
 
 `.cursor/hooks.json` が、エージェントのシェル実行とファイル操作の前に機密と worklog を見る。フックは commit / push / worklog 起票をしない。異常終了時は fail-closed（その操作を通さない）。

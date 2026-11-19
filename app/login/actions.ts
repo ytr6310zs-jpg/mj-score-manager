@@ -168,11 +168,7 @@ export async function loginAction(
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
 
-  if (user.role === "viewer") {
-    redirect("/matches");
-  }
-
-  redirect("/");
+  redirect("/matches");
 }
 
 export async function logoutAction() {

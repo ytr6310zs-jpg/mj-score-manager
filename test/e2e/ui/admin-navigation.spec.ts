@@ -24,7 +24,7 @@ async function loginAsAdmin(page: Page) {
     await loginButton.click();
   }
 
-  await page.waitForURL(`${BASE_URL}/`, { timeout: 10000 });
+  await page.waitForURL(`${BASE_URL}/matches`, { timeout: 10000 });
 }
 
 test.describe("Admin navigation", () => {
