@@ -96,17 +96,28 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 
 husky の `.husky/pre-commit` は、エージェント以外を含むすべての commit に対する最終ゲート（必須ファイルと `npm run check:worklog`）である。Cursor フックはそれより前に、エージェントへ理由を返す。worklog の日付と `### ` エントリの条件は `scripts/check-worklog.mjs` と同じ。
 
+## 文書階層（正本）
+
+全文同期はしない。規範文は正本以外に増やさない。パス別コーディング規約の更新先は **`.cursor/rules/` のみ**。
+
+| 層 | 正本 | 置くもの | 置かないもの |
+|---|---|---|---|
+| 不変原則 | `.specify/memory/constitution.md` | ドメイン優先、SDD、機密、品質ゲート、最小差分 | コマンド手順、ブランチ命名の細部 |
+| 日次運用 | `.cursor/rules/project-core.mdc`（入口要約は本ファイル） | フェーズ、停止条件、commit/push/PR、検証コマンド | 長いテンプレ本文 |
+| 実行手順 | `.cursor/commands/*` / `.cursor/skills/*` | `/design` ゲート等の手順 | 原則の再定義 |
+| 人間向けコピペ | `docs/agent-delegation-guide.md` / `docs/issue-prompt-guidelines.md` | 委任テンプレ | ルールの第二の正本化 |
+| CI 必須運用詳細 | `.github/agent-instructions.md` | CI/husky が参照する運用詳細 | パス別コーディング規約の複製 |
+
 ## Spec Kit / 手順書
 
 - `.specify/` — Spec 成果物・テンプレート（継続利用）
 - `.github/agents/*.agent.md` — Spec Kit フェーズ手順書（Cursor スキルから参照）
-- `.github/instructions/` — **deprecated**（旧 Copilot パス別規約。正本は `.cursor/rules/`）
-- `.github/prompts/` — **deprecated**（旧 Copilot Chat プロンプト）
 
 ## 関連 Issue
 
 - #279 `.cursorignore` と `/commands`
 - #280 hooks による機密・worklog ガード
+- #307 エージェント規約の正本整理（本階層表）
 
 ## Cursor Cloud specific instructions
 
