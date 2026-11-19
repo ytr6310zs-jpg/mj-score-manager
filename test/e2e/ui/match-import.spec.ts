@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { generate } from "otplib";
+
+import { gotoAndSettle, loginAndSettle } from "./helpers/auth";
 
 /**
  * Browser E2E test for bulk match import flow
@@ -19,38 +20,17 @@ import { generate } from "otplib";
  * - GOOGLE_SPREADSHEET_ID env var set with valid test sheet
  */
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
-const E2E_LOGIN_USER_ID = process.env.E2E_LOGIN_USER_ID || "admin";
-const E2E_LOGIN_PASSWORD = process.env.E2E_LOGIN_PASSWORD || "ChangeMe_184";
-const TOTP_SECRET_RAW = String(process.env.MFA_TOTP_SECRET ?? "").trim();
-const TOTP_SECRET = TOTP_SECRET_RAW && TOTP_SECRET_RAW !== "MFA_TOTP_SECRET" ? TOTP_SECRET_RAW : "";
+async function openImportPage(page: Parameters<typeof gotoAndSettle>[0]) {
+  await gotoAndSettle(page, "/matches/import", /対局インポート/);
+}
 
 test.describe("Match Import Flow (E2E)", () => {
   test.beforeEach(async ({ page }) => {
-    // Ensure we're authenticated before each test to avoid middleware redirect to /login
-    await page.goto(`${BASE_URL}/login`);
-    const userIdInput = page.locator('input[name="userId"], input#userId').first();
-    const passwordInput = page.locator('input[name="password"], input#password').first();
-    await expect(userIdInput).toBeVisible();
-    await expect(passwordInput).toBeVisible();
-    await userIdInput.fill(E2E_LOGIN_USER_ID);
-    await passwordInput.fill(E2E_LOGIN_PASSWORD);
-
-    const loginButton = page.locator('button[type="submit"], button:has-text("ログイン")').first();
-    await loginButton.click();
-
-    if (TOTP_SECRET) {
-      const otpInput = page.locator('input[name="otp"], input#otp').first();
-      await expect(otpInput).toBeVisible({ timeout: 10000 });
-      const code = await generate({ secret: TOTP_SECRET, digits: 6, period: 30 });
-      await otpInput.fill(code);
-      await loginButton.click();
-    }
-
-    await page.waitForURL((url) => url.pathname === "/" || url.pathname === "/matches", { timeout: 10000 });
+    // Shared helper accepts develop (`/` or `/matches`) and #305 (always `/matches`) landings.
+    await loginAndSettle(page);
   });
   test("should display import form with correct field order", async ({ page }) => {
-    await page.goto(`${BASE_URL}/matches/import`);
+    await openImportPage(page);
 
     // ページタイトルの確認
     const heading = page.locator("h1");
@@ -89,7 +69,7 @@ test.describe("Match Import Flow (E2E)", () => {
   test("should show validation error when tournament is not selected", async ({
     page,
   }) => {
-    await page.goto(`${BASE_URL}/matches/import`);
+    await openImportPage(page);
 
     const gameDate = page.locator('input[name="gameDate"]');
     const sheetTitle = page.locator('input[name="sheetTitle"]');
@@ -119,7 +99,7 @@ test.describe("Match Import Flow (E2E)", () => {
       test.skip();
     }
 
-    await page.goto(`${BASE_URL}/matches/import`);
+    await openImportPage(page);
 
     const tournamentSelect = page.locator("select");
     const gameDate = page.locator('input[name="gameDate"]');
@@ -149,7 +129,7 @@ test.describe("Match Import Flow (E2E)", () => {
       test.skip();
     }
 
-    await page.goto(`${BASE_URL}/matches/import`);
+    await openImportPage(page);
 
     const tournamentSelect = page.locator("select");
     const gameDate = page.locator('input[name="gameDate"]');
@@ -192,11 +172,7 @@ test.describe("Match Import Flow (E2E)", () => {
   test("bulk import button should appear on matches page in correct position", async ({
     page,
   }) => {
-    await page.goto(`${BASE_URL}/matches`);
-
-    // ページヘッダーまたはタイトル行を確認
-    const heading = page.locator("h1");
-    await expect(heading).toContainText("対局履歴");
+    await gotoAndSettle(page, "/matches", "対局履歴");
 
     // インポートボタンを探す
     const importButton = page.locator('a:has-text("一括インポート")');
@@ -230,7 +206,7 @@ test.describe("Match Import Flow (E2E)", () => {
       test.skip();
     }
 
-    await page.goto(`${BASE_URL}/matches/import`);
+    await openImportPage(page);
 
     // 同じデータで 2 回プレビュー+確定を試みるフロー
     // 2 回目は重複として skipped されることを期待
@@ -263,7 +239,7 @@ test.describe("Match Import Flow (E2E)", () => {
   });
 
   test("should show proper error messages for form validation", async ({ page }) => {
-    await page.goto(`${BASE_URL}/matches/import`);
+    await openImportPage(page);
 
     const previewButton = page.locator('button:has-text("プレビュー作成")');
 
@@ -290,7 +266,7 @@ test.describe("Match Import Flow (E2E)", () => {
       test.skip();
     }
 
-    await page.goto(`${BASE_URL}/matches/import`);
+    await openImportPage(page);
 
     // 成功後、フォームが reset されることを確認
     const tournamentSelect = page.locator("select");

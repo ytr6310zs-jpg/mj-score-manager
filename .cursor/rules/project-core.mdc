@@ -29,6 +29,7 @@ alwaysApply: true
 - **commit / push / PR はユーザー明示依頼時のみ** 実行する（自動実行しない）
 - 作業フロー: 設計フェーズ → ユーザー確認（必須停止）→ 実装フェーズ
 - `/design` 開始時: `main` 取り込み済みの `develop` から機能ブランチを切る（詳細: `.cursor/commands/design.md`）。未同期・衝突・`develop` push 不可なら Spec 作成前に停止する
+- `/release` 完了条件: `develop` → `main` のあと **`main` → `develop` 同期まで**（詳細: `.cursor/commands/release.md`）。未同期のまま終わらせない
 - ブランチ命名: `feature/issue-<番号>-<要約>` / `fix/issue-<番号>-<要約>` / `chore/<要約>`
 - PR マージ先の既定: `develop`
 - PR 本文必須: 設計概要、実装概要、検証コマンドと結果、手動確認、既知の未解決事項
@@ -40,6 +41,17 @@ alwaysApply: true
 - API キー・トークン・秘密鍵・個人情報をコード・ログ・コミットに含めない
 - Server Action / API では入力バリデーションとエラーハンドリングを厳格に行う
 - 認証・認可変更時はリスクと影響範囲を PR に明記する
+
+## スコア入力 UI（`/` / `components/score-form.tsx`）— Issue #305
+
+- 運用上 **deprecate**。**動作保証・積極メンテナンスの対象外**。
+- 専用自動テスト（例: `test/e2e/ui/score-entry.spec.ts`）は置かない。復活・追加しない。
+- 改修してよいのは次のいずれかだけ:
+  1. ユーザーがスコア入力 UI の改修を明示依頼した
+  2. 取り込み等と共有する層（例: `saveScoreAction` / `lib/validate-match`）の必要最小追従
+  3. セキュリティ／データ破壊など放置不能な欠陥
+- `#304` 等の UX 洗い出しでも原則対象外。見た目・UX 改善を自主提案しない。
+- 推奨の新規登録経路はスプレッドシート → `/matches/import`。対局修正は編集画面。
 
 ## Quality & Spec-Driven Development
 

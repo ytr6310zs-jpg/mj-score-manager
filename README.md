@@ -155,7 +155,7 @@ npm run test:ui:local:reset
 補足:
 
 - `test:ui:local` は `check:local-db:strict` を内部で実行し、`SUPABASE_URL` / `DATABASE_URL` が未設定、または remote URL の場合は失敗します。
-- `test/e2e/ui/score-entry.spec.ts` は preflight で `players` / `games` / `users` テーブルを検証し、未マイグレーション状態は `skip` ではなくテスト失敗として報告します。
+- スコア入力画面（`/`）専用の Playwright（旧 `score-entry.spec.ts`）は Issue #305 で削除済みです（UI 非保証）。残りの UI E2E は取り込み・ナビ等を対象とします。
 - 既定の UI テスト用ログイン情報は `admin / ChangeMe_184` です。必要なら以下で上書きしてください。
 
 ```bash
