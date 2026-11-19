@@ -142,5 +142,5 @@ PR が main にマージされたら、develop を除く取り込み済みブラ
 
 ---
 **関連カスタマイズ（任意）**
-- PR本文を差分から自動生成する場合: `.github/prompts/pr-body-from-changes.prompt.md`
-- 実装フェーズの手順を固定する場合: `.github/skills/issue-implementation-runbook/SKILL.md`
+- PR 作成手順（commit / push / PR 本文）: `.cursor/commands/pr.md`
+- 実装フェーズの手順を固定する場合: `.cursor/skills/issue-implementation-runbook/SKILL.md`

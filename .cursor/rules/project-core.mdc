@@ -59,7 +59,7 @@ alwaysApply: true
 - 実装前に `.specify/specs/<feature>/spec.md` / `plan.md` / `tasks.md` の 3 点を確認
 - 設計フェーズ完了後はユーザー承認を待ってから実装に進む
 - 小さな修正は PR 本文の Spec セクションで代替可（CI check-spec 対応）
-- 規約変更時は `.cursor/rules/` を更新する（正本）。`.github/instructions/` は deprecated
+- 規約変更時は `.cursor/rules/` のみを更新する（パス別コーディング規約の正本。第二の正本を作らない）
 
 ## Stop Conditions
 
