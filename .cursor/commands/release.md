@@ -41,8 +41,43 @@ EOF
 4. 問題なければまず `gh pr merge <releasePR> --merge`（squash / rebase はユーザー明示時のみ）
 5. **通常マージが branch lock 等でだけ拒否され、かつ必須チェックがすべて成功している場合に限り**、`gh pr merge <releasePR> --merge --admin` を使ってよい（本コマンド呼び出しが許可根拠）。失敗チェックの回避には使わない
 6. `git fetch origin` → 必要なら `git checkout main` → `git pull origin main` で main 反映を確認
-7. リリース PR URL とマージ結果を要約して提示する（`--admin` を使った場合はその旨も明記）
-8. マージ済み作業ブランチの削除は、ユーザーが依頼したとき、または委任ガイドの後処理指示があるときのみ行う（`develop` / `main` は削除しない）
+7. **必須: `main` → `develop` 同期**（詳細は下記「リリース後の develop 同期」）。未完了のまま `/release` を終わらせない
+8. リリース PR URL・同期 PR URL・マージ結果を要約して提示する（`--admin` を使った場合はその旨も明記）
+9. マージ済み作業ブランチの削除は、ユーザーが依頼したとき、または委任ガイドの後処理指示があるときのみ行う（`develop` / `main` は削除しない）
+
+## リリース後の develop 同期（必須）
+
+`develop` → `main` を merge コミットで取り込むと、`main` 先端のマージコミットだけが `develop` に無い状態になる（ツリーが同一でも `git merge-base --is-ancestor origin/main origin/develop` は失敗する）。  
+これは hooks 欠落時だけの話ではなく、**通常のリリースのたびに起きる**。放置すると次の `/design` が同期 PR 待ちで止まる（#296 / #306）。
+
+1. `git fetch origin main develop`
+2. `git merge-base --is-ancestor origin/main origin/develop` が成功なら同期済み。手順 8 へ
+3. 失敗なら、同趣旨の open な sync PR（`base=develop` かつ `main` 取り込み）があればそれを使う。無ければ作成する例:
+
+```bash
+git fetch origin main develop
+git checkout -B chore/sync-main-into-develop origin/main
+git push -u origin chore/sync-main-into-develop
+gh pr create --base develop --head chore/sync-main-into-develop \
+  --title "chore: sync main into develop after release" \
+  --body "$(cat <<'EOF'
+## Summary
+- リリース後に `main` のマージコミットを `develop` へ戻す同期 PR
+
+## 検証
+- マージ後に `git merge-base --is-ancestor origin/main origin/develop` が成功すること
+
+## Worklog
+- `/release` 後処理の同期のみ（機能実装の worklog は取り込み元 PR 側）
+EOF
+)"
+```
+
+Cloud Agent 等でブランチ命名規則がある場合は `chore/sync-main-into-develop` の代わりにその規則に従う。
+
+4. sync PR の CI / 必須チェックを確認。失敗・未完了なら停止して報告
+5. 問題なければ `gh pr merge <syncPR> --merge`（squash / rebase はユーザー明示時のみ）。branch lock 等でだけ拒否され必須チェック成功時に限り `--admin` 可（本コマンド呼び出しが許可根拠）
+6. `git fetch origin` 後、`git merge-base --is-ancestor origin/main origin/develop` 成功を確認してから完了とする
 
 ## オプション（ユーザー指示時）
 
