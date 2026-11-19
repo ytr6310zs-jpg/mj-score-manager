@@ -107,11 +107,17 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
               <p className="py-8 text-center text-sm text-destructive">{error}</p>
             ) : matches.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                まだ対局データがありません。スプレッドシートに記入したあと、
-                <Link href="/matches/import" className="mx-1 font-medium text-emerald-800 underline underline-offset-2">
-                  一括取り込み
-                </Link>
-                から登録してください。
+                {canEdit ? (
+                  <>
+                    まだ対局データがありません。スプレッドシートに記入したあと、
+                    <Link href="/matches/import" className="mx-1 font-medium text-emerald-800 underline underline-offset-2">
+                      一括取り込み
+                    </Link>
+                    から登録してください。
+                  </>
+                ) : (
+                  <>まだ対局データがありません。登録は編集権限のあるユーザーが行います。</>
+                )}
               </p>
             ) : (
               <>
