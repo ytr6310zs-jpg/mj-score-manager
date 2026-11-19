@@ -32,9 +32,14 @@ export default defineConfig({
     },
   ],
 
+  // Use `next start` (production) rather than `next dev`.
+  // Under `next dev`, Playwright CDP clicks on the account menu do not invoke React
+  // onClick (aria-expanded stays false); the same test passes on `next start`.
   webServer: {
-    command: "npm run dev",
+    command: "npm run start",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
   },
 });
+
