@@ -17,11 +17,13 @@ test.describe('Filter state header + navigation', () => {
       const loginButton = page.locator('button[type="submit"], button:has-text("ログイン")').first();
       await loginButton.click();
       await page.waitForURL((url) => url.pathname === '/matches', { timeout: 10000 });
+      await expect(page.getByRole('heading', { name: '対局履歴' })).toBeVisible({ timeout: 15000 });
+      await page.waitForLoadState('domcontentloaded');
     }
 
     // open stats page with explicit query (URL is authoritative and will be saved)
     const statsUrl = `${BASE}/stats?filter=custom&start=${state.start}&end=${state.end}&minGames=${state.minGames}`;
-    await page.goto(statsUrl);
+    await page.goto(statsUrl, { waitUntil: 'domcontentloaded' });
 
     const statsLink = page.getByRole('link', { name: '成績集計' });
     const matchesLink = page.getByRole('link', { name: '対局履歴' });

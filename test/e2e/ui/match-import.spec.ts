@@ -28,7 +28,7 @@ const TOTP_SECRET = TOTP_SECRET_RAW && TOTP_SECRET_RAW !== "MFA_TOTP_SECRET" ? T
 test.describe("Match Import Flow (E2E)", () => {
   test.beforeEach(async ({ page }) => {
     // Ensure we're authenticated before each test to avoid middleware redirect to /login
-    await page.goto(`${BASE_URL}/login`);
+    await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded" });
     const userIdInput = page.locator('input[name="userId"], input#userId').first();
     const passwordInput = page.locator('input[name="password"], input#password').first();
     await expect(userIdInput).toBeVisible();
@@ -48,9 +48,11 @@ test.describe("Match Import Flow (E2E)", () => {
     }
 
     await page.waitForURL((url) => url.pathname === "/matches", { timeout: 10000 });
+    await expect(page.getByRole("heading", { name: "対局履歴" })).toBeVisible({ timeout: 15000 });
+    await page.waitForLoadState("domcontentloaded");
   });
   test("should display import form with correct field order", async ({ page }) => {
-    await page.goto(`${BASE_URL}/matches/import`);
+    await page.goto(`${BASE_URL}/matches/import`, { waitUntil: "domcontentloaded" });
 
     // ページタイトルの確認
     const heading = page.locator("h1");
@@ -89,7 +91,7 @@ test.describe("Match Import Flow (E2E)", () => {
   test("should show validation error when tournament is not selected", async ({
     page,
   }) => {
-    await page.goto(`${BASE_URL}/matches/import`);
+    await page.goto(`${BASE_URL}/matches/import`, { waitUntil: "domcontentloaded" });
 
     const gameDate = page.locator('input[name="gameDate"]');
     const sheetTitle = page.locator('input[name="sheetTitle"]');
@@ -119,7 +121,7 @@ test.describe("Match Import Flow (E2E)", () => {
       test.skip();
     }
 
-    await page.goto(`${BASE_URL}/matches/import`);
+    await page.goto(`${BASE_URL}/matches/import`, { waitUntil: "domcontentloaded" });
 
     const tournamentSelect = page.locator("select");
     const gameDate = page.locator('input[name="gameDate"]');
@@ -149,7 +151,7 @@ test.describe("Match Import Flow (E2E)", () => {
       test.skip();
     }
 
-    await page.goto(`${BASE_URL}/matches/import`);
+    await page.goto(`${BASE_URL}/matches/import`, { waitUntil: "domcontentloaded" });
 
     const tournamentSelect = page.locator("select");
     const gameDate = page.locator('input[name="gameDate"]');
@@ -192,7 +194,7 @@ test.describe("Match Import Flow (E2E)", () => {
   test("bulk import button should appear on matches page in correct position", async ({
     page,
   }) => {
-    await page.goto(`${BASE_URL}/matches`);
+    await page.goto(`${BASE_URL}/matches`, { waitUntil: "domcontentloaded" });
 
     // ページヘッダーまたはタイトル行を確認
     const heading = page.locator("h1");
@@ -230,7 +232,7 @@ test.describe("Match Import Flow (E2E)", () => {
       test.skip();
     }
 
-    await page.goto(`${BASE_URL}/matches/import`);
+    await page.goto(`${BASE_URL}/matches/import`, { waitUntil: "domcontentloaded" });
 
     // 同じデータで 2 回プレビュー+確定を試みるフロー
     // 2 回目は重複として skipped されることを期待
@@ -263,7 +265,7 @@ test.describe("Match Import Flow (E2E)", () => {
   });
 
   test("should show proper error messages for form validation", async ({ page }) => {
-    await page.goto(`${BASE_URL}/matches/import`);
+    await page.goto(`${BASE_URL}/matches/import`, { waitUntil: "domcontentloaded" });
 
     const previewButton = page.locator('button:has-text("プレビュー作成")');
 
@@ -290,7 +292,7 @@ test.describe("Match Import Flow (E2E)", () => {
       test.skip();
     }
 
-    await page.goto(`${BASE_URL}/matches/import`);
+    await page.goto(`${BASE_URL}/matches/import`, { waitUntil: "domcontentloaded" });
 
     // 成功後、フォームが reset されることを確認
     const tournamentSelect = page.locator("select");

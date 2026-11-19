@@ -24,14 +24,18 @@ async function loginAsAdmin(page: Page) {
     await loginButton.click();
   }
 
-  await page.waitForURL(`${BASE_URL}/matches`, { timeout: 10000 });
+  // Login now lands on /matches (Issue #305). Wait until the page is settled
+  // before later page.goto calls, otherwise Chromium reports net::ERR_ABORTED.
+  await page.waitForURL((url) => url.pathname === "/matches", { timeout: 10000 });
+  await expect(page.getByRole("heading", { name: "対局履歴" })).toBeVisible({ timeout: 15000 });
+  await page.waitForLoadState("domcontentloaded");
 }
 
 test.describe("Admin navigation", () => {
   test("can return to admin menu from a sub-admin page via hamburger menu", async ({ page }) => {
     await loginAsAdmin(page);
 
-    await page.goto(`${BASE_URL}/admin/users`);
+    await page.goto(`${BASE_URL}/admin/users`, { waitUntil: "domcontentloaded" });
     await expect(page.locator("text=ユーザー管理")).toBeVisible();
 
     await page.locator('button[aria-haspopup="menu"]').first().click();
