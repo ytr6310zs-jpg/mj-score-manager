@@ -10,7 +10,7 @@ Cursor Agent を使う場合は [AGENTS.md](AGENTS.md) を入口としてくだ�
 - ワークフロー: `.cursor/skills/`（実装 runbook、Spec Kit フロー）
 - MCP 設定: `.cursor/mcp.json`
 
-Copilot 向けの詳細ルールは廃止し、運用ルール詳細は [.github/agent-instructions.md](.github/agent-instructions.md) にあります。パス別規約の正本は `.cursor/rules/` です（`.github/instructions/` は deprecated）。
+運用ルール詳細は [.github/agent-instructions.md](.github/agent-instructions.md) にあります。パス別規約の正本は `.cursor/rules/` です（文書階層の入口は [AGENTS.md](AGENTS.md)）。
 
 ## 機能
 
