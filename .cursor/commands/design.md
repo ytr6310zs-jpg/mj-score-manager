@@ -6,6 +6,12 @@
 
 古い `develop` のまま Spec を書き始めない。詳細の判断根拠は Issue #296。
 
+### なぜ同期が必要か
+
+きっかけは hooks が `main` にだけあると fail-closed になることだったが、**原因は hooks 専用ではない**。  
+`/release` で `develop` → `main` を merge コミットすると、ツリーが同一でも `main` 先端のマージコミットが `develop` に含まれず、包含チェックが失敗する。  
+予防の正本は `.cursor/commands/release.md` の「リリース後の develop 同期」。本ゲートの sync PR は、同期漏れ時のリカバリである。
+
 1. 作業ツリーがクリーンであること。未コミット変更がある場合は停止して報告する
 2. `git fetch origin main develop`
 3. `origin/develop` が `origin/main` を含むか確認する  
@@ -17,6 +23,7 @@
    3. **push 成功**: 更新後 tip から機能ブランチへ
    4. **push 失敗**（protected branch 等）または **衝突**: Spec 作成に進まず停止・報告する  
       - 推奨リカバリ: `chore/sync-main-into-develop`（または同等）で `develop` 向け sync PR を作成し、マージ完了まで待つ。同趣旨の open PR があればそれを案内し新規を乱立しない
+      - ツリーが同一（`origin/main^{tree}` == `origin/develop^{tree}`）でも包含チェックは失敗しうる。その場合も「差分なしの同期」として上記リカバリを行い、古い tip のまま Spec を書き始めない
 6. 確認後 tip から機能ブランチを切る  
    - 既定: `feature/issue-<番号>-<要約>`  
    - Cloud Agent 等で別命名規則（例: `cursor/<要約>-<suffix>`）が指示されている場合はそちらを優先

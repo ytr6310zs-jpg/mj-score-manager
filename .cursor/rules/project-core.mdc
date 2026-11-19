@@ -29,6 +29,7 @@ alwaysApply: true
 - **commit / push / PR はユーザー明示依頼時のみ** 実行する（自動実行しない）
 - 作業フロー: 設計フェーズ → ユーザー確認（必須停止）→ 実装フェーズ
 - `/design` 開始時: `main` 取り込み済みの `develop` から機能ブランチを切る（詳細: `.cursor/commands/design.md`）。未同期・衝突・`develop` push 不可なら Spec 作成前に停止する
+- `/release` 完了条件: `develop` → `main` のあと **`main` → `develop` 同期まで**（詳細: `.cursor/commands/release.md`）。未同期のまま終わらせない
 - ブランチ命名: `feature/issue-<番号>-<要約>` / `fix/issue-<番号>-<要約>` / `chore/<要約>`
 - PR マージ先の既定: `develop`
 - PR 本文必須: 設計概要、実装概要、検証コマンドと結果、手動確認、既知の未解決事項
