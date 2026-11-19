@@ -154,6 +154,20 @@ export function sumScores(scores: number[], precision: ScorePrecision): number {
   return totalTenths / 10;
 }
 
+/** Integer tenths key for drift-free accumulation / equality (e.g. 0.1 → 1). */
+export function scoreToTenths(value: number): number {
+  return Math.round(value * 10);
+}
+
+/** Add scores in tenth-integer space so season totals stay exact. */
+export function addScores(left: number, right: number): number {
+  return (scoreToTenths(left) + scoreToTenths(right)) / 10;
+}
+
+export function scoresEqual(left: number, right: number): boolean {
+  return scoreToTenths(left) === scoreToTenths(right);
+}
+
 export function isScoreSumWithinTolerance(scores: number[], rules: ScoringRuleSet): boolean {
   const total = sumScores(scores, rules.scorePrecision);
   // epsilon only guards float compare of the tolerance itself (e.g. 0.1)

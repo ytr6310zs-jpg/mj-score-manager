@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   DEFAULT_SCORING_RULES_EFFECTIVE_DATE,
+  addScores,
   formatScoreForInput,
   getScoringRulesEffectiveDate,
   isScoreSumWithinTolerance,
@@ -11,6 +12,7 @@ import {
   parseStoredScore,
   resolveScoringRuleSet,
   scoreInputStep,
+  scoresEqual,
   sumScores,
 } from "../lib/scoring-rules.ts";
 
@@ -96,5 +98,10 @@ describe("sumScores / isScoreSumWithinTolerance", () => {
   it("境界 ±0.1 は許容する", () => {
     const rules = resolveScoringRuleSet("2027-01-01", {});
     assert.equal(isScoreSumWithinTolerance([50.1, -25.0, -25.0], rules), true);
+  });
+
+  it("addScores / scoresEqual は tenth 累積のドリフトを防ぐ", () => {
+    assert.equal(addScores(0.1, 0.2), 0.3);
+    assert.equal(scoresEqual(0.1 + 0.2, 0.3), true);
   });
 });
