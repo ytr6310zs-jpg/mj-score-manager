@@ -8,15 +8,21 @@ test.describe("Admin navigation", () => {
 
     await gotoAndSettle(page, "/admin/users", "ユーザー管理");
 
-    await page.getByRole("button", { name: "アカウントメニュー" }).click();
+    const menuButton = page.getByRole("button", { name: "アカウントメニュー" });
+    await expect(menuButton).toBeVisible();
+    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+
+    await menuButton.click();
+    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+
     const accountPanel = page.locator("#app-header-account-panel");
     await expect(accountPanel).toBeVisible();
 
-    const adminLink = accountPanel.getByRole("link", { name: "管理" });
+    const adminLink = accountPanel.getByRole("link", { name: "管理", exact: true });
     await expect(adminLink).toBeVisible();
     await adminLink.click();
 
     await expect(page).toHaveURL(`${BASE_URL}/admin`);
-    await expect(page.getByRole("heading", { name: "管理" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "管理", exact: true })).toBeVisible();
   });
 });

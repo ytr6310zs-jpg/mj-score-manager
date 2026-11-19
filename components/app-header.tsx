@@ -238,8 +238,9 @@ function Menu({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     function onPointerDown(e: PointerEvent) {
-      if (!isOpen) return;
       if (!containerRef.current) return;
       if (!containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
@@ -250,9 +251,14 @@ function Menu({
       if (e.key === "Escape") setIsOpen(false);
     }
 
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
+    // Defer so the opening click itself cannot immediately close the panel (Playwright CI).
+    const timer = window.setTimeout(() => {
+      document.addEventListener("pointerdown", onPointerDown);
+      document.addEventListener("keydown", onKeyDown);
+    }, 0);
+
     return () => {
+      window.clearTimeout(timer);
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
@@ -265,7 +271,14 @@ function Menu({
         variant="ghost"
         size="sm"
         className="inline-flex h-9 w-9 items-center justify-center rounded-md"
-        onClick={() => setIsOpen((v) => !v)}
+        onMouseDown={(e) => {
+          // Keep focus behavior from dismissing the panel before click toggles open.
+          e.preventDefault();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen((v) => !v);
+        }}
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-controls="app-header-account-panel"
@@ -280,57 +293,56 @@ function Menu({
         </svg>
       </Button>
 
-      {isOpen && (
-        <div
-          id="app-header-account-panel"
-          className="absolute right-0 top-full z-50 mt-1 w-40 min-w-[8rem] rounded-md border bg-card p-2 shadow-sm"
-        >
-          {sessionUser ? (
-            <div className="mb-2 border-b pb-2 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">{sessionUser.displayName}</p>
-              <p>権限: {sessionUser.role}</p>
-            </div>
-          ) : null}
-          {canAccessAdmin ? (
-            <Link
-              href="/admin"
-              className={buttonVariants({
-                variant: current === "admin" ? "default" : "ghost",
-                size: "sm",
-                className: "w-full text-left",
-              })}
-              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                if ((current === "admin" && pathname === "/admin") || navigatingTo) {
-                  e.preventDefault();
-                  return;
-                }
-                setIsOpen(false);
-                setNavigatingTo("admin");
-              }}
-            >
-              管理
-            </Link>
-          ) : null}
-          <a
-            href={USER_MANUAL_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+      <div
+        id="app-header-account-panel"
+        hidden={!isOpen}
+        className="absolute right-0 top-full z-50 mt-1 w-40 min-w-[8rem] rounded-md border bg-card p-2 shadow-sm"
+      >
+        {sessionUser ? (
+          <div className="mb-2 border-b pb-2 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">{sessionUser.displayName}</p>
+            <p>権限: {sessionUser.role}</p>
+          </div>
+        ) : null}
+        {canAccessAdmin ? (
+          <Link
+            href="/admin"
             className={buttonVariants({
-              variant: "ghost",
+              variant: current === "admin" ? "default" : "ghost",
               size: "sm",
-              className: "mt-1 w-full justify-start text-left",
+              className: "w-full text-left",
             })}
-            onClick={() => setIsOpen(false)}
+            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              if ((current === "admin" && pathname === "/admin") || navigatingTo) {
+                e.preventDefault();
+                return;
+              }
+              setIsOpen(false);
+              setNavigatingTo("admin");
+            }}
           >
-            マニュアル
-          </a>
-          <form action={logoutAction} className="mt-2">
-            <Button type="submit" variant="ghost" size="sm" className="w-full text-left">
-              ログアウト
-            </Button>
-          </form>
-        </div>
-      )}
+            管理
+          </Link>
+        ) : null}
+        <a
+          href={USER_MANUAL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={buttonVariants({
+            variant: "ghost",
+            size: "sm",
+            className: "mt-1 w-full justify-start text-left",
+          })}
+          onClick={() => setIsOpen(false)}
+        >
+          マニュアル
+        </a>
+        <form action={logoutAction} className="mt-2">
+          <Button type="submit" variant="ghost" size="sm" className="w-full text-left">
+            ログアウト
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
