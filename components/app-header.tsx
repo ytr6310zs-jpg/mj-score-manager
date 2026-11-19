@@ -238,10 +238,10 @@ function Menu({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
-
     function onPointerDown(e: PointerEvent) {
-      if (!containerRef.current?.contains(e.target as Node)) {
+      if (!isOpen) return;
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     }
@@ -250,14 +250,9 @@ function Menu({
       if (e.key === "Escape") setIsOpen(false);
     }
 
-    // Attach on next macrotask so the opening gesture cannot close immediately.
-    const timer = window.setTimeout(() => {
-      document.addEventListener("pointerdown", onPointerDown);
-      document.addEventListener("keydown", onKeyDown);
-    }, 0);
-
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      window.clearTimeout(timer);
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
@@ -270,19 +265,13 @@ function Menu({
         variant="ghost"
         size="sm"
         className="inline-flex h-9 w-9 items-center justify-center rounded-md"
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={() => setIsOpen((v) => !v)}
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-controls={isOpen ? "app-header-account-panel" : undefined}
         aria-label="アカウントメニュー"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="pointer-events-none h-5 w-5"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
           <path
             fillRule="evenodd"
             d="M3 5h14a1 1 0 100-2H3a1 1 0 000 2zm14 6H3a1 1 0 100 2h14a1 1 0 100-2zm0 6H3a1 1 0 100 2h14a1 1 0 100-2z"
@@ -291,7 +280,7 @@ function Menu({
         </svg>
       </Button>
 
-      {isOpen ? (
+      {isOpen && (
         <div
           id="app-header-account-panel"
           className="absolute right-0 top-full z-50 mt-1 w-40 min-w-[8rem] rounded-md border bg-card p-2 shadow-sm"
@@ -341,7 +330,7 @@ function Menu({
             </Button>
           </form>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
