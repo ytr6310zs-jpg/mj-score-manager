@@ -18,7 +18,8 @@ worklog 起票 → 実装 → テスト → 動作確認 → npm run build
 ```
 
 `/design` の Spec 作成前ゲート（fetch・包含確認・衝突/push 不可時停止・sync PR リカバリ）の正本は `.cursor/commands/design.md`。  
-`/release` 後の `main` → `develop` 同期の正本は `.cursor/commands/release.md`（未同期のままリリース完了にしない）。
+`/release` 後の `main` → `develop` 同期の正本は `.cursor/commands/release.md`（未同期のままリリース完了にしない）。  
+スコア入力 UI（`/`）は deprecate・非保証。積極改修しない（正本: `.cursor/rules/project-core.mdc` / `AGENTS.md`）。
 
 途中で失敗した場合は原因を解消してから次工程へ進み、未解消のままコミット・push しないこと。
 **commit / push / PR はユーザー明示依頼時のみ** 実行する。

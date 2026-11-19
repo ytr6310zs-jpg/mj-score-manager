@@ -22,6 +22,7 @@
 * **ローカルDB前提:** local Supabase を利用し、staging / production の URL・キーを `.env.local` に設定しない
 * **スキーマ運用:** 正本は `supabase/migrations/`。`ddl/` は参照専用（read-only）
 * **worklog:** 実装フェーズ開始時に `npm run worklog:start -- --summary "Issue #<番号> 実装開始" --reason "..." --tags "issue-<番号>,implementation,worklog"`
+* **スコア入力 UI:** `/` と `score-form` は deprecate・動作保証外。専用 E2E を置かない。改修は明示依頼・共有層追従・放置不能欠陥のみ（正本: `.cursor/rules/project-core.mdc` / `AGENTS.md`、Issue #305）
 
 ## 2. Git & Pull Request Operation Rules
 * **詳細ガイドの参照先:** 実行手順テンプレートは `docs/agent-delegation-guide.md`、Issue 依頼テンプレートは `docs/issue-prompt-guidelines.md` を優先参照すること。

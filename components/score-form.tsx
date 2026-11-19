@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { saveScoreAction, type SaveScoreState } from "@/app/actions";
@@ -300,6 +301,20 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
         <CardDescription>
           3人打ち・4人打ちの最終スコア、飛び、焼き鳥を保存して後日の集計に使える形で記録します。
         </CardDescription>
+        <div
+          role="status"
+          className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+        >
+          <p className="font-medium">この画面は非推奨です</p>
+          <p className="mt-1 text-amber-900/90">
+            新規登録の推奨手順はスプレッドシート記入後の一括取り込みです。本画面の積極的なメンテナンスと動作保証は行いません（緊急時の手入力用として残しています）。
+          </p>
+          <p className="mt-2">
+            <Link href="/matches/import" className="font-medium text-emerald-800 underline underline-offset-2">
+              一括取り込みへ
+            </Link>
+          </p>
+        </div>
       </CardHeader>
       <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
         <form action={formAction} className="space-y-6" onSubmit={(e) => {
