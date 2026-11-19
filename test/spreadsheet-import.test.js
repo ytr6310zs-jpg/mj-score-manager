@@ -132,6 +132,34 @@ describe("parseSpreadsheetMatrix", () => {
     assert.ok(parsed.warnings.some((w) => w.includes("参加人数が不正")));
   });
 
+  it("小数第2位以降のスコアは silent drop せず warning で試合をスキップする", () => {
+    const matrix = [
+      ["player", "1"],
+      ["A", "50.15"],
+      ["B", "-25.0"],
+      ["C", "-25.1"],
+      ["D", "0"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 0);
+    assert.ok(parsed.warnings.some((w) => w.includes("A") && w.includes("スコアが不正")));
+  });
+
+  it("1列形式でも不正スコアは 3p に落とさず warning になる", () => {
+    const matrix = [
+      ["player", "1"],
+      ["A", "50.15, y"],
+      ["B", "-25.0"],
+      ["C", "-25.1"],
+      ["D", "0"],
+    ];
+
+    const parsed = parseSpreadsheetMatrix(matrix, "x", YAKUMANS);
+    assert.strictEqual(parsed.games.length, 0);
+    assert.ok(parsed.warnings.some((w) => w.includes("スコアが不正")));
+  });
+
   it("飛び/飛ばしが同時指定された場合は競合として検知される", () => {
     const matrix = [
       ["player", "1"],

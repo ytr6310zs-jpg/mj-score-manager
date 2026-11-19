@@ -11,10 +11,17 @@ import { Label } from "@/components/ui/label";
 import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
-import useYakumans from "@/lib/useYakumans";
 import type { MatchResult } from "@/lib/matches";
+import {
+  formatScoreForInput,
+  isScoreSumWithinTolerance,
+  resolveScoringRuleSet,
+  scoreInputStep,
+  sumScores,
+} from "@/lib/scoring-rules";
 import { setLastTournamentId } from "@/lib/tournament-preference";
 import type { TournamentOption } from "@/lib/tournaments";
+import useYakumans from "@/lib/useYakumans";
 import { YAKUMANS } from "@/lib/yakumans";
 
 const initialState: EditMatchState = {
@@ -93,6 +100,8 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
     4: match.players[3]?.isYakitori ?? false,
   });
   const [notes, setNotes] = useState(match.notes);
+  const scoringRules = useMemo(() => resolveScoringRuleSet(gameDate), [gameDate]);
+  const scoreStep = scoreInputStep(scoringRules);
   const [pendingYakumans, setPendingYakumans] = useState<YakumanSelectionEntry[]>(
     (yakumans ?? []).map((entry) => ({
       playerName: entry.player_name,
@@ -126,7 +135,10 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
       const filledSum = activeSlots
         .filter((s) => s !== target)
         .reduce((acc, s) => acc + Number(scores[s as keyof typeof scores] || 0), 0);
-      setScores((prev) => ({ ...prev, [target]: String(-filledSum) }));
+      setScores((prev) => ({
+        ...prev,
+        [target]: formatScoreForInput(-filledSum, scoringRules.scorePrecision),
+      }));
       setAutoFilledSlot(target);
     }
   }
@@ -143,7 +155,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
     setScores((prev) => {
       const current = Number(prev[slot as keyof typeof prev] || 0);
       const next = Number.isFinite(current) ? current + delta : delta;
-      return { ...prev, [slot]: String(next) };
+      return { ...prev, [slot]: formatScoreForInput(next, scoringRules.scorePrecision) };
     });
     if (slot === autoFilledSlot) {
       setAutoFilledSlot(null);
@@ -192,21 +204,20 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
         })
         .filter(([p]) => p)
     );
-    const total = Object.values(playerScores)
-      .map((s) => {
-        const n = Number(s);
-        return Number.isFinite(n) ? n : 0;
-      })
-      .reduce((a, b) => a + b, 0);
+    const numericScores = Object.values(playerScores).map((s) => {
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    });
+    const total = sumScores(numericScores, scoringRules.scorePrecision);
 
-    if (Math.abs(total) < 1) {
+    if (isScoreSumWithinTolerance(numericScores, scoringRules)) {
       setClientError(null);
     } else {
       setClientError(
         total > 0 ? `スコア合計が${total}超過しています` : `スコア合計が${Math.abs(total)}不足しています`
       );
     }
-  }, [gameType, players, scores]);
+  }, [gameType, players, scores, scoringRules]);
 
   useEffect(() => {
     const selectedPlayers = activeSlots
@@ -376,6 +387,7 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
                   <Input
                     id={`score${slot}`}
                     type="number"
+                    step={scoreStep}
                     value={scores[slot as keyof typeof scores]}
                     onChange={(e) => handleScoreChange(slot, e.target.value)}
                     onBlur={() => handleScoreBlur(slot)}

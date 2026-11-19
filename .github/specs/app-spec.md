@@ -79,12 +79,12 @@
 | `date` | DATE | 対局日 |
 | `game_type` | VARCHAR(2) | `'3p'` or `'4p'` |
 | `player1`–`player4` | TEXT | プレイヤー名 |
-| `score1`–`score4` | INTEGER | 終局点 |
+| `score1`–`score4` | NUMERIC(6,1) | 最終ポイント（対局日のルールに従い整数または小数第1位） |
 | `rank1`–`rank4` | SMALLINT | 順位 |
 | `is_tobi1`–`is_tobi4` | BOOLEAN | 飛びフラグ |
 | `is_tobashi1`–`is_tobashi4` | BOOLEAN | 飛ばしフラグ |
 | `is_yakitori1`–`is_yakitori4` | BOOLEAN | 焼き鳥フラグ |
-| `score_total` | INTEGER | 合計点（検証用） |
+| `score_total` | NUMERIC(6,1) | 合計点（検証用） |
 | `notes` | TEXT | メモ |
 
 ### `tournaments`
@@ -113,6 +113,19 @@
 | `yakuman_name` | TEXT | 役満名（記録時点） |
 | `points` | INTEGER | - |
 | `meta` | JSONB | 拡張用 |
+
+---
+
+## スコアリングルール（対局日切替）
+
+正本ロジック: `lib/scoring-rules.ts`
+
+| 対局日 | 精度 | 合計許容 | ウマ |
+|---|---|---|---|
+| `< 2027-01-01`（既定） | 整数 | ±1 | なし |
+| `>= 2027-01-01` | 小数第1位 | ±0.1 | 4p はウマ込み最終ポイントを手動入力（自動加算なし）。3p はウマなし |
+
+適用開始日は `SCORING_RULES_EFFECTIVE_DATE` / `NEXT_PUBLIC_SCORING_RULES_EFFECTIVE_DATE` で上書き可能（未設定時 `2027-01-01`）。
 
 ---
 

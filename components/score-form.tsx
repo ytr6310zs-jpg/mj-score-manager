@@ -12,8 +12,15 @@ import { Label } from "@/components/ui/label";
 import { PlayerSelect } from "@/components/ui/player-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YakumanSelectionPanel, type YakumanSelectionEntry } from "@/components/yakuman-selection-panel";
-import { getLastTournamentId, setLastTournamentId } from "@/lib/tournament-preference";
 import { readSharedFilterState, writeSharedFilterState } from "@/lib/filter-state-preference";
+import {
+  formatScoreForInput,
+  isScoreSumWithinTolerance,
+  resolveScoringRuleSet,
+  scoreInputStep,
+  sumToleranceMessage,
+} from "@/lib/scoring-rules";
+import { getLastTournamentId, setLastTournamentId } from "@/lib/tournament-preference";
 import type { TournamentOption } from "@/lib/tournaments";
 import useYakumans from "@/lib/useYakumans";
 
@@ -66,6 +73,8 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
   const isSubmittingRef = useRef(false);
   const player1TriggerRef = useRef<HTMLButtonElement>(null);
   const [localSubmitting, setLocalSubmitting] = useState(false);
+  const scoringRules = useMemo(() => resolveScoringRuleSet(gameDate), [gameDate]);
+  const scoreStep = scoreInputStep(scoringRules);
 
   const [playerOptions, setPlayerOptions] = useState<string[]>(playerList);
   const { yakumans } = useYakumans();
@@ -127,7 +136,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
     setScores((prev) => {
       const current = Number(prev[slot] || 0);
       const next = Number.isFinite(current) ? current + delta : delta;
-      return { ...prev, [slot]: String(next) };
+      return { ...prev, [slot]: formatScoreForInput(next, scoringRules.scorePrecision) };
     });
     if (slot === autoFilledSlot) {
       setAutoFilledSlot(null);
@@ -147,7 +156,10 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
       const filledSum = activeSlots
         .filter((s) => s !== emptyOtherSlots[0])
         .reduce((acc, s) => acc + Number(scores[s] || 0), 0);
-      setScores((prev) => ({ ...prev, [emptyOtherSlots[0]]: String(-filledSum) }));
+      setScores((prev) => ({
+        ...prev,
+        [emptyOtherSlots[0]]: formatScoreForInput(-filledSum, scoringRules.scorePrecision),
+      }));
       setAutoFilledSlot(emptyOtherSlots[0]);
     }
   }
@@ -306,10 +318,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
             const slots = gameType === "4p" ? [1, 2, 3, 4] : [1, 2, 3];
             const selectedPlayers = slots.map((slot) => players[slot as keyof PlayerSelection]);
             const uniquePlayers = new Set(selectedPlayers.filter(Boolean));
-            const total = slots.reduce((sum, slot) => {
-              const value = Number(scores[slot] || 0);
-              return sum + value;
-            }, 0);
+            const slotScores = slots.map((slot) => Number(scores[slot] || 0));
 
             if (selectedPlayers.some((player) => !player)) {
               e.preventDefault();
@@ -323,11 +332,9 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
               return;
             }
 
-            if (Math.abs(total) > 1) {
+            if (!isScoreSumWithinTolerance(slotScores, scoringRules)) {
               e.preventDefault();
-              setClientError(
-                "送信できません。最終スコア合計は 0 にしてください。四捨五入の誤差として ±1 までは許容しています。"
-              );
+              setClientError(`送信できません。${sumToleranceMessage(scoringRules)}`);
               return;
             }
 
@@ -426,7 +433,7 @@ export function ScoreForm({ players: playerList, tournaments }: ScoreFormProps) 
                         id={`score${slot}`}
                         name={`score${slot}`}
                         type="number"
-                        step="1"
+                        step={scoreStep}
                         required
                         value={scores[slot] ?? ""}
                         onChange={(e) => handleScoreChange(slot, e.target.value)}

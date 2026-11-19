@@ -1,4 +1,5 @@
 import type { MatchQueryOptions, MatchResult } from "./matches";
+import { addScores } from "./scoring-rules";
 import { sortAndAssignCompetitionRank } from "./stats-ranking.js";
 
 export type PlayerStats = {
@@ -61,7 +62,8 @@ function buildPlayerAccumulators(matches: MatchResult[]): Map<string, PlayerAccu
       }
 
       const acc = playerMap.get(playerName)!;
-      acc.totalScore += p.score;
+      // tenth-integer add avoids IEEE-754 drift on 2027 decimal season totals
+      acc.totalScore = addScores(acc.totalScore, p.score);
       acc.games += 1;
       if (p.rank === 1) acc.topCount += 1;
       if (p.rank === playerCount) acc.lastCount += 1;

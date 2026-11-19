@@ -25,4 +25,15 @@ describe("sortAndAssignCompetitionRank", () => {
     assert.deepStrictEqual(ranked.map((row) => row.name), ["A", "B"], "players with equal scores should be sorted alphabetically by name");
     assert.deepStrictEqual(ranked.map((row) => row.rank), [1, 1], "equal scores should receive equal competition rank (no gaps)");
   });
+
+  it("treats float-drifted equal totals as a tie", () => {
+    // 0.1 + 0.2 produces 0.30000000000000004 in IEEE-754 when naively summed
+    const drifted = 0.1 + 0.2;
+    const ranked = sortAndAssignCompetitionRank([
+      { name: "A", totalScore: drifted },
+      { name: "B", totalScore: 0.3 },
+    ]);
+
+    assert.deepStrictEqual(ranked.map((row) => row.rank), [1, 1], "0.1+0.2 vs 0.3 should still tie");
+  });
 });

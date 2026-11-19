@@ -58,12 +58,20 @@ function isEmptyFlagToken(raw: string): boolean {
   return token === "" || token === "空" || token === "未選択" || token === "未設定" || token === "なし" || token === "none";
 }
 
-function parseScore(raw: string): number | null {
+type ScoreParseResult =
+  | { status: "empty" }
+  | { status: "ok"; score: number }
+  | { status: "invalid" };
+
+function parseScore(raw: string): ScoreParseResult {
   const value = normalizeText(raw);
-  if (!value) return null;
+  if (!value) return { status: "empty" };
   const parsed = Number(value.replace(/,/g, ""));
-  if (!Number.isFinite(parsed)) return null;
-  return Math.round(parsed);
+  if (!Number.isFinite(parsed)) return { status: "invalid" };
+  // Preserve up to one decimal place; date-based integer rules are enforced at import preview.
+  const quantized = Math.round(parsed * 10) / 10;
+  if (Math.abs(parsed - quantized) > 1e-9) return { status: "invalid" };
+  return { status: "ok", score: quantized };
 }
 
 function applyFlagToken(token: string, flags: { yakitori: boolean; tobi: boolean; tobashi: boolean }) {
@@ -153,22 +161,26 @@ function parseGameDateFromTitle(sheetTitle: string): string | null {
   return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
 }
 
-function parseCellValue(raw: string): { score: number | null; flags: ParsedCellFlags } {
+function parseCellValue(raw: string): {
+  scoreStatus: ScoreParseResult["status"];
+  score: number | null;
+  flags: ParsedCellFlags;
+} {
   const value = normalizeText(raw);
   const emptyFlags: ParsedCellFlags = { yakitori: false, tobi: false, tobashi: false, hasConflict: false };
   if (!value) {
-    return { score: null, flags: emptyFlags };
+    return { scoreStatus: "empty", score: null, flags: emptyFlags };
   }
 
   const normalized = value.replace(/[，、／;；|｜ \u3000]/g, ",");
   const tokens = normalized.split(",").map((token) => token.trim()).filter(Boolean);
   if (tokens.length === 0) {
-    return { score: null, flags: emptyFlags };
+    return { scoreStatus: "empty", score: null, flags: emptyFlags };
   }
 
-  const score = parseScore(tokens[0]);
-  if (score === null) {
-    return { score: null, flags: emptyFlags };
+  const scoreResult = parseScore(tokens[0]);
+  if (scoreResult.status !== "ok") {
+    return { scoreStatus: scoreResult.status, score: null, flags: emptyFlags };
   }
 
   const flags = { yakitori: false, tobi: false, tobashi: false };
@@ -178,7 +190,8 @@ function parseCellValue(raw: string): { score: number | null; flags: ParsedCellF
   }
 
   return {
-    score,
+    scoreStatus: "ok",
+    score: scoreResult.score,
     flags: {
       yakitori: flags.yakitori,
       tobi: flags.tobi,
@@ -424,14 +437,27 @@ export function parseSpreadsheetMatrix(
     const conflictingFlagPlayers: string[] = [];
     const yakumanSelections: ParsedYakumanSelection[] = [];
 
+    let hasInvalidScore = false;
+
     for (const { name, row } of playerRows) {
-      const parsedCell = statusCol !== null
-        ? {
-            score: parseScore(normalizeText(row[scoreCol])),
-            flags: parseStatusCellValue(normalizeText(row[statusCol])),
-          }
-        : parseCellValue(normalizeText(row[scoreCol]));
-      if (parsedCell.score === null) continue;
+      const parsedCell =
+        statusCol !== null
+          ? (() => {
+              const scoreResult = parseScore(normalizeText(row[scoreCol]));
+              return {
+                scoreStatus: scoreResult.status,
+                score: scoreResult.status === "ok" ? scoreResult.score : null,
+                flags: parseStatusCellValue(normalizeText(row[statusCol])),
+              };
+            })()
+          : parseCellValue(normalizeText(row[scoreCol]));
+
+      if (parsedCell.scoreStatus === "empty") continue;
+      if (parsedCell.scoreStatus === "invalid" || parsedCell.score === null) {
+        warnings.push(`試合${gameNo}: ${name} のスコアが不正です（小数は第1位まで）`);
+        hasInvalidScore = true;
+        break;
+      }
 
       players.push(name);
       scores.push(parsedCell.score);
@@ -442,6 +468,7 @@ export function parseSpreadsheetMatrix(
       if (parsedCell.flags.hasConflict) conflictingFlagPlayers.push(name);
     }
 
+    if (hasInvalidScore) continue;
     if (players.length === 0) continue;
 
     if (players.length !== 3 && players.length !== 4) {

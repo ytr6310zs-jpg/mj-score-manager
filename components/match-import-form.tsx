@@ -270,7 +270,13 @@ export function MatchImportForm({ tournaments }: MatchImportFormProps) {
                             ))}
                           </div>
                         </td>
-                        <td className={`px-3 py-2 ${row.total === 0 ? "text-emerald-700" : "text-destructive"}`}>{row.total}</td>
+                        <td
+                          className={`px-3 py-2 ${
+                            row.issuesByColumn.score.length === 0 ? "text-emerald-700" : "text-destructive"
+                          }`}
+                        >
+                          {row.total}
+                        </td>
                         <td className="px-3 py-2">
                             {row.conflictingFlagPlayers.length > 0 ? (
                               <span className="rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">要確認</span>
