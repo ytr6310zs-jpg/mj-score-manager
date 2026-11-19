@@ -9,6 +9,12 @@ import {
 } from "@/lib/import-entity-sync";
 import { getCurrentSession } from "@/lib/session";
 import {
+  isScoreSumWithinTolerance,
+  isValidScoreForRuleSet,
+  resolveScoringRuleSet,
+  sumScores,
+} from "@/lib/scoring-rules";
+import {
   buildImportDedupeKey,
   findFuzzyPlayerCandidates,
   parseSpreadsheetMatrix,
@@ -321,8 +327,19 @@ function buildPreviewRows(
       issuesByColumn.player.push(issue);
     }
 
-    const total = game.scores.reduce((sum, value) => sum + value, 0);
-    if (total !== 0) {
+    const scoringRules = resolveScoringRuleSet(gameDate);
+    const invalidScore = game.scores.find((value) => !isValidScoreForRuleSet(value, scoringRules));
+    if (invalidScore !== undefined) {
+      const issue =
+        scoringRules.scorePrecision === "integer"
+          ? `スコアが整数ルールに合いません (${invalidScore})`
+          : `スコアが小数第1位ルールに合いません (${invalidScore})`;
+      issues.push(issue);
+      issuesByColumn.score.push(issue);
+    }
+
+    const total = sumScores(game.scores, scoringRules.scorePrecision);
+    if (!isScoreSumWithinTolerance(game.scores, scoringRules)) {
       const issue = `合計点が 0 ではありません (${total})`;
       issues.push(issue);
       issuesByColumn.score.push(issue);

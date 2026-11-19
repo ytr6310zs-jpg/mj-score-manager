@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { parseStoredScore } from "@/lib/scoring-rules";
 
 export type YakumanOccurrence = {
   code: string;
@@ -55,12 +56,17 @@ function toBool(value: unknown): boolean {
 }
 
 function toInt(value: unknown): number {
+  // ranks / ids / counts — keep integer rounding
   if (typeof value === "number") return Math.round(value);
   if (typeof value === "string") {
     const parsed = Number(value.trim());
     return Number.isFinite(parsed) ? Math.round(parsed) : 0;
   }
   return 0;
+}
+
+function toScore(value: unknown): number {
+  return parseStoredScore(value);
 }
 
 function toString(value: unknown): string {
@@ -139,7 +145,7 @@ export async function fetchMatchResults(startDate?: string, endDate?: string, op
             slot,
             id: playerId,
             name,
-            score: toInt(row[`score${slot}`]),
+            score: toScore(row[`score${slot}`]),
             rank: toInt(row[`rank${slot}`]) || slots.length,
             isTobi: toBool(row[`is_tobi${slot}`]),
             isTobashi: playerId !== null && tobashiPlayerIds.includes(playerId),
@@ -169,7 +175,7 @@ export async function fetchMatchResults(startDate?: string, endDate?: string, op
         date: toString(row["date"]),
         gameType: String(row["game_type"] ?? "") === "4p" ? ("4p" as const) : ("3p" as const),
         playerCount,
-        scoreTotal: toInt(row["score_total"]),
+        scoreTotal: toScore(row["score_total"]),
         topPlayer: toString(row["top_player"]),
         topPlayerId: toNullableId(row["top_player_id"]),
         lastPlayer: toString(row["last_player"]),

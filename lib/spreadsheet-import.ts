@@ -63,7 +63,10 @@ function parseScore(raw: string): number | null {
   if (!value) return null;
   const parsed = Number(value.replace(/,/g, ""));
   if (!Number.isFinite(parsed)) return null;
-  return Math.round(parsed);
+  // Preserve up to one decimal place; date-based integer rules are enforced at import preview.
+  const quantized = Math.round(parsed * 10) / 10;
+  if (Math.abs(parsed - quantized) > 1e-9) return null;
+  return quantized;
 }
 
 function applyFlagToken(token: string, flags: { yakitori: boolean; tobi: boolean; tobashi: boolean }) {
