@@ -538,13 +538,11 @@ export function MatchEditForm({ match, players: playerList, tournaments, created
         </Alert>
       ) : null}
 
-      {state.message && (
-        <Alert
-          className={state.success ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-destructive/40 bg-destructive/5 text-destructive"}
-        >
+      {!state.success && state.message ? (
+        <Alert className="border-destructive/40 bg-destructive/5 text-destructive">
           <AlertDescription>{state.message}</AlertDescription>
         </Alert>
-      )}
+      ) : null}
 
       <div className="flex flex-col gap-2 pt-4 sm:flex-row">
         <Button type="submit" disabled={pending || clientError !== null || duplicatePlayerError !== null} className="w-full flex-1">
