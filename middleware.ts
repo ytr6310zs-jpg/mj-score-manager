@@ -26,15 +26,15 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname === "/" && session.role === "viewer") {
-    return NextResponse.redirect(new URL("/matches", request.url));
+    return NextResponse.redirect(new URL("/matches?flash=forbidden", request.url));
   }
 
   if (pathname.startsWith("/admin") && session.role !== "admin") {
-    return NextResponse.redirect(new URL("/matches", request.url));
+    return NextResponse.redirect(new URL("/matches?flash=forbidden", request.url));
   }
 
   if (pathname.startsWith("/matches/") && pathname.endsWith("/edit") && session.role === "viewer") {
-    return NextResponse.redirect(new URL("/matches", request.url));
+    return NextResponse.redirect(new URL("/matches?flash=forbidden", request.url));
   }
 
   return NextResponse.next();
