@@ -9,7 +9,7 @@ import { logoutAction } from "@/app/login/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { RoleCode } from "@/lib/auth";
 
-type NavTarget = "input" | "matches" | "stats" | "compatibility" | "admin";
+type NavTarget = "input" | "import" | "matches" | "stats" | "compatibility" | "admin";
 
 const USER_MANUAL_URL = "https://ytr6310zs-jpg.github.io/mj-score-manager/user-manual.html";
 
@@ -147,7 +147,7 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
     };
   }, [navigatingTo]);
 
-  function navClass(target: Exclude<NavTarget, "admin">) {
+  function navClass(target: Exclude<NavTarget, "admin" | "input">) {
     const base = buttonVariants({
       variant: current === target ? "default" : "outline",
       size: "sm",
@@ -173,13 +173,27 @@ export function AppHeader({ current, sessionUser }: AppHeaderProps) {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900/70 sm:text-sm">
           Mahjong Score Manager
         </p>
-        <Menu pathname={pathname} current={current} setNavigatingTo={setNavigatingTo} navigatingTo={navigatingTo} canAccessAdmin={canAccessAdmin} sessionUser={sessionUser} />
+        <Menu
+          pathname={pathname}
+          current={current}
+          setNavigatingTo={setNavigatingTo}
+          navigatingTo={navigatingTo}
+          canAccessAdmin={canAccessAdmin}
+          canUseScoreInput={canUseScoreInput}
+          sessionUser={sessionUser}
+        />
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
         {canUseScoreInput ? (
-          <Link href="/" className={navClass("input")} onClick={handleNavClick("input")} aria-busy={navigatingTo === "input"} aria-disabled={navigatingTo === "input"}>
-            スコア入力
+          <Link
+            href="/matches/import"
+            className={navClass("import")}
+            onClick={handleNavClick("import")}
+            aria-busy={navigatingTo === "import"}
+            aria-disabled={navigatingTo === "import"}
+          >
+            一括取り込み
           </Link>
         ) : null}
         <Link href={matchesHref ?? "/matches"} className={navClass("matches")} onClick={handleNavClick("matches")} aria-busy={navigatingTo === "matches"} aria-disabled={navigatingTo === "matches"}>
@@ -222,6 +236,7 @@ function Menu({
   setNavigatingTo,
   navigatingTo,
   canAccessAdmin,
+  canUseScoreInput,
   sessionUser,
 }: {
   pathname: string | null;
@@ -229,6 +244,7 @@ function Menu({
   setNavigatingTo: Dispatch<SetStateAction<null | NavTarget>>;
   navigatingTo: null | NavTarget;
   canAccessAdmin: boolean;
+  canUseScoreInput: boolean;
   sessionUser?: {
     displayName: string;
     role: RoleCode;
@@ -283,7 +299,7 @@ function Menu({
       {isOpen && (
         <div
           id="app-header-account-panel"
-          className="absolute right-0 top-full z-50 mt-1 w-40 min-w-[8rem] rounded-md border bg-card p-2 shadow-sm"
+          className="absolute right-0 top-full z-50 mt-1 w-48 min-w-[11rem] rounded-md border bg-card p-2 shadow-sm"
         >
           {sessionUser ? (
             <div className="mb-2 border-b pb-2 text-xs text-muted-foreground">
@@ -291,13 +307,31 @@ function Menu({
               <p>権限: {sessionUser.role}</p>
             </div>
           ) : null}
+          {canUseScoreInput ? (
+            <Link
+              href="/"
+              className={buttonVariants({
+                variant: current === "input" ? "default" : "ghost",
+                size: "sm",
+                className: "w-full justify-start text-muted-foreground",
+              })}
+              onClick={() => {
+                if (current === "input" || navigatingTo) return;
+                setNavigatingTo("input");
+                setIsOpen(false);
+              }}
+              aria-busy={navigatingTo === "input"}
+              aria-disabled={navigatingTo === "input"}
+            >
+              スコア入力（非推奨）
+            </Link>
+          ) : null}
           {canAccessAdmin ? (
             <Link
               href="/admin"
               className={buttonVariants({
                 variant: current === "admin" ? "default" : "ghost",
-                size: "sm",
-                className: "w-full text-left",
+                size: "sm",                className: "w-full text-left",
               })}
               onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                 if ((current === "admin" && pathname === "/admin") || navigatingTo) {
