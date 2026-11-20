@@ -1,0 +1,117 @@
+# Sync main → develop after releases (Issue #318).
+#
+# Preconditions (as of 2026-11-20):
+# - develop requires a PR, but required approving review count is 0
+# - develop has no required status checks
+# If those change, immediate merge may fail and this workflow needs redesign.
+#
+# Scope: only the dedicated sync PR into develop. Does NOT auto-merge feature PRs.
+#
+# Secret: SYNC_MAIN_TO_DEVELOP_TOKEN
+#   Fine-grained PAT (or equivalent) with Contents: Read and write,
+#   Pull requests: Read and write on this repository.
+#   Do not rely on GITHUB_TOKEN alone for protected-branch PR merge.
+
+name: Sync main into develop
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-main-into-develop
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require SYNC_MAIN_TO_DEVELOP_TOKEN
+        env:
+          SYNC_MAIN_TO_DEVELOP_TOKEN: ${{ secrets.SYNC_MAIN_TO_DEVELOP_TOKEN }}
+        run: |
+          if [ -z "${SYNC_MAIN_TO_DEVELOP_TOKEN}" ]; then
+            echo "::error::SYNC_MAIN_TO_DEVELOP_TOKEN is not set. Add a repo secret (Contents R/W + Pull requests R/W), then re-run. Manual fallback: see .cursor/commands/release.md (sync PR)."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_MAIN_TO_DEVELOP_TOKEN }}
+
+      - name: Fetch main and develop
+        run: git fetch origin main develop
+
+      - name: Check if develop already contains main
+        id: check
+        run: |
+          if git merge-base --is-ancestor origin/main origin/develop; then
+            echo "synced=true" >> "$GITHUB_OUTPUT"
+            echo "origin/develop already contains origin/main; nothing to do."
+          else
+            echo "synced=false" >> "$GITHUB_OUTPUT"
+            echo "Sync required."
+          fi
+
+      - name: Ensure sync branch matches main
+        if: steps.check.outputs.synced == 'false'
+        run: |
+          git branch -f chore/sync-main-into-develop origin/main
+          git push --force-with-lease origin chore/sync-main-into-develop:chore/sync-main-into-develop
+
+      - name: Create or reuse sync PR
+        if: steps.check.outputs.synced == 'false'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_MAIN_TO_DEVELOP_TOKEN }}
+        run: |
+          set -euo pipefail
+          EXISTING="$(gh pr list --base develop --head chore/sync-main-into-develop --state open --json number --jq '.[0].number // empty')"
+          if [ -n "${EXISTING}" ]; then
+            echo "number=${EXISTING}" >> "$GITHUB_OUTPUT"
+            echo "Reusing open PR #${EXISTING}"
+          else
+            BODY="$(printf '%s\n' \
+              '## Summary' \
+              '- Automate post-release sync: bring `main` merge commit(s) back into `develop` (Issue #318).' \
+              '' \
+              '## 検証' \
+              '- After merge: `git merge-base --is-ancestor origin/main origin/develop` succeeds.' \
+              '' \
+              '## Worklog' \
+              '- Automated sync workflow (no feature worklog).' \
+              '' \
+              '## Notes' \
+              '- Feature PRs are out of scope for this automation.' \
+              '- If this job fails: follow manual sync fallback in `.cursor/commands/release.md`.' \
+            )"
+            URL="$(gh pr create --base develop --head chore/sync-main-into-develop \
+              --title "chore: sync main into develop after release" \
+              --body "${BODY}")"
+            NUMBER="$(gh pr view "${URL}" --json number --jq .number)"
+            echo "number=${NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "Created PR #${NUMBER}"
+          fi
+
+      - name: Merge sync PR
+        if: steps.check.outputs.synced == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_MAIN_TO_DEVELOP_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr merge "${{ steps.pr.outputs.number }}" --merge
+          echo "Merged PR #${{ steps.pr.outputs.number }}"
+
+      - name: Verify develop contains main
+        if: steps.check.outputs.synced == 'false'
+        run: |
+          set -euo pipefail
+          git fetch origin main develop
+          if ! git merge-base --is-ancestor origin/main origin/develop; then
+            echo "::error::Sync appeared to merge but origin/develop still does not contain origin/main. Manual fallback: .cursor/commands/release.md"
+            exit 1
+          fi
+          echo "Verified: origin/main is an ancestor of origin/develop."

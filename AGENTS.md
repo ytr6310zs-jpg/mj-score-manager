@@ -48,7 +48,7 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 | `/design` | Spec 前に main 取り込み済み develop からブランチ作成 → Spec 3点・自己レビュー・停止（実装禁止） |
 | `/implement` | 設計承認後の実装・検証（commit/push/PR は明示依頼時のみ） |
 | `/pr` | 実装後の commit → push → PR 作成（この呼び出しが明示依頼） |
-| `/release` | develop → main のリリース PR 作成・マージ、**取り込み Issue のクローズ**、**main → develop 同期**まで |
+| `/release` | develop → main のリリース PR 作成・マージ、**取り込み Issue のクローズ**、**main → develop 同期確認**（通常は Actions 自動化、失敗時のみ手動 sync）まで |
 
 ### MCP
 
