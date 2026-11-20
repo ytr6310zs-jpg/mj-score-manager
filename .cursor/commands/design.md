@@ -10,7 +10,7 @@
 
 きっかけは hooks が `main` にだけあると fail-closed になることだったが、**原因は hooks 専用ではない**。  
 `/release` で `develop` → `main` を merge コミットすると、ツリーが同一でも `main` 先端のマージコミットが `develop` に含まれず、包含チェックが失敗する。  
-予防の正本は `.cursor/commands/release.md` の「リリース後の develop 同期」。本ゲートの sync PR は、同期漏れ時のリカバリである。
+予防の正本は `.cursor/commands/release.md` の「リリース後の develop 同期」。通常は Actions（Issue #318）が `main` → `develop` を自動同期する。本ゲートの sync PR は、自動化漏れ・失敗時のリカバリである。
 
 1. 作業ツリーがクリーンであること。未コミット変更がある場合は停止して報告する
 2. `git fetch origin main develop`
