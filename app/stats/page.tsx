@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { AppHeader } from "@/components/app-header";
@@ -14,6 +15,7 @@ import { computeTopSets, METRIC_DIRECTION, METRICS_TO_HIGHLIGHT } from "@/lib/me
 import { fetchPlayerStats } from "@/lib/stats";
 import { RANK_BADGE, RANK_ROW_BG } from "@/lib/stats-rank-theme";
 import { fetchStatsSubtables } from "@/lib/stats-subtables";
+import { canEditMatches } from "@/lib/authorization";
 import { getCurrentSession } from "@/lib/session";
 import { fetchTournamentOptions } from "@/lib/tournaments";
 
@@ -64,6 +66,7 @@ type SearchParams = { [key: string]: string | string[] | undefined } | undefined
 
 export default async function StatsPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const session = await getCurrentSession();
+  const canEdit = session ? canEditMatches(session.role) : false;
   const params = await (searchParams as Promise<SearchParams> | undefined);
   const initialMinGamesRaw = Array.isArray(params?.minGames) ? params?.minGames[0] : params?.minGames;
   const hasMinGamesParam = initialMinGamesRaw !== undefined;
@@ -139,7 +142,23 @@ export default async function StatsPage({ searchParams }: { searchParams?: Promi
               <p className="py-8 text-center text-sm text-destructive">{error}</p>
             ) : stats.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                まだ対局データがありません。スコアを入力してください。
+                {typeof effectiveMinGames === "number" ? (
+                  <>
+                    試合数の条件に該当する成績がありません。試合数フィルタを「条件なし」にするか、値を下げてください。
+                  </>
+                ) : availableDates && availableDates.length > 0 ? (
+                  <>該当する成績がありません。期間や大会の条件を見直してください。</>
+                ) : canEdit ? (
+                  <>
+                    まだ対局データがありません。スプレッドシートに記入したあと、
+                    <Link href="/matches/import" className="mx-1 font-medium text-emerald-800 underline underline-offset-2">
+                      一括取り込み
+                    </Link>
+                    から登録してください。
+                  </>
+                ) : (
+                  <>まだ対局データがありません。登録は編集権限のあるユーザーが行います。</>
+                )}
               </p>
             ) : (
               <>

@@ -28,4 +28,17 @@ describe("filter-state-preference helpers", () => {
     const p2 = buildSharedFilterSearchParams(state, { includeMinGames: true });
     assert.strictEqual(p2.get("minGames"), "20");
   });
+
+  it("buildSharedFilterSearchParams keeps explicit empty minGames", () => {
+    const state = { filter: "year", start: "2024-01-01", end: "2024-12-31", minGames: "" };
+    const params = buildSharedFilterSearchParams(state, { includeMinGames: true });
+    assert.strictEqual(params.has("minGames"), true);
+    assert.strictEqual(params.get("minGames"), "");
+  });
+
+  it("buildSharedFilterSearchParams omits minGames when undefined", () => {
+    const state = { filter: "year", start: "2024-01-01", end: "2024-12-31" };
+    const params = buildSharedFilterSearchParams(state, { includeMinGames: true });
+    assert.strictEqual(params.has("minGames"), false);
+  });
 });

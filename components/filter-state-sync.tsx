@@ -51,8 +51,11 @@ export default function FilterStateSync({ includeMinGames }: Props) {
         start,
         end,
         tournamentId: params.get("tournamentId") ?? stored?.tournamentId,
+        // Prefer URL when minGames is present (including empty = 条件なし). Do not fall back to stored.
         minGames: includeMinGames
-          ? (params.get("minGames") ?? stored?.minGames)
+          ? params.has("minGames")
+            ? (params.get("minGames") ?? "")
+            : stored?.minGames
           : stored?.minGames,
       };
       try {

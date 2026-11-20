@@ -152,7 +152,13 @@ export default async function CompatibilityPage({ searchParams }: { searchParams
             {error ? (
               <p className="text-sm text-red-600">{error}</p>
             ) : players.length === 0 ? (
-              <p className="text-sm text-emerald-700/70">該当期間のデータがありません。</p>
+              <p className="text-sm text-emerald-700/70">
+                {typeof effectiveMinGames === "number"
+                  ? "試合数の条件に該当するデータがありません。試合数フィルタを「条件なし」にするか、値を下げてください。"
+                  : availableDates && availableDates.length > 0
+                    ? "該当するデータがありません。期間や大会の条件を見直してください。"
+                    : "該当期間のデータがありません。"}
+              </p>
             ) : (
               <div className="overflow-hidden rounded-lg border border-emerald-200 bg-emerald-50">
                 <div className="max-h-[70vh] overflow-auto bg-white">
