@@ -90,7 +90,10 @@ export function buildSharedFilterSearchParams(state: SharedFilterState, options:
     params.set("filter", state.filter);
   }
   if (state.tournamentId) params.set("tournamentId", state.tournamentId);
-  if (options.includeMinGames && state.minGames) params.set("minGames", state.minGames);
+  // Empty string means explicit "条件なし". Keep `minGames=` so year default (20) is not reapplied.
+  if (options.includeMinGames && state.minGames !== undefined) {
+    params.set("minGames", state.minGames);
+  }
   return params;
 }
 
