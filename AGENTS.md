@@ -20,7 +20,7 @@ Cursor Agent 向けの入口ドキュメントです。
 .cursor/
   rules/          # パス別コーディング規約（.mdc）← 正本
   skills/         # ワークフロースキル（runbook, spec-kit）
-  commands/       # スラッシュコマンド（/clarify /design /implement /pr /release）
+  commands/       # スラッシュコマンド（/triage /clarify /design /implement /pr /release）
   hooks.json      # プロジェクトフック（機密・worklog）
   hooks/          # beforeShellExecution / preToolUse
   mcp.json        # MCP サーバー定義（mcpServers）
@@ -44,11 +44,12 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 
 | コマンド | 用途 |
 |---|---|
-| `/clarify` | Issue 内容の確認・不明点の洗い出し（実装しない） |
-| `/design` | Spec 前に main 取り込み済み develop からブランチ作成 → Spec 3点・自己レビュー・停止（実装禁止） |
-| `/implement` | 設計承認後の実装・検証（commit/push/PR は明示依頼時のみ） |
+| `/triage` | 変更クラス（A–D）判定・必須承認点の提示・ユーザー合意（実装しない）。正本マトリクス: `docs/issue-prompt-guidelines.md` |
+| `/clarify` | Issue 内容の確認・不明点の洗い出し（実装しない。クラス合意の正本ではない） |
+| `/design` | Spec 前に main 取り込み済み develop からブランチ作成 → Spec・自己レビュー。C/D・未合意は停止。A/B 合意済みは設計承認停止を省略可（実装禁止） |
+| `/implement` | 設計承認後、または A/B トリアージ合意済みの実装・検証（commit/push/PR は明示依頼時のみ） |
 | `/pr` | 実装後の commit → push → PR 作成（この呼び出しが明示依頼） |
-| `/release` | develop → main のリリース PR 作成・マージ、**取り込み Issue のクローズ**、**main → develop 同期確認**（通常は Actions 自動化、失敗時のみ手動 sync）まで |
+| `/release` | develop → main のリリース PR 作成・マージ、**取り込み Issue のクローズ**、**main → develop 同期確認**（**クラス不問・常に人間承認**。通常は Actions 自動化、失敗時のみ手動 sync）まで |
 
 ### MCP
 
@@ -72,7 +73,7 @@ Agent 入力で `/` から呼び出せます（詳細は `.cursor/commands/`）�
 `/design` は Spec 作成前に `main`/`develop` 同期ゲートを通す（正本: `.cursor/commands/design.md`）。未同期・衝突・`develop` push 不可時は停止。  
 `/release` は main マージ後に `main` → `develop` 同期を必須とする（正本: `.cursor/commands/release.md`）。リリースのたびにマージコミットだけが `develop` から欠けるため、hooks 有無に関係なく同期が必要。
 
-設計フェーズ完了時の停止、品質ゲート（`npm run build`）、Spec 3点セット、worklog 運用は必須。
+設計フェーズ完了時の停止（**C/D・トリアージ未合意は必須。A/B 合意済みは省略可**）、品質ゲート（`npm run build`）、クラスに応じた Spec、worklog 運用は必須。判定不明時は fail-up。
 
 ### スコア入力 UI（deprecate / 非保証）
 

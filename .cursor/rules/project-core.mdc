@@ -27,12 +27,14 @@ alwaysApply: true
 ## Git & PR Rules (Cursor)
 
 - **commit / push / PR はユーザー明示依頼時のみ** 実行する（自動実行しない）
-- 作業フロー: 設計フェーズ → ユーザー確認（必須停止）→ 実装フェーズ
+- 作業フロー: `/triage`（変更クラス合意）→ 設計フェーズ →（C/D・未合意はユーザー確認必須）→ 実装フェーズ
+- 変更クラス A–D・設計承認スキップ条件の正本: `docs/issue-prompt-guidelines.md`（Issue #308）。要約のみここに置く
+- **設計完了停止**: C/D またはトリアージ未合意は必須。A/B かつトリアージ合意済みは省略可。未合意の自己判定だけではスキップしない
 - `/design` 開始時: `main` 取り込み済みの `develop` から機能ブランチを切る（詳細: `.cursor/commands/design.md`）。未同期・衝突・`develop` push 不可なら Spec 作成前に停止する
-- `/release` 完了条件: `develop` → `main` のあと **`main` → `develop` 同期まで**（詳細: `.cursor/commands/release.md`）。未同期のまま終わらせない
+- `/release` 完了条件: `develop` → `main` のあと **`main` → `develop` 同期まで**（詳細: `.cursor/commands/release.md`）。未同期のまま終わらせない。**クラス不問で常に人間承認**（トリアージ合意で代替不可）
 - ブランチ命名: `feature/issue-<番号>-<要約>` / `fix/issue-<番号>-<要約>` / `chore/<要約>`
 - PR マージ先の既定: `develop`
-- PR 本文必須: 設計概要、実装概要、検証コマンドと結果、手動確認、既知の未解決事項
+- PR 本文必須: 設計概要、実装概要、検証コマンドと結果、手動確認、既知の未解決事項（変更クラスの記載を推奨）
 - コミット前: `npm run build` 成功を確認。機密情報を含めない
 - **Issue クローズ**: 本番リリース（`/release` の `develop` → `main`）時。手順の正本は `.cursor/commands/release.md`
 - **`gh pr merge --admin`**: `/release` 呼び出し時のみ許可（CI 成功後の branch lock 回避）。チェック失敗の回避や `/release` 外では禁止。使った場合は結果報告に明記する
@@ -57,11 +59,12 @@ alwaysApply: true
 ## Quality & Spec-Driven Development
 
 - 変更は最小差分。無関係なリファクタ・整形を避ける
-- 実装前に `.specify/specs/<feature>/spec.md` / `plan.md` / `tasks.md` の 3 点を確認
-- 設計フェーズ完了後はユーザー承認を待ってから実装に進む
-- 小さな修正は PR 本文の Spec セクションで代替可（CI check-spec 対応）
+- 実装前にクラスに応じた Spec を確認（C/D は 3 点必須。B は薄い 3 点推奨。A は PR Spec 可）
+- 設計フェーズ完了後: C/D・未合意はユーザー承認を待ってから実装。A/B 合意済みは連続可
+- 小さな修正は PR 本文の Spec セクションで代替可（CI check-spec 対応。クラス A と整合）
 - 規約変更時は `.cursor/rules/` のみを更新する（パス別コーディング規約の正本。第二の正本を作らない）
+- 判定不明時は fail-up（上位クラスへ）
 
 ## Stop Conditions
 
-設計完了時、要件矛盾、破壊的変更、認証/認可の高リスク変更、検証不能、ブランチ粒度の競合時はユーザー確認のため停止する。
+設計完了時（C/D・トリアージ未合意は必須。A/B 合意済みは省略可）、要件矛盾、破壊的変更、認証/認可の高リスク変更、検証不能、ブランチ粒度の競合、実装中の fail-up 再判定時はユーザー確認のため停止する。`/release` は常に人間承認。
