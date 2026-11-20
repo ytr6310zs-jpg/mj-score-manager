@@ -2,24 +2,79 @@
 
 - **目的:** Issue 対応で「設計漏れ」「worklog漏れ」「承認前実装」を防ぎ、エージェントが毎回同じ手順で確実に実行できるようにする。
 - **前提:** リポジトリ運用ルールは [.cursor/rules/project-core.mdc](../.cursor/rules/project-core.mdc) および [.github/agent-instructions.md](../.github/agent-instructions.md) に従う。
+- **変更クラス正本:** 本ファイルの「変更クラスと承認マトリクス」を正とする。他ドキュメントは要約とリンクに留める（Issue #308）。
 
 **基本方針（必須）**
-- フェーズは必ず 2 段階: 設計フェーズ -> 実装フェーズ
-- 設計フェーズ完了時は必ず停止し、ユーザー承認を待つ
-- 実装開始前に Spec Kit 3点セットを揃える（`.specify/specs/<feature>/spec.md`, `.specify/specs/<feature>/plan.md`, `.specify/specs/<feature>/tasks.md`）
+- 着手時に `/triage`（または委任文面での事前クラス合意）で変更クラス A–D を合意する
+- フェーズは原則 2 段階: 設計フェーズ -> 実装フェーズ
+- **設計承認（設計完了時の必須停止）**
+  - **C / D、またはトリアージ未合意:** 設計完了時に必ず停止し、ユーザー承認を待つ
+  - **A / B かつトリアージ合意済み:** 設計承認停止を省略して `/design` → `/implement` を連続してよい
+- **Spec**
+  - **C / D:** Spec Kit 3点必須（`.specify/specs/<feature>/spec.md` / `plan.md` / `tasks.md`）
+  - **B:** 薄い Spec 3点を推奨（PR Spec 節のみも可）
+  - **A:** PR 本文の Spec 節で可（3点任意）
 - 実装開始時点で当日 worklog を起票する（`npm run worklog:start -- --summary "..." --reason "..." --tags "issue-<番号>,..."`）
+- **commit / push / PR（`/pr`）はクラス不問でユーザー明示依頼時のみ**
+- **`/release`（PROD / main）はクラス不問で常に人間承認。トリアージ合意では代替不可**
 - PR 本文には必須項目 + Worklog 記載を入れる
+- 判定に自信がないときは **fail-up**（上位クラスへ上げる）
 
 ---
+
+## 変更クラスと承認マトリクス（正本）
+
+| クラス | 例 | 設計承認 | Spec | `/pr` | `/release`（PROD） |
+|---|---|---|---|---|---|
+| **A. 文書/設定のみ** | rules、docs、コメント、commands 文言 | トリアージ合意後スキップ可 | PR Spec 節で可（3点任意） | 明示依頼 | 別判断・常に人間 |
+| **B. 低リスク実装** | UI文言、表示条件、テスト追加 | トリアージ合意後スキップ可 | 薄い Spec 3点推奨（PR Spec 可） | 明示依頼 | 不可（develop まで） |
+| **C. 通常機能** | 画面ロジック、集計表示 | **必須** | Spec 3点 | 明示依頼 | 不可 |
+| **D. 高リスク** | schema、認証、RLS、破壊的変更 | **必須＋影響明示** | Spec 3点 | 明示依頼 | **必須・厳格** |
+
+### fail-up
+
+- 境界が曖昧、または `supabase/migrations`・認証/認可・RLS を含む見込みがある場合は上位クラスへ上げる
+- 実装中に想定より差分が大きくなったらクラスを再判定し、必要なら設計承認停止に戻す
+
+### 省略ステップ表
+
+| ステップ | A（合意済） | B（合意済） | C | D | 未合意 |
+|---|---|---|---|---|---|
+| `/triage` | 推奨 | 推奨 | 推奨 | 推奨 | —（スキップ不可の前提） |
+| Spec 3点 | 任意 | 推奨 | 必須 | 必須 | C/D 相当として必須 |
+| 設計完了時の承認停止 | 省略可 | 省略可 | 必須 | 必須 | 必須 |
+| worklog / `npm run build` | 維持 | 維持 | 維持 | 維持 | 維持 |
+| `/pr` 明示依頼 | 維持 | 維持 | 維持 | 維持 | 維持 |
+| `/release` 人間承認 | 常に必須 | 常に必須 | 常に必須 | 常に必須 | 常に必須 |
+| `/design` の main↔develop 同期ゲート | 維持 | 維持 | 維持 | 維持 | 維持 |
+| hooks / worklog ガード | 緩和しない | 緩和しない | 緩和しない | 緩和しない | 緩和しない |
+
+---
+
 **推奨フロー**
 
-1. `Clarify`（不明点解消）
-2. `Design`（spec/plan/tasks 作成 + 自己レビュー + 停止）
-3. `Implement`（承認後のみ実施、worklog 起票して開始）
-4. `PR`（必須項目と worklog 記載を入れる）
+1. `Triage`（変更クラス判定・合意）— `/triage`
+2. `Clarify`（必要なら不明点解消）— `/clarify`
+3. `Design`（クラスに応じた Spec。C/D・未合意は停止。A/B 合意済みは連続可）
+4. `Implement`（worklog 起票して開始。C/D は設計承認後のみ）
+5. `PR`（明示依頼時。必須項目と worklog 記載）
+6. `Release`（明示依頼時。常に人間承認）
 
 ---
 **テンプレート例（コピペ用）**
+
+0) Triage（クラス合意）
+
+```text
+Issue # を /triage してください。変更クラス（A–D）の案・根拠・必須承認点を提示し、私の合意を待ってください。
+実装・コミットはしないでください。
+```
+
+事前合意の例（委任文面に含めてよい）:
+
+```text
+この Issue は変更クラス B でトリアージ済み（合意済み）として進めてください。
+```
 
 1) Clarify（確認用）
 
@@ -42,16 +97,18 @@ Issue # の設計フェーズのみ実施してください。
 - `.specify/specs/<feature>/spec.md`
 - `.specify/specs/<feature>/plan.md`
 - `.specify/specs/<feature>/tasks.md`
-を作成してください。
+を作成してください（クラス A で PR Spec のみの場合は 3 点任意）。
 
 出力:
+- 合意クラスの再掲
 - 変更ファイル一覧
 - 自己レビュー（整合性/抜け漏れ/リスク）
 - 実装フェーズの想定手順
 
 制約:
 - 実装・コミット・push・PR作成はしない
-- 設計フェーズ完了時点で必ず停止し、私の承認を待つ
+- クラス C/D またはトリアージ未合意の場合、設計フェーズ完了時点で必ず停止し、私の承認を待つ
+- クラス A/B かつトリアージ合意済みの場合は、設計承認停止を省略してよい（続けて /implement する場合は明示する）
 ```
 
 3) Implement（実装フェーズ専用）
@@ -59,11 +116,12 @@ Issue # の設計フェーズのみ実施してください。
 最短で依頼する場合は、この章のテンプレートをそのまま送ってください。
 
 ```text
-Issue # は設計承認済みです。実装フェーズを実施してください。
+Issue # は設計承認済みです（またはクラス A/B トリアージ合意済みで設計承認スキップ）。実装フェーズを実施してください。
 
 開始前チェック:
-1) spec/plan/tasks の3点が存在すること
-2) 当日worklogを起票すること
+1) 合意クラスを冒頭に再掲すること
+2) C/D は spec/plan/tasks の3点が存在すること（A は PR Spec 可、B は薄い3点推奨）
+3) 当日worklogを起票すること
 	`npm run worklog:start -- --summary "Issue # 実装開始" --reason "..." --tags "issue-<番号>,implementation,worklog"`
 
 実施内容:
@@ -71,7 +129,7 @@ Issue # は設計承認済みです。実装フェーズを実施してくださ
 - テスト/動作確認
 - `npm run build` を必須実行
 - 可能なら `npm test` と `npm run lint` も実行
-- コミット -> push -> PR作成まで実施
+- コミット・push・PR作成は私が依頼したときのみ
 - 作業内容をworklogに追加
 
 PR本文必須:
@@ -88,7 +146,8 @@ PR本文必須:
 ```text
 設計概要:
 - <要約>
-- Spec Kit: `.specify/specs/<feature>/spec.md` / `plan.md` / `tasks.md`
+- 変更クラス: <A|B|C|D>（トリアージ合意: 済/未）
+- Spec Kit: `.specify/specs/<feature>/spec.md` / `plan.md` / `tasks.md`（または PR Spec 節）
 
 実装概要:
 - <追加/変更ファイル>
@@ -127,12 +186,13 @@ PR が main にマージされたら、develop を除く取り込み済みブラ
 
 ---
 **運用チェックリスト（作業者向け）**
-- 設計前に Clarify を実施した
-- spec/plan/tasks を作成した
-- 設計完了後に停止して承認を得た
+- `/triage`（または事前クラス合意）を実施した
+- 必要なら Clarify を実施した
+- クラスに応じた Spec（3点または PR Spec）を用意した
+- C/D・未合意では設計完了後に停止して承認を得た（A/B 合意済みは省略可）
 - 実装開始時に当日 worklog を起票した
 - build/test/lint の実行結果を記録した
-- PR本文に必須項目と Worklog を記載した
+- PR本文に必須項目と Worklog・変更クラスを記載した
 - PR マージ後のブランチ削除条件を明記した
 
 ---
@@ -142,5 +202,6 @@ PR が main にマージされたら、develop を除く取り込み済みブラ
 
 ---
 **関連カスタマイズ（任意）**
+- 変更クラス判定: `.cursor/commands/triage.md`
 - PR 作成手順（commit / push / PR 本文）: `.cursor/commands/pr.md`
 - 実装フェーズの手順を固定する場合: `.cursor/skills/issue-implementation-runbook/SKILL.md`
