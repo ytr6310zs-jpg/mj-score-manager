@@ -27,7 +27,7 @@ export default async function MatchImportPage() {
   return (
     <main className="mx-auto min-h-screen w-full px-4 py-10">
       <div className="mx-auto max-w-screen-2xl space-y-6">
-        <AppHeader current="matches" sessionUser={{ displayName: session.displayName, role: session.role }} />
+        <AppHeader current="import" sessionUser={{ displayName: session.displayName, role: session.role }} />
 
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-emerald-900">対局インポート</h1>

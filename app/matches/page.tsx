@@ -81,7 +81,7 @@ export default async function MatchesPage({ searchParams }: { searchParams?: Pro
               </div>
               {canEdit ? (
                 <Link href="/matches/import" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  一括インポート（PoC）
+                  一括取り込み
                 </Link>
               ) : null}
             </div>

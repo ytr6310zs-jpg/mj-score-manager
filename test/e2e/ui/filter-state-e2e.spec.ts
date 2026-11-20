@@ -29,10 +29,10 @@ test.describe('Filter state header + navigation', () => {
     const actualTournamentId = parsed.searchParams.get('tournamentId');
     expect(actualTournamentId).toBeTruthy();
 
-    // Navigate to score input and back to matches via header
-    const inputLink = page.getByRole('link', { name: 'スコア入力' });
-    await inputLink.click();
-    await page.waitForURL(/\/$/);
+    // Navigate away via header (compatibility) then back to matches
+    const compatibilityLink = page.getByRole('link', { name: '相性表' });
+    await compatibilityLink.click();
+    await page.waitForURL(/\/compatibility/);
 
     // click matches link on header (should preserve stored state)
     await matchesLink.click();
