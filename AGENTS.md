@@ -13,6 +13,7 @@ Cursor Agent 向けの入口ドキュメントです。
 | Constitution（最上位規約） | [.specify/memory/constitution.md](.specify/memory/constitution.md) |
 | 委任テンプレート | [docs/agent-delegation-guide.md](docs/agent-delegation-guide.md) |
 | Issue 依頼テンプレート | [docs/issue-prompt-guidelines.md](docs/issue-prompt-guidelines.md) |
+| UX 実践チェックリスト（一般プラクティス） | [docs/ux-practice-checklist.md](docs/ux-practice-checklist.md) |
 
 ## Cursor 設定
 
