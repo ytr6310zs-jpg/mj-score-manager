@@ -29,7 +29,14 @@ export function LoginForm() {
           {!state.requireOtp ? (
             <div className="space-y-2">
               <Label htmlFor="userId">ユーザーID</Label>
-              <Input id="userId" name="userId" type="text" required defaultValue={state.userId} />
+              <Input
+                id="userId"
+                name="userId"
+                type="text"
+                autoComplete="username"
+                required
+                defaultValue={state.userId}
+              />
             </div>
           ) : (
             <input type="hidden" name="userId" value={state.userId} />
@@ -38,7 +45,13 @@ export function LoginForm() {
             {!state.requireOtp ? (
               <>
                 <Label htmlFor="password">パスワード</Label>
-                <Input id="password" name="password" type="password" required />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
               </>
             ) : null}
           </div>
