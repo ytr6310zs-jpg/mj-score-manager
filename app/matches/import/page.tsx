@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export default async function MatchImportPage() {
   const session = await getCurrentSession();
   if (!session || !canUseScoreInput(session.role)) {
-    redirect("/matches");
+    redirect("/matches?flash=forbidden");
   }
 
   const tournaments = await fetchTournamentOptions();

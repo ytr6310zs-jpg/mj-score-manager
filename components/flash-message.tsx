@@ -8,7 +8,10 @@ const MESSAGES: Record<string, string> = {
   updated: "対局を編集しました。",
   invalidDate: "日付範囲が不正のため、修正してください。",
   yakumanDeleted: "役満を削除しました。",
+  forbidden: "この操作を行う権限がありません。",
 };
+
+const WARNING_FLASH_TYPES = new Set(["forbidden", "invalidDate"]);
 
 const AUTO_DISMISS_MS = 5000;
 
@@ -17,6 +20,7 @@ export function FlashMessage() {
   const searchParams = useSearchParams();
   const flash = searchParams.get("flash");
   const [displayMessage, setDisplayMessage] = useState<string | null>(null);
+  const [flashType, setFlashType] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -28,6 +32,7 @@ export function FlashMessage() {
       clearTimeout(timerRef.current);
     }
 
+    setFlashType(type);
     setDisplayMessage(message);
     setVisible(true);
     timerRef.current = setTimeout(() => setVisible(false), AUTO_DISMISS_MS);
@@ -65,19 +70,31 @@ export function FlashMessage() {
 
   if (!visible || !displayMessage) return null;
 
+  const isWarning = flashType !== null && WARNING_FLASH_TYPES.has(flashType);
+
   return (
     <div
-      role="status"
-      aria-live="polite"
+      role={isWarning ? "alert" : "status"}
+      aria-live={isWarning ? "assertive" : "polite"}
       className="fixed top-6 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-4 duration-300"
     >
-      <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-white px-5 py-3 shadow-lg">
-        <span className="text-emerald-600">✓</span>
-        <p className="text-sm font-medium text-emerald-900">{displayMessage}</p>
+      <div
+        className={
+          isWarning
+            ? "flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-5 py-3 shadow-lg"
+            : "flex items-center gap-3 rounded-lg border border-emerald-200 bg-white px-5 py-3 shadow-lg"
+        }
+      >
+        <span className={isWarning ? "text-amber-700" : "text-emerald-600"} aria-hidden>
+          {isWarning ? "!" : "✓"}
+        </span>
+        <p className={isWarning ? "text-sm font-medium text-amber-950" : "text-sm font-medium text-emerald-900"}>
+          {displayMessage}
+        </p>
         <button
           type="button"
           onClick={() => setVisible(false)}
-          className="ml-2 text-emerald-500 hover:text-emerald-800"
+          className={isWarning ? "ml-2 text-amber-600 hover:text-amber-900" : "ml-2 text-emerald-500 hover:text-emerald-800"}
           aria-label="閉じる"
         >
           ✕
