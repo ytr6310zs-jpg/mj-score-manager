@@ -2,11 +2,12 @@
 
 import { useRef, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 
 import { addPlayerAction, type AddPlayerState } from "@/app/player-actions";
+import { ActionFeedback } from "@/components/action-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useActionState } from "react";
 
 const initialState: AddPlayerState = { success: false, message: "" };
 
@@ -26,17 +27,20 @@ export function PlayerAddForm() {
     });
   };
 
-  // refresh list when addition succeeded (run once on state change)
   useEffect(() => {
     if (state.success) {
+      formRef.current?.reset();
       router.refresh();
     }
   }, [state.success, router]);
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex gap-2 mb-6">
-      <Input name="name" placeholder="新しいプレイヤー名" />
-      <Button type="submit">{isPending ? "追加中..." : "追加"}</Button>
+    <form ref={formRef} onSubmit={handleSubmit} className="mb-6 flex flex-wrap items-center gap-2">
+      <Input name="name" aria-label="新しいプレイヤー名" placeholder="新しいプレイヤー名" />
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "追加中..." : "追加"}
+      </Button>
+      <ActionFeedback success={state.success} message={state.message} className="self-center" />
     </form>
   );
 }

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { AdminFeedbackRegion } from "@/components/admin-feedback-region";
 import { AppHeader } from "@/components/app-header";
 import { TournamentAddForm } from "@/components/tournament-add-form";
 import { TournamentDeleteButton } from "@/components/tournament-delete-button";
@@ -23,36 +24,38 @@ export default async function TournamentsAdminPage() {
               <CardTitle>大会管理</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">大会の追加・編集・削除を行います。</p>
+              <AdminFeedbackRegion>
+                <p className="mb-4 text-sm text-muted-foreground">大会の追加・編集・削除を行います。</p>
 
-              <TournamentAddForm />
+                <TournamentAddForm />
 
-              <div className="overflow-x-auto">
-                <table className="w-full table-auto border-collapse">
-                  <thead>
-                    <tr className="border-b text-left text-sm text-muted-foreground">
-                      <th className="py-2">大会名</th>
-                      <th className="py-2">作成日</th>
-                      <th className="py-2">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tournaments.map((tournament) => (
-                      <tr key={tournament.id} className="border-b">
-                        <td className="py-2">
-                          <TournamentEditForm id={tournament.id} initialName={tournament.name} />
-                        </td>
-                        <td className="py-2 text-sm text-muted-foreground">
-                          {tournament.created_at ? new Date(tournament.created_at).toLocaleString() : "-"}
-                        </td>
-                        <td className="py-2">
-                          <TournamentDeleteButton id={tournament.id} />
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full table-auto border-collapse">
+                    <thead>
+                      <tr className="border-b text-left text-sm text-muted-foreground">
+                        <th className="py-2">大会名</th>
+                        <th className="py-2">作成日</th>
+                        <th className="py-2">操作</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {tournaments.map((tournament) => (
+                        <tr key={tournament.id} className="border-b">
+                          <td className="py-2">
+                            <TournamentEditForm id={tournament.id} initialName={tournament.name} />
+                          </td>
+                          <td className="py-2 text-sm text-muted-foreground">
+                            {tournament.created_at ? new Date(tournament.created_at).toLocaleString() : "-"}
+                          </td>
+                          <td className="py-2">
+                            <TournamentDeleteButton id={tournament.id} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </AdminFeedbackRegion>
             </CardContent>
           </Card>
         </div>

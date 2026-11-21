@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useTransition } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
 
 import { addYakumanTypeAction, type YakumanTypeActionState } from "@/app/yakuman-types-actions";
+import { ActionFeedback } from "@/components/action-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useActionState } from "react";
 
 const initialState: YakumanTypeActionState = { success: false, message: "" };
 
@@ -28,23 +28,27 @@ export function YakumanAddForm() {
 
   useEffect(() => {
     if (state.success) {
+      formRef.current?.reset();
       router.refresh();
     }
   }, [state.success, router]);
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-2 mb-6 max-w-lg">
+    <form ref={formRef} onSubmit={handleSubmit} className="mb-6 flex max-w-lg flex-col gap-2">
       <div className="flex gap-2">
-        <Input name="code" placeholder="コード (例: DA)" />
-        <Input name="name" placeholder="役名 (例: 大三元)" />
+        <Input name="code" aria-label="コード" placeholder="コード (例: DA)" />
+        <Input name="name" aria-label="役名" placeholder="役名 (例: 大三元)" />
       </div>
       <div className="flex gap-2">
-        <Input name="points" placeholder="点数 (例: 32000)" />
-        <Input name="sort_order" placeholder="表示順 (数値)" />
+        <Input name="points" aria-label="点数" placeholder="点数 (例: 32000)" />
+        <Input name="sort_order" aria-label="表示順" placeholder="表示順 (数値)" />
       </div>
-      <Input name="description" placeholder="説明 (任意)" />
-      <div>
-        <Button type="submit">{isPending ? "追加中..." : "追加"}</Button>
+      <Input name="description" aria-label="説明" placeholder="説明 (任意)" />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" disabled={isPending}>
+          {isPending ? "追加中..." : "追加"}
+        </Button>
+        <ActionFeedback success={state.success} message={state.message} />
       </div>
     </form>
   );

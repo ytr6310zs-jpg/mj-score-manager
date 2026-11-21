@@ -165,30 +165,3 @@ export async function deleteYakumanTypeAction(
   }
 }
 
-// lightweight form adapters
-import { redirect } from "next/navigation";
-
-export async function addYakumanTypeFormAction(formData: FormData) {
-  const res = await addYakumanTypeAction(undefined, formData);
-  if (res.success) {
-    // navigate to the list to ensure the UI shows the saved state
-    redirect("/admin/yakumans");
-  }
-  return;
-}
-export async function editYakumanTypeFormAction(formData: FormData) {
-  const res = await editYakumanTypeAction(undefined, formData);
-  if (res.success) {
-    // refresh the admin list view after successful edit
-    redirect("/admin/yakumans");
-  }
-  return;
-}
-export async function deleteYakumanTypeFormAction(formData: FormData) {
-  const res = await deleteYakumanTypeAction(undefined, formData);
-  if (res.success) {
-    // navigate back to the list so the disabled item is no longer shown as active
-    redirect("/admin/yakumans");
-  }
-  return;
-}

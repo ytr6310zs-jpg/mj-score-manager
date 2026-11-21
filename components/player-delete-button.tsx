@@ -4,7 +4,8 @@ import { useActionState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { deletePlayerAction, type DeletePlayerState } from "@/app/player-actions";
-import { Button } from "@/components/ui/button";
+import { useAdminFeedback } from "@/components/admin-feedback-region";
+import { ConfirmDeleteControl } from "@/components/confirm-delete-control";
 
 const initialState: DeletePlayerState = {
   success: false,
@@ -17,19 +18,17 @@ type Props = {
 
 export function PlayerDeleteButton({ id }: Props) {
   const router = useRouter();
+  const { setFeedback } = useAdminFeedback();
   const [state, formAction] = useActionState(deletePlayerAction, initialState);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (state.success) {
-      // For admin UI we do not show a deletion flash; simply refresh the list.
-      router.refresh();
-    }
-  }, [state.success, router]);
+    if (!state.success || !state.message) return;
+    setFeedback({ success: true, message: state.message });
+    router.refresh();
+  }, [state.success, state.message, setFeedback, router]);
 
-  const handleDelete = () => {
-    if (!window.confirm("このプレイヤーを削除してもよろしいですか？")) return;
-
+  const handleConfirm = () => {
     const formData = new FormData();
     formData.append("id", String(id));
     startTransition(() => {
@@ -38,18 +37,11 @@ export function PlayerDeleteButton({ id }: Props) {
   };
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={handleDelete}
-        disabled={isPending}
-        className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-      >
-        {isPending ? "削除中..." : "削除"}
-      </Button>
-      {!state.success && state.message ? <p className="mt-1 text-xs text-destructive">{state.message}</p> : null}
-    </>
+    <ConfirmDeleteControl
+      confirmMessage="このプレイヤーを削除してもよろしいですか？"
+      pending={isPending}
+      onConfirm={handleConfirm}
+      errorMessage={!state.success && state.message ? state.message : undefined}
+    />
   );
 }
