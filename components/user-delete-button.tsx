@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useTransition } from "react";
 
 import { deleteUserAction, type UserActionState } from "@/app/user-actions";
-import { Button } from "@/components/ui/button";
+import { useAdminFeedback } from "@/components/admin-feedback-region";
+import { ConfirmDeleteControl } from "@/components/confirm-delete-control";
 
 const initialState: UserActionState = { success: false, message: "" };
 
@@ -14,18 +15,17 @@ type Props = {
 
 export function UserDeleteButton({ id }: Props) {
   const router = useRouter();
+  const { setFeedback } = useAdminFeedback();
   const [state, formAction] = useActionState(deleteUserAction, initialState);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (state.success) {
-      router.refresh();
-    }
-  }, [router, state.success]);
+    if (!state.success || !state.message) return;
+    setFeedback({ success: true, message: state.message });
+    router.refresh();
+  }, [state.success, state.message, setFeedback, router]);
 
-  function handleDelete() {
-    if (!window.confirm("このユーザーを削除しますか？")) return;
-
+  function handleConfirm() {
     const formData = new FormData();
     formData.append("id", String(id));
     startTransition(() => {
@@ -34,18 +34,11 @@ export function UserDeleteButton({ id }: Props) {
   }
 
   return (
-    <div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        disabled={isPending}
-        className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-        onClick={handleDelete}
-      >
-        {isPending ? "削除中..." : "削除"}
-      </Button>
-      {!state.success && state.message ? <p className="mt-1 text-xs text-destructive">{state.message}</p> : null}
-    </div>
+    <ConfirmDeleteControl
+      confirmMessage="このユーザーを削除しますか？"
+      pending={isPending}
+      onConfirm={handleConfirm}
+      errorMessage={!state.success && state.message ? state.message : undefined}
+    />
   );
 }

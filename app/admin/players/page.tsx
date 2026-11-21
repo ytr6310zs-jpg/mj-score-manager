@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentSession } from "@/lib/session";
 
+import { AdminFeedbackRegion } from "@/components/admin-feedback-region";
 import { PlayerAddForm } from "@/components/player-add-form";
 import { PlayerDeleteButton } from "@/components/player-delete-button";
 import { PlayerEditForm } from "@/components/player-edit-form";
@@ -48,37 +49,38 @@ export default async function PlayersAdminPage() {
               <CardTitle>プレイヤー管理</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">プレイヤーの追加・編集・削除を行います。</p>
+              <AdminFeedbackRegion>
+                <p className="mb-4 text-sm text-muted-foreground">プレイヤーの追加・編集・削除を行います。</p>
 
-              {/* client-side add form so we can refresh list after addition */}
-              <PlayerAddForm />
+                <PlayerAddForm />
 
-              <div className="overflow-x-auto">
-                <table className="w-full table-auto border-collapse">
-                  <thead>
-                    <tr className="text-left text-sm text-muted-foreground border-b">
-                      <th className="py-2">名前</th>
-                      <th className="py-2">作成日</th>
-                      <th className="py-2">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {players.map((p) => (
-                      <tr key={p.id} className="border-b">
-                        <td className="py-2">
-                          <PlayerEditForm id={p.id} initialName={p.name} />
-                        </td>
-                        <td className="py-2 text-sm text-muted-foreground">
-                          {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
-                        </td>
-                        <td className="py-2">
-                          <PlayerDeleteButton id={p.id} />
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full table-auto border-collapse">
+                    <thead>
+                      <tr className="border-b text-left text-sm text-muted-foreground">
+                        <th className="py-2">名前</th>
+                        <th className="py-2">作成日</th>
+                        <th className="py-2">操作</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {players.map((p) => (
+                        <tr key={p.id} className="border-b">
+                          <td className="py-2">
+                            <PlayerEditForm id={p.id} initialName={p.name} />
+                          </td>
+                          <td className="py-2 text-sm text-muted-foreground">
+                            {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
+                          </td>
+                          <td className="py-2">
+                            <PlayerDeleteButton id={p.id} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </AdminFeedbackRegion>
             </CardContent>
           </Card>
         </div>

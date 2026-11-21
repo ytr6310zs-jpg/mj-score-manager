@@ -1,6 +1,7 @@
 "use client";
 
 import { editTournamentAction, type TournamentActionState } from "@/app/tournament-actions";
+import { ActionFeedback } from "@/components/action-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
@@ -41,13 +42,13 @@ export function TournamentEditForm({ id, initialName }: Props) {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex items-center gap-2">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
       <input name="id" type="hidden" value={String(id)} />
-      <Input name="name" defaultValue={initialName} />
+      <Input name="name" aria-label="大会名" defaultValue={initialName} />
       <Button type="submit" size="sm" disabled={isPending}>
         {isPending ? "保存中..." : "保存"}
       </Button>
-      {!state.success && state.message ? <p className="text-xs text-destructive">{state.message}</p> : null}
+      <ActionFeedback success={state.success} message={state.message} />
     </form>
   );
 }

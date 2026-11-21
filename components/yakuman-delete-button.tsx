@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useTransition } from "react";
 
 import { deleteYakumanTypeAction, type YakumanTypeActionState } from "@/app/yakuman-types-actions";
-import { Button } from "@/components/ui/button";
+import { useAdminFeedback } from "@/components/admin-feedback-region";
+import { ConfirmDeleteControl } from "@/components/confirm-delete-control";
 
 const initialState: YakumanTypeActionState = { success: false, message: "" };
 
@@ -14,15 +15,17 @@ type Props = {
 
 export function YakumanDeleteButton({ id }: Props) {
   const router = useRouter();
+  const { setFeedback } = useAdminFeedback();
   const [state, formAction] = useActionState(deleteYakumanTypeAction, initialState);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (state.success) router.refresh();
-  }, [state.success, router]);
+    if (!state.success || !state.message) return;
+    setFeedback({ success: true, message: state.message });
+    router.refresh();
+  }, [state.success, state.message, setFeedback, router]);
 
-  const handleDelete = () => {
-    if (!window.confirm("この役満種別を削除してもよろしいですか？")) return;
+  const handleConfirm = () => {
     const fd = new FormData();
     fd.append("id", String(id));
     startTransition(() => {
@@ -31,18 +34,11 @@ export function YakumanDeleteButton({ id }: Props) {
   };
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={handleDelete}
-        disabled={isPending}
-        className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-      >
-        {isPending ? "削除中..." : "削除"}
-      </Button>
-      {!state.success && state.message ? <p className="mt-1 text-xs text-destructive">{state.message}</p> : null}
-    </>
+    <ConfirmDeleteControl
+      confirmMessage="この役満種別を削除してもよろしいですか？"
+      pending={isPending}
+      onConfirm={handleConfirm}
+      errorMessage={!state.success && state.message ? state.message : undefined}
+    />
   );
 }

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { AdminFeedbackRegion } from "@/components/admin-feedback-region";
 import { AppHeader } from "@/components/app-header";
 import { UserAddForm } from "@/components/user-add-form";
 import { UserDeleteButton } from "@/components/user-delete-button";
@@ -23,23 +24,31 @@ export default async function UsersAdminPage() {
               <CardTitle>ユーザー管理</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">ユーザーの追加・編集・削除を行います。</p>
+              <AdminFeedbackRegion>
+                <p className="mb-4 text-sm text-muted-foreground">ユーザーの追加・編集・削除を行います。</p>
 
-              <UserAddForm />
+                <UserAddForm />
 
-              <div className="space-y-4">
-                {users.map((user) => (
-                  <div key={user.id} className="rounded-md border p-3">
-                    <p className="mb-2 text-xs text-muted-foreground">
-                      ユーザーID: {user.userId} / 作成日: {user.createdAt ? new Date(user.createdAt).toLocaleString() : "-"}
-                    </p>
-                    <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
-                      <UserEditForm id={user.id} displayName={user.displayName} role={user.role} isActive={user.isActive} />
-                      <UserDeleteButton id={user.id} />
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <div key={user.id} className="rounded-md border p-3">
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        ユーザーID: {user.userId} / 作成日:{" "}
+                        {user.createdAt ? new Date(user.createdAt).toLocaleString() : "-"}
+                      </p>
+                      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
+                        <UserEditForm
+                          id={user.id}
+                          displayName={user.displayName}
+                          role={user.role}
+                          isActive={user.isActive}
+                        />
+                        <UserDeleteButton id={user.id} />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </AdminFeedbackRegion>
             </CardContent>
           </Card>
         </div>

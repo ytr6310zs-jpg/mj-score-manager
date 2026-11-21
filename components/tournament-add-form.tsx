@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useTransition } from "react";
 
 import { addTournamentAction, type TournamentActionState } from "@/app/tournament-actions";
+import { ActionFeedback } from "@/components/action-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -27,15 +28,18 @@ export function TournamentAddForm() {
 
   useEffect(() => {
     if (state.success) {
+      formRef.current?.reset();
       router.refresh();
     }
   }, [state.success, router]);
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="mb-6 flex gap-2">
-      <Input name="name" placeholder="新しい大会名" />
-      <Button type="submit">{isPending ? "追加中..." : "追加"}</Button>
-      {!state.success && state.message ? <p className="self-center text-xs text-destructive">{state.message}</p> : null}
+    <form ref={formRef} onSubmit={handleSubmit} className="mb-6 flex flex-wrap items-center gap-2">
+      <Input name="name" aria-label="新しい大会名" placeholder="新しい大会名" />
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "追加中..." : "追加"}
+      </Button>
+      <ActionFeedback success={state.success} message={state.message} className="self-center" />
     </form>
   );
 }
